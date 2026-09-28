@@ -212,7 +212,7 @@ respond @options 204</code></pre>
     </details>
 
     <details><summary>A channel is a black screen, or takes a while to start. What gives?</summary>
-      <div><p>First, make sure you're on the latest version. Older builds couldn't play HEVC/H.265 or mkv and would sit on a black screen. They play fine now. A few seconds of the "tuning" screen at the start is normal too: anything that isn't directly playable gets transcoded by your server, and that takes a moment to spin up. If a channel never starts, check that transcoding is turned on (Jellyfin: Dashboard &rarr; Playback).</p></div>
+      <div><p>First, make sure you're on the latest version. Older builds couldn't play HEVC/H.265 or mkv and would sit on a black screen, and on tvOS 26 anything the server had to convert would freeze on one frame. 1.0.21 fixed both and was tested against MKV, MP4, AVI, AV1, VC-1, 4K and HDR files. A few seconds of the "tuning" screen at the start is normal too: anything that isn't directly playable gets transcoded by your server, and that takes a moment to spin up. If a channel never starts, check that transcoding is turned on (Jellyfin: Dashboard &rarr; Playback). If one specific title never plays but everything else does, it's almost always a file the server itself can't read (an unmounted drive is the usual culprit). Try it in Plex Web or the Jellyfin web player: if it fails there too, it isn't the app.</p></div>
     </details>
         </section>
 
@@ -222,6 +222,7 @@ respond @options 204</code></pre>
     <ul>
       <li>Type the whole URL with the scheme: <code>https://your-server</code>.</li>
       <li>On the web tuner the server has to be https-reachable. A raw IP or http LAN address won't fly in a browser, so use the Apple TV app for those.</li>
+      <li>On the Apple TV app, a plain <code>http://</code> address on a VPN like Tailscale (the <code>100.x.x.x</code> ones) is blocked by tvOS on 1.0.21 and earlier, even though other apps allow it. Fixed in 1.0.22. Until then, use an https address: on the server, <code>tailscale serve --bg 8096</code> gives you one.</li>
       <li>Running behind a reverse proxy? Jump to <a href="#cors">Reverse proxy &amp; CORS</a>.</li>
     </ul>
     <h3>"Could not load library"</h3>
