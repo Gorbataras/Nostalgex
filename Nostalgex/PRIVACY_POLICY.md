@@ -31,6 +31,7 @@ This is the complete list of events the app can send.
 - Connect started, with the backend and the method (`pin`, `password`, or `quick_connect`)
 - Connect completed, with the backend and the number of reachable servers found
 - Connect failed, with the backend and a short reason code (for example `no_reachable_server`, `jellyfin_auth_failed`, `emby_unreachable`)
+- Connect diagnostics, not linked to you: failures carry a reason from a fixed list (for example `connection_refused`, `auth_invalid_credentials`, `quick_connect_disabled`), the method, a bucketed try count and duration, a numeric error code, and for Jellyfin and Emby whether the typed address had a scheme, port or path plus its kind (such as `private_ipv4` or `hostname`), worked out on the Apple TV. The address itself is never sent. A completed connect carries how many tries failed before it and the first failure's reason
 - Connect cancelled, with the backend and the method (the user tapped Cancel)
 - Connect code expired, with the backend and the method (PIN or Quick Connect timed out)
 - Server picker confirmed, with the number of servers the user chose to include
