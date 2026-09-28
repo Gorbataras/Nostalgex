@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nostalgex for Apple TV - Channels for Plex, Jellyfin &amp; Emby</title>
+<meta name="description" content="Nostalgex is now on Apple TV. A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide. Free.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.nostalgex.app/">
+<link rel="icon" type="image/png" href="./logo/favicon.png">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Nostalgex for Apple TV - Channels for Plex, Jellyfin &amp; Emby">
+<meta property="og:description" content="A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide. Free on the big screen.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.nostalgex.app/">
+<meta property="og:site_name" content="Nostalgex">
+<meta property="og:image" content="https://www.nostalgex.app/og-image.png">
+<meta property="og:image:alt" content="Nostalgex retro TV logo">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Nostalgex for Apple TV - Channels for Plex, Jellyfin &amp; Emby">
+<meta name="twitter:description" content="A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide. Free.">
+<meta name="twitter:image" content="https://www.nostalgex.app/og-image.png">
+
+<script>
+  /* Theme boot — runs before first paint so there's no flash on reload.
+     Flip DEFAULT_THEME to "light" to change the site default (one line).
+     ?theme=dark / ?theme=light in the URL previews a theme without saving it. */
+  (function () {
+    var DEFAULT_THEME = "dark";
+    var theme = null;
+    try { theme = localStorage.getItem("nostalgex-theme-v2"); } catch (e) {}
+    var q = /[?&]theme=(dark|light)/.exec(location.search);
+    if (q) theme = q[1];
+    if (theme !== "dark" && theme !== "light") theme = DEFAULT_THEME;
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+<script defer src="https://data-haus.vercel.app/track.js" data-site="f5b3399a2c57176a"></script>
+<script defer data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Nostalgex for Apple TV",
+  "url": "https://www.nostalgex.app/",
+  "applicationCategory": "MultimediaApplication",
+  "applicationSubCategory": "Plex, Jellyfin and Emby channel guide",
+  "operatingSystem": "tvOS 18.0 or later",
+  "description": "A native tvOS app that turns your Plex, Jellyfin, or Emby library into over a hundred retro channels with a real channel guide and a fresh daily schedule. Free, and it works with whichever of the three servers you already run.",
+  "image": "https://www.nostalgex.app/og-image.png",
+  "downloadUrl": "https://apps.apple.com/app/nostalgex/id6762563534",
+  "installUrl": "https://apps.apple.com/app/nostalgex/id6762563534",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Muell Haus Inc.",
+    "url": "https://www.muellhaus.com/"
+  }
+}
+</script>
+</head>
+<body>
+
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top" aria-label="Nostalgex home">
+        <span class="brand-word" role="img" aria-label="Nostalgex">N<svg class="brand-o" viewBox="0 0 126 111" aria-hidden="true"><defs><linearGradient id="brandSun" x1="0" y1="0" x2="1" y2="0.35"><stop offset="0.05" stop-color="#f838ac"/><stop offset="0.5" stop-color="#ff8a3d"/><stop offset="0.95" stop-color="#ffd91c"/></linearGradient></defs><rect x="6" y="6" width="114" height="99" rx="30" fill="url(#brandSun)" stroke="currentColor" stroke-width="11"/><path d="M12 43 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/><path d="M12 70 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>STALGEX</span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#how">How it works</a>
+        <a href="#guide">The guide</a>
+        <a href="#lineup">Lineup</a>
+        <a href="#faq">FAQ</a>
+        <button class="nav-link-btn" type="button" data-changelog-open>What's new</button>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-outline btn-sm" href="/web-tuner">Web app</a>
+        <a class="btn btn-ink btn-sm" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Get the tvOS app</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="true" aria-label="Switch to day mode" title="Switch to day mode">
+          <svg class="tt-icon tt-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/>
+          </svg>
+          <svg class="tt-icon tt-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.3 8.3 0 1 0 10.5 10.5z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-copy reveal">
+          <h1>
+            <span class="h1-line">Your library.</span>
+            <span class="h1-line">Now it's
+              <span class="grad-word">cable.
+                <svg class="doodle doodle-burst" viewBox="0 0 90 74" aria-hidden="true">
+                  <path d="M12 62 L30 46 M8 38 L26 34 M22 14 L34 26 M48 6 L48 22 M74 12 L62 26" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+                </svg>
+              </span>
+            </span>
+          </h1>
+          <p class="hero-sub">Nostalgex turns your Plex, Jellyfin, or Emby collection into live TV channels with a real channel guide. Flip around. Land on something. Watch it like it's Friday night in 1996.</p>
+          <div class="cta-block">
+            <svg class="doodle doodle-arrow" viewBox="0 0 120 70" aria-hidden="true">
+              <path d="M112 8 C86 34 58 46 18 48" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M32 36 L16 49 L34 58" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="cta-row">
+              <a class="btn btn-ink btn-lg" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c-.03-2.89 2.36-4.28 2.47-4.35-1.35-1.97-3.44-2.24-4.18-2.27-1.78-.18-3.47 1.05-4.37 1.05-.9 0-2.29-1.02-3.77-.99-1.94.03-3.73 1.13-4.72 2.86-2.02 3.5-.52 8.67 1.45 11.51.96 1.39 2.1 2.95 3.6 2.9 1.45-.06 1.99-.93 3.74-.93s2.24.93 3.77.9c1.56-.03 2.54-1.41 3.49-2.81 1.1-1.61 1.55-3.17 1.58-3.25-.04-.02-3.03-1.16-3.06-4.62zM14.16 4.06c.8-.97 1.34-2.31 1.19-3.65-1.15.05-2.55.77-3.37 1.73-.74.86-1.39 2.23-1.22 3.54 1.29.1 2.6-.65 3.4-1.62z"/></svg>
+                Get it on Apple TV
+              </a>
+              <a class="btn btn-paper btn-lg" href="/web-tuner">Try the web tuner, free</a>
+            </div>
+          </div>
+          <p class="hero-note">Plex, Jellyfin, and Emby. All three, right on Apple TV.</p>
+        </div>
+
+        <div class="hero-shot reveal delay-1">
+          <figure class="shot shot-tilt-r">
+            <span class="sticker sticker-ch" aria-hidden="true">CH 03</span>
+            <img src="/screens/guide-hero.webp" alt="The Nostalgex channel guide on Apple TV: Black Sheep airing on channel 3, with a full lineup of channels below" width="3840" height="2160">
+          </figure>
+          <p class="shot-caption">The actual app. Channels built from a real library.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HOW IT WORKS ============ -->
+    <section class="section" id="how">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2>Three steps. Then you're just <span class="underline-pink">watching TV</span>.</h2>
+        </div>
+        <ol class="steps reveal">
+          <li class="step">
+            <span class="step-num">01</span>
+            <h3>Point it at your server</h3>
+            <p>Connect Plex, Jellyfin, or Emby, on Apple TV or in the browser. Nostalgex talks straight to your server. That's the whole setup.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">02</span>
+            <h3>Channels build themselves</h3>
+            <p>Your library gets sorted into channels automatically. Saturday morning cartoons, 90s sitcoms, the VHS vault, the stuff you rewatch constantly. No playlists to make.</p>
+          </li>
+          <li class="step">
+            <span class="step-num">03</span>
+            <h3>Start flipping</h3>
+            <p>Pull up the guide, pick a channel, or just surf. Everything is already playing. You drop in mid-movie like real TV, because that was half the fun.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ CHANNEL GUIDE (navy block) ============ -->
+    <section class="section section-navy" id="guide">
+      <div class="container">
+        <div class="guide-grid">
+          <div class="guide-copy reveal">
+            <h2>The channel guide is the <span class="mark-yellow">whole point.</span></h2>
+            <p>Streaming apps give you ten thousand posters and no opinion. A channel guide gives you a lineup. Something is on channel 12 right now, and something else is on at 10.</p>
+            <p>Nostalgex builds that lineup from your own collection. Scroll the grid, see what's on, and commit. No trailers, no autoplay previews, no forty minutes of browsing.</p>
+            <ul class="check-list">
+              <li>Live schedule across every channel, all day</li>
+              <li>Drop into whatever is airing right now</li>
+              <li>A fresh schedule every day, built from your own collection</li>
+            </ul>
+          </div>
+          <figure class="shot shot-flat reveal delay-1">
+            <img src="/screens/lineup.webp" alt="The Nostalgex guide grid: The Brave Little Toaster airing on Action Adventure, with Retro Toons, Teen Movies, and Family Hour in the lineup" width="3840" height="2160" loading="lazy">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ COFFEE CTA (above the lineup) ============ -->
+    <section class="section-coffee">
+      <div class="container">
+        <div class="cta-card cta-card--cyan cta-card--split cta-card--live reveal">
+          <span class="cta-sticker" aria-hidden="true">Tip jar</span>
+          <div class="cta-copy">
+            <h2>Nostalgex is free. Always has been.</h2>
+            <p>No ads, no account, no upsell screen. If it gave you a good Friday night, a coffee keeps the channels coming.</p>
+          </div>
+          <div class="cta-action">
+            <a class="btn btn-ink btn-lg" href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                <path d="M4 8h12v5a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8z"/>
+                <path d="M16 9h2a2 2 0 0 1 0 4h-2"/>
+                <path d="M7 3v2M11 3v2"/>
+              </svg>
+              Buy me a coffee
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ LINEUP (bundles) ============
+         Groups are generated from channels.json by scripts/render-lineup.mjs.
+         app.js turns each .lineup__group into a collapsible bundle. -->
+    <section class="section section-lineup" id="lineup">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2>The full lineup. All <span class="underline-pink"><span data-lineup-bundles>13</span> bundles</span>.</h2>
+          <p class="lineup-sub">Over a hundred channels, sorted into bundles like the back of a cable bill. Every one builds itself from your library.</p>
+        </div>
+        <div class="lineup-card reveal">
+          <div class="lineup-card-head">
+            <span>Nostalgex channel lineup</span>
+            <span><span data-lineup-channels>121</span> channels</span>
+          </div>
+    <!-- LINEUP:START (auto-generated from channels.json — run scripts/render-lineup.mjs) -->
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">NOSTALGEX</span>
+        <span class="lineup__group-count">15 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#FFE500;"><span class="lineup__num" style="color:#FFE500;">1</span><span class="lineup__name">REWATCHABLES MOVIES</span></div>
+        <div class="lineup__item" style="border-color:#FFD000;"><span class="lineup__num" style="color:#FFD000;">2</span><span class="lineup__name">REWATCHABLES TV</span></div>
+        <div class="lineup__item" style="border-color:#F1C40F;"><span class="lineup__num" style="color:#F1C40F;">3</span><span class="lineup__name">NOSTALGEX LOL</span></div>
+        <div class="lineup__item" style="border-color:#00DD88;"><span class="lineup__num" style="color:#00DD88;">4</span><span class="lineup__name">SAT MORNING CARTOONS</span></div>
+        <div class="lineup__item" style="border-color:#9B59B6;"><span class="lineup__num" style="color:#9B59B6;">5</span><span class="lineup__name">90S SITCOMS</span></div>
+        <div class="lineup__item" style="border-color:#F39C12;"><span class="lineup__num" style="color:#F39C12;">6</span><span class="lineup__name">AFTER SCHOOL TV</span></div>
+        <div class="lineup__item" style="border-color:#E67E22;"><span class="lineup__num" style="color:#E67E22;">7</span><span class="lineup__name">VHS VAULT</span></div>
+        <div class="lineup__item" style="border-color:#E05A32;"><span class="lineup__num" style="color:#E05A32;">8</span><span class="lineup__name">CLASSIC FAM JAMS</span></div>
+        <div class="lineup__item" style="border-color:#FF85A1;"><span class="lineup__num" style="color:#FF85A1;">9</span><span class="lineup__name">GIRLS NIGHT</span></div>
+        <div class="lineup__item" style="border-color:#FF5E8A;"><span class="lineup__num" style="color:#FF5E8A;">10</span><span class="lineup__name">TEEN MOVIES</span></div>
+        <div class="lineup__item" style="border-color:#2DC7B0;"><span class="lineup__num" style="color:#2DC7B0;">11</span><span class="lineup__name">RETRO TOONS</span></div>
+        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">12</span><span class="lineup__name">ACTION ADVENTURE</span></div>
+        <div class="lineup__item" style="border-color:#B7410E;"><span class="lineup__num" style="color:#B7410E;">13</span><span class="lineup__name">LAST ACTION HEROES</span></div>
+        <div class="lineup__item" style="border-color:#F39C12;"><span class="lineup__num" style="color:#F39C12;">14</span><span class="lineup__name">BUDDIES</span></div>
+        <div class="lineup__item" style="border-color:#00BFFF;"><span class="lineup__num" style="color:#00BFFF;">15</span><span class="lineup__name">CARTOON NETWORK</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">KIDZ ZONE</span>
+        <span class="lineup__group-count">16 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#00C4FF;"><span class="lineup__num" style="color:#00C4FF;">20</span><span class="lineup__name">FAMILY HOUR</span></div>
+        <div class="lineup__item" style="border-color:#7B2FBE;"><span class="lineup__num" style="color:#7B2FBE;">21</span><span class="lineup__name">DIZ FLICKS</span></div>
+        <div class="lineup__item" style="border-color:#9C27B0;"><span class="lineup__num" style="color:#9C27B0;">22</span><span class="lineup__name">DIZNEY TOONS</span></div>
+        <div class="lineup__item" style="border-color:#7B68EE;"><span class="lineup__num" style="color:#7B68EE;">23</span><span class="lineup__name">DIZ JUNIOR</span></div>
+        <div class="lineup__item" style="border-color:#AB47BC;"><span class="lineup__num" style="color:#AB47BC;">24</span><span class="lineup__name">DIZ TV</span></div>
+        <div class="lineup__item" style="border-color:#FF5722;"><span class="lineup__num" style="color:#FF5722;">25</span><span class="lineup__name">ANIMATION</span></div>
+        <div class="lineup__item" style="border-color:#FF6600;"><span class="lineup__num" style="color:#FF6600;">26</span><span class="lineup__name">SLIME TV</span></div>
+        <div class="lineup__item" style="border-color:#00B894;"><span class="lineup__num" style="color:#00B894;">27</span><span class="lineup__name">PIXAR MOVIES</span></div>
+        <div class="lineup__item" style="border-color:#FDCB6E;"><span class="lineup__num" style="color:#FDCB6E;">28</span><span class="lineup__name">MINION HQ</span></div>
+        <div class="lineup__item" style="border-color:#FF69B4;"><span class="lineup__num" style="color:#FF69B4;">29</span><span class="lineup__name">TWEEN TV</span></div>
+        <div class="lineup__item" style="border-color:#E74C8B;"><span class="lineup__num" style="color:#E74C8B;">30</span><span class="lineup__name">TEEN DRAMA</span></div>
+        <div class="lineup__item" style="border-color:#FF7043;"><span class="lineup__num" style="color:#FF7043;">31</span><span class="lineup__name">FAMILY TV</span></div>
+        <div class="lineup__item" style="border-color:#E50914;"><span class="lineup__num" style="color:#E50914;">32</span><span class="lineup__name">NETFLIX KIDS</span></div>
+        <div class="lineup__item" style="border-color:#1ABC9C;"><span class="lineup__num" style="color:#1ABC9C;">33</span><span class="lineup__name">MILLENNIUM CARTOONS</span></div>
+        <div class="lineup__item" style="border-color:#2ECC71;"><span class="lineup__num" style="color:#2ECC71;">34</span><span class="lineup__name">DREAMWORKS</span></div>
+        <div class="lineup__item" style="border-color:#FF9F1C;"><span class="lineup__num" style="color:#FF9F1C;">35</span><span class="lineup__name">TOON TOWN</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">PRIME TIME</span>
+        <span class="lineup__group-count">14 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#9B59B6;"><span class="lineup__num" style="color:#9B59B6;">40</span><span class="lineup__name">SITCOMS</span></div>
+        <div class="lineup__item" style="border-color:#FF6600;"><span class="lineup__num" style="color:#FF6600;">41</span><span class="lineup__name">FLICKS</span></div>
+        <div class="lineup__item" style="border-color:#FF85A1;"><span class="lineup__num" style="color:#FF85A1;">42</span><span class="lineup__name">ROM COMS</span></div>
+        <div class="lineup__item" style="border-color:#7ED957;"><span class="lineup__num" style="color:#7ED957;">43</span><span class="lineup__name">FEEL GOOD TV</span></div>
+        <div class="lineup__item" style="border-color:#FF4500;"><span class="lineup__num" style="color:#FF4500;">44</span><span class="lineup__name">REALITY TV</span></div>
+        <div class="lineup__item" style="border-color:#2E86C1;"><span class="lineup__num" style="color:#2E86C1;">45</span><span class="lineup__name">DOCS</span></div>
+        <div class="lineup__item" style="border-color:#F1C40F;"><span class="lineup__num" style="color:#F1C40F;">46</span><span class="lineup__name">LOL</span></div>
+        <div class="lineup__item" style="border-color:#4A6741;"><span class="lineup__num" style="color:#4A6741;">47</span><span class="lineup__name">MAN CAVE</span></div>
+        <div class="lineup__item" style="border-color:#F39C12;"><span class="lineup__num" style="color:#F39C12;">48</span><span class="lineup__name">BLOCKBUSTER</span></div>
+        <div class="lineup__item" style="border-color:#00E5FF;"><span class="lineup__num" style="color:#00E5FF;">49</span><span class="lineup__name">FRESH</span></div>
+        <div class="lineup__item" style="border-color:#5A3E8A;"><span class="lineup__num" style="color:#5A3E8A;">50</span><span class="lineup__name">DRAMA TV</span></div>
+        <div class="lineup__item" style="border-color:#FF6B35;"><span class="lineup__num" style="color:#FF6B35;">51</span><span class="lineup__name">RECORD STORE</span></div>
+        <div class="lineup__item" style="border-color:#F72585;"><span class="lineup__num" style="color:#F72585;">53</span><span class="lineup__name">PREMIERES</span></div>
+        <div class="lineup__item" style="border-color:#E84393;"><span class="lineup__num" style="color:#E84393;">84</span><span class="lineup__name">R RATED COMEDY</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">MARQUEE</span>
+        <span class="lineup__group-count">11 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#5DADE2;"><span class="lineup__num" style="color:#5DADE2;">59</span><span class="lineup__name">SKETCH COMEDY</span></div>
+        <div class="lineup__item" style="border-color:#FF3D6E;"><span class="lineup__num" style="color:#FF3D6E;">60</span><span class="lineup__name">ANIME</span></div>
+        <div class="lineup__item" style="border-color:#C2185B;"><span class="lineup__num" style="color:#C2185B;">61</span><span class="lineup__name">MUSICALS</span></div>
+        <div class="lineup__item" style="border-color:#FFB300;"><span class="lineup__num" style="color:#FFB300;">62</span><span class="lineup__name">GAME SHOWS</span></div>
+        <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">63</span><span class="lineup__name">ADULT CARTOONS</span></div>
+        <div class="lineup__item" style="border-color:#E74C8B;"><span class="lineup__num" style="color:#E74C8B;">64</span><span class="lineup__name">DATE NIGHT</span></div>
+        <div class="lineup__item" style="border-color:#F5B041;"><span class="lineup__num" style="color:#F5B041;">65</span><span class="lineup__name">STAND-UP</span></div>
+        <div class="lineup__item" style="border-color:#C9A84C;"><span class="lineup__num" style="color:#C9A84C;">66</span><span class="lineup__name">BIOPICS</span></div>
+        <div class="lineup__item" style="border-color:#FFD700;"><span class="lineup__num" style="color:#FFD700;">67</span><span class="lineup__name">ALL TIME GREATS</span></div>
+        <div class="lineup__item" style="border-color:#F56040;"><span class="lineup__num" style="color:#F56040;">68</span><span class="lineup__name">CERTIFIED GOLD</span></div>
+        <div class="lineup__item" style="border-color:#FFD700;"><span class="lineup__num" style="color:#FFD700;">69</span><span class="lineup__name">OSCAR WINNERS</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">ADVENTURELAND</span>
+        <span class="lineup__group-count">10 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#D4A017;"><span class="lineup__num" style="color:#D4A017;">70</span><span class="lineup__name">EPIC ADVENTURES</span></div>
+        <div class="lineup__item" style="border-color:#E67E22;"><span class="lineup__num" style="color:#E67E22;">71</span><span class="lineup__name">DISASTER MOVIES</span></div>
+        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">72</span><span class="lineup__name">RUSH</span></div>
+        <div class="lineup__item" style="border-color:#16A0C8;"><span class="lineup__num" style="color:#16A0C8;">73</span><span class="lineup__name">SCI-FI</span></div>
+        <div class="lineup__item" style="border-color:#8E44AD;"><span class="lineup__num" style="color:#8E44AD;">74</span><span class="lineup__name">FANTASY</span></div>
+        <div class="lineup__item" style="border-color:#B9770E;"><span class="lineup__num" style="color:#B9770E;">75</span><span class="lineup__name">WESTERNS</span></div>
+        <div class="lineup__item" style="border-color:#5D6D7E;"><span class="lineup__num" style="color:#5D6D7E;">76</span><span class="lineup__name">FRONT LINE</span></div>
+        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">77</span><span class="lineup__name">FRIGHT NIGHT</span></div>
+        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">78</span><span class="lineup__name">SUPERHERO MOVIES</span></div>
+        <div class="lineup__item" style="border-color:#34495E;"><span class="lineup__num" style="color:#34495E;">79</span><span class="lineup__name">SPY GAMES</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">OVERTIME</span>
+        <span class="lineup__group-count">3 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#1DB954;"><span class="lineup__num" style="color:#1DB954;">80</span><span class="lineup__name">LOCKERROOM</span></div>
+        <div class="lineup__item" style="border-color:#2ECC71;"><span class="lineup__num" style="color:#2ECC71;">81</span><span class="lineup__name">OVERTIME TV</span></div>
+        <div class="lineup__item" style="border-color:#27AE60;"><span class="lineup__num" style="color:#27AE60;">82</span><span class="lineup__name">SPORTS DOCS</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">CASE FILES</span>
+        <span class="lineup__group-count">5 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#7B241C;"><span class="lineup__num" style="color:#7B241C;">85</span><span class="lineup__name">TRUE CRIME</span></div>
+        <div class="lineup__item" style="border-color:#A93226;"><span class="lineup__num" style="color:#A93226;">86</span><span class="lineup__name">CRIME FLICKS</span></div>
+        <div class="lineup__item" style="border-color:#5B2C6F;"><span class="lineup__num" style="color:#5B2C6F;">87</span><span class="lineup__name">THRILLERS</span></div>
+        <div class="lineup__item" style="border-color:#1A5276;"><span class="lineup__num" style="color:#1A5276;">88</span><span class="lineup__name">MYSTERY</span></div>
+        <div class="lineup__item" style="border-color:#784212;"><span class="lineup__num" style="color:#784212;">89</span><span class="lineup__name">CRIME TV</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">DECADES</span>
+        <span class="lineup__group-count">7 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">90</span><span class="lineup__name">THE 60S</span></div>
+        <div class="lineup__item" style="border-color:#D2691E;"><span class="lineup__num" style="color:#D2691E;">91</span><span class="lineup__name">THE 70S</span></div>
+        <div class="lineup__item" style="border-color:#FF1493;"><span class="lineup__num" style="color:#FF1493;">92</span><span class="lineup__name">THE 80S</span></div>
+        <div class="lineup__item" style="border-color:#00CED1;"><span class="lineup__num" style="color:#00CED1;">93</span><span class="lineup__name">THE 90S</span></div>
+        <div class="lineup__item" style="border-color:#7B68EE;"><span class="lineup__num" style="color:#7B68EE;">94</span><span class="lineup__name">THE 00S</span></div>
+        <div class="lineup__item" style="border-color:#20B2AA;"><span class="lineup__num" style="color:#20B2AA;">95</span><span class="lineup__name">THE 10S</span></div>
+        <div class="lineup__item" style="border-color:#FF6347;"><span class="lineup__num" style="color:#FF6347;">96</span><span class="lineup__name">THE 20S</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">FRANCHISES</span>
+        <span class="lineup__group-count">7 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#FFE81F;"><span class="lineup__num" style="color:#FFE81F;">100</span><span class="lineup__name">STAR WARS</span></div>
+        <div class="lineup__item" style="border-color:#E74C3C;"><span class="lineup__num" style="color:#E74C3C;">101</span><span class="lineup__name">MARVEL</span></div>
+        <div class="lineup__item" style="border-color:#7B68EE;"><span class="lineup__num" style="color:#7B68EE;">102</span><span class="lineup__name">HARRY POTTER</span></div>
+        <div class="lineup__item" style="border-color:#2ECC71;"><span class="lineup__num" style="color:#2ECC71;">103</span><span class="lineup__name">JURASSIC PARK</span></div>
+        <div class="lineup__item" style="border-color:#D4A017;"><span class="lineup__num" style="color:#D4A017;">104</span><span class="lineup__name">LORD OF THE RINGS</span></div>
+        <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">105</span><span class="lineup__name">MISSION IMPOSSIBLE</span></div>
+        <div class="lineup__item" style="border-color:#566573;"><span class="lineup__num" style="color:#566573;">106</span><span class="lineup__name">JASON BOURNE</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">NETWORKS</span>
+        <span class="lineup__group-count">11 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#C0392B;"><span class="lineup__num" style="color:#C0392B;">119</span><span class="lineup__name">MIRAMAX</span></div>
+        <div class="lineup__item" style="border-color:#8B5CF6;"><span class="lineup__num" style="color:#8B5CF6;">120</span><span class="lineup__name">HBO</span></div>
+        <div class="lineup__item" style="border-color:#5AC8FA;"><span class="lineup__num" style="color:#5AC8FA;">121</span><span class="lineup__name">APPLE TV+</span></div>
+        <div class="lineup__item" style="border-color:#E50914;"><span class="lineup__num" style="color:#E50914;">122</span><span class="lineup__name">NETFLIX</span></div>
+        <div class="lineup__item" style="border-color:#0064FF;"><span class="lineup__num" style="color:#0064FF;">123</span><span class="lineup__name">PARAMOUNT+</span></div>
+        <div class="lineup__item" style="border-color:#00A8E1;"><span class="lineup__num" style="color:#00A8E1;">124</span><span class="lineup__name">AMAZON</span></div>
+        <div class="lineup__item" style="border-color:#1CE783;"><span class="lineup__num" style="color:#1CE783;">125</span><span class="lineup__name">HULU</span></div>
+        <div class="lineup__item" style="border-color:#374151;"><span class="lineup__num" style="color:#374151;">126</span><span class="lineup__name">SONY</span></div>
+        <div class="lineup__item" style="border-color:#B8860B;"><span class="lineup__num" style="color:#B8860B;">127</span><span class="lineup__name">WARNER BROS</span></div>
+        <div class="lineup__item" style="border-color:#00A651;"><span class="lineup__num" style="color:#00A651;">128</span><span class="lineup__name">UNIVERSAL</span></div>
+        <div class="lineup__item" style="border-color:#C8A951;"><span class="lineup__num" style="color:#C8A951;">129</span><span class="lineup__name">20TH CENTURY</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">SEASONAL</span>
+        <span class="lineup__group-count">3 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#C41E3A;"><span class="lineup__num" style="color:#C41E3A;">130</span><span class="lineup__name">HOLIDAZE</span></div>
+        <div class="lineup__item" style="border-color:#FF8C00;"><span class="lineup__num" style="color:#FF8C00;">131</span><span class="lineup__name">SCREAM KIDS</span></div>
+        <div class="lineup__item" style="border-color:#8B0000;"><span class="lineup__num" style="color:#8B0000;">132</span><span class="lineup__name">SCREAM ADULTS</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">ARTHOUSE</span>
+        <span class="lineup__group-count">4 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#F5E6C8;"><span class="lineup__num" style="color:#F5E6C8;">140</span><span class="lineup__name">CRITERION</span></div>
+        <div class="lineup__item" style="border-color:#2C3E50;"><span class="lineup__num" style="color:#2C3E50;">141</span><span class="lineup__name">FOREIGN FILMS</span></div>
+        <div class="lineup__item" style="border-color:#1A0A2E;"><span class="lineup__num" style="color:#1A0A2E;">142</span><span class="lineup__name">MIDNIGHT</span></div>
+        <div class="lineup__item" style="border-color:#6C1C8A;"><span class="lineup__num" style="color:#6C1C8A;">143</span><span class="lineup__name">CULT CLASSICS</span></div>
+      </div>
+    </div>
+    <div class="lineup__group fade-in">
+      <div class="lineup__group-head">
+        <span class="lineup__group-name">HIGH ROTATION</span>
+        <span class="lineup__group-count">15 CHANNELS</span>
+      </div>
+      <div class="lineup__grid">
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">150</span><span class="lineup__name">HIGH ROTATION</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">151</span><span class="lineup__name">POP</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">152</span><span class="lineup__name">ROCK'N</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">153</span><span class="lineup__name">COUNTRY SWAGGER</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">154</span><span class="lineup__name">BALLIN</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">155</span><span class="lineup__name">RAP GODS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">156</span><span class="lineup__name">ALT ROCK</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">157</span><span class="lineup__name">SLOW JAMS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">158</span><span class="lineup__name">MUSIC VIDEOS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">159</span><span class="lineup__name">Y2K</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">160</span><span class="lineup__name">CURRENT SPIN</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">161</span><span class="lineup__name">DANCE FLOOR</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">162</span><span class="lineup__name">CALIENTE</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">163</span><span class="lineup__name">HEADBANGERS</span></div>
+        <div class="lineup__item" style="border-color:#FF2DB4;"><span class="lineup__num" style="color:#FF2DB4;">164</span><span class="lineup__name">GET DOWN</span></div>
+      </div>
+    </div>
+    <!-- LINEUP:END (auto-generated) -->
+        </div>
+        <p class="lineup-note">What actually shows up depends on your library. No westerns, no Westerns channel. Fair.</p>
+      </div>
+    </section>
+
+    <!-- ============ SIGNUP (below the lineup) ============ -->
+    <section class="section section-signup" id="signup">
+      <div class="container">
+        <div class="cta-card cta-card--pink cta-card--split signup-card reveal">
+          <div class="cta-copy">
+            <h2>New channels drop <span class="underline-pink">all the time</span>.</h2>
+            <p>Get a short email when new channels and features ship. That's it, that's the newsletter.</p>
+            <p class="signup-coffee">Nostalgex is free. If it made your Friday night, <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">coffee helps</a>.</p>
+          </div>
+          <div class="cta-action">
+            <form class="subscribe-form js-subscribe-form" novalidate>
+              <label class="visually-hidden" for="signupEmail">Email address</label>
+              <input class="subscribe-input" id="signupEmail" type="email" name="email" placeholder="you@somewhere.tv" autocomplete="email" maxlength="254" required>
+              <button class="btn btn-ink subscribe-btn" type="submit">Keep me posted</button>
+            </form>
+            <p class="subscribe-msg" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ CHANNEL SURFING ============ -->
+    <section class="section" id="surfing">
+      <div class="container">
+        <div class="surf-grid">
+          <figure class="shot shot-tilt-l reveal">
+            <span class="sticker sticker-pink" aria-hidden="true">FLIP IT</span>
+            <img src="/screens/player.webp" alt="Watching Black Sheep fullscreen in Nostalgex, flipping through channels with the on-screen channel row" width="3840" height="2160" loading="lazy">
+          </figure>
+          <div class="surf-copy reveal delay-1">
+            <h2>Flip up. Flip down. Land on something great.</h2>
+            <p>The remote works the way remotes used to. Swipe through channels without leaving the picture and see what's up next before you commit.</p>
+            <p>Channels keep airing when you're not watching. Tune in at 9:40 and you're twenty minutes into something, just like the old days.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEATURES ============ -->
+    <section class="section section-features" id="features">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2>Built for watching, not browsing.</h2>
+        </div>
+        <div class="feature-grid reveal">
+          <article class="feature">
+            <h3>Auto-built channels</h3>
+            <p>Genres, eras, franchises, and habits become channels on their own. Add movies to your library and the lineup updates itself.</p>
+          </article>
+          <article class="feature">
+            <h3>Always on</h3>
+            <p>Every channel runs a real schedule all day. Nothing waits for you to press play.</p>
+          </article>
+          <article class="feature">
+            <h3>Native on Apple TV</h3>
+            <p>A real tvOS app from the App Store, built for the Siri Remote and the big screen. Not a web view pretending. The Apple TV home screen even shows what is on right now.</p>
+          </article>
+          <article class="feature">
+            <h3>Free web tuner</h3>
+            <p>No Apple TV handy? Open the tuner in any browser and surf the same channels. It's the fastest way to try Nostalgex.</p>
+          </article>
+          <article class="feature">
+            <h3>Your collection only</h3>
+            <p>Every channel is built from media you already own. No subscriptions to a catalog, no ads, nothing you didn't put there.</p>
+          </article>
+          <article class="feature">
+            <h3>Works with your server</h3>
+            <p>Point it at the server you already run and it builds the lineup from what is in there. The web tuner handles all three too, as long as your server answers over HTTPS. A plain LAN server needs the Apple TV app. More on <a href="/jellyfin">Nostalgex for Jellyfin</a> and <a href="/emby">Nostalgex for Emby</a>.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PRIVACY ============ -->
+    <section class="section section-privacy">
+      <div class="container">
+        <div class="privacy-block reveal">
+          <h2>Your library <span class="mark-yellow">stays yours</span>.</h2>
+          <div class="privacy-points">
+            <p>Nostalgex connects straight from your device to your media server. Your credentials and your library never pass through our servers, because there is nothing on our end to pass through.</p>
+            <ul class="privacy-list">
+              <li>No Nostalgex account to create</li>
+              <li>No catalog upload, ever</li>
+              <li>No one watching what you watch</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section class="section section-faq" id="faq">
+      <div class="container container-narrow">
+        <div class="section-head reveal">
+          <h2>Quick answers.</h2>
+        </div>
+        <div class="faq-list reveal">
+          <details>
+            <summary>Do I need a media server to use Nostalgex?<span class="faq-marker" aria-hidden="true"></span></summary>
+            <p>Yes. Nostalgex is a front end for a library you already have on Plex, Jellyfin, or Emby. If you run one of those, you're two minutes from channel surfing.</p>
+          </details>
+          <details>
+            <summary>Do I pick what plays on each channel?<span class="faq-marker" aria-hidden="true"></span></summary>
+            <p>No, and that's on purpose. Nostalgex reads your library and builds the channels and schedules itself. The surprise of "oh, this is on" is the product.</p>
+          </details>
+          <details>
+            <summary>Is the web tuner really free?<span class="faq-marker" aria-hidden="true"></span></summary>
+            <p>Yes. Open it in a browser, connect your server, and watch. It needs a server reachable over HTTPS, so a plain LAN setup is an Apple TV app job. That is where the full living-room experience lives anyway.</p>
+          </details>
+          <details>
+            <summary>Does my data go through Nostalgex servers?<span class="faq-marker" aria-hidden="true"></span></summary>
+            <p>No. Playback and sign-in happen directly between your device and your media server. We never see your credentials or your library.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SERVERS ============ -->
+    <section class="section" id="servers">
+      <div class="container">
+        <div class="section-head reveal">
+          <h2>All three servers. <span class="underline-pink">Natively</span>.</h2>
+        </div>
+        <ul class="server-strip reveal">
+          <li class="server-chip">
+            <a href="/plex"><svg class="server-mark" viewBox="0 0 24 24" fill="#EBAF00" aria-hidden="true"><path d="M3.987 8.409c-.96 0-1.587.28-2.12.933v-.72H0v8.88s.038.018.127.037c.138.03.821.187 1.331-.249.441-.377.542-.814.542-1.318v-1.283c.533.573 1.147.813 2 .813 1.84 0 3.253-1.493 3.253-3.48 0-2.12-1.36-3.613-3.266-3.613Zm16.748 5.595.406.591c.391.614.894.906 1.492.908.621-.012 1.064-.562 1.226-.755 0 0-.307-.27-.686-.72-.517-.614-1.214-1.755-1.24-1.803l-1.198 1.779Zm-3.205-1.955c0-2.08-1.52-3.64-3.52-3.64s-3.467 1.587-3.467 3.573a3.48 3.48 0 0 0 3.507 3.52c1.413 0 2.626-.84 3.253-2.293h-2.04l-.093.093c-.427.4-.72.533-1.227.533-.787 0-1.373-.506-1.453-1.266h4.986c.04-.214.054-.307.054-.52Zm-7.671-.219c0 .769.11 1.701.868 2.722l.056.069c-.306.526-.742.88-1.248.88-.399 0-.814-.211-1.138-.579a2.177 2.177 0 0 1-.538-1.441V6.409H9.86l-.001 5.421Zm9.283 3.46h-2.39l2.247-3.332-2.247-3.335h2.39l2.248 3.335-2.248 3.332Zm1.593-1.286Zm-17.162-.342c-.933 0-1.68-.773-1.68-1.72s.76-1.666 1.68-1.666c.92 0 1.68.733 1.68 1.68 0 .946-.733 1.706-1.68 1.706Zm18.361-1.974L24 8.622h-2.391l-.87 1.293 1.195 1.773Zm-9.404-.466c.16-.706.72-1.133 1.493-1.133.773 0 1.373.467 1.507 1.133h-3Z"/></svg><span><span class="server-chip-name">Plex</span><span class="server-chip-note">Sign in with a code from plex.tv</span></span></a>
+          </li>
+          <li class="server-chip">
+            <a href="/jellyfin"><svg class="server-mark" viewBox="0 0 24 24" fill="#00A4DC" aria-hidden="true"><path d="M12 .002C8.826.002-1.398 18.537.16 21.666c1.56 3.129 22.14 3.094 23.682 0C25.384 18.573 15.177 0 12 0zm7.76 18.949c-1.008 2.028-14.493 2.05-15.514 0C3.224 16.9 9.92 4.755 12.003 4.755c2.081 0 8.77 12.166 7.759 14.196zM12 9.198c-1.054 0-4.446 6.15-3.93 7.189.518 1.04 7.348 1.027 7.86 0 .511-1.027-2.874-7.19-3.93-7.19z"/></svg><span><span class="server-chip-name">Jellyfin</span><span class="server-chip-note">Quick Connect supported</span></span></a>
+          </li>
+          <li class="server-chip">
+            <a href="/emby"><svg class="server-mark" viewBox="0 0 24 24" fill="#52B54B" aria-hidden="true"><path d="M11.041 0c-.007 0-1.456 1.43-3.219 3.176L4.615 6.352l.512.513.512.512-2.819 2.791L0 12.961l1.83 1.848c1.006 1.016 2.438 2.46 3.182 3.209l1.351 1.359.508-.496c.28-.273.515-.498.524-.498.008 0 1.266 1.264 2.794 2.808L12.97 24l.187-.182c.23-.225 5.007-4.95 5.717-5.656l.52-.516-.502-.513c-.276-.282-.5-.52-.496-.53.003-.009 1.264-1.26 2.802-2.783 1.538-1.522 2.8-2.776 2.803-2.785.005-.012-3.617-3.684-6.107-6.193L17.65 4.6l-.505.505c-.279.278-.517.501-.53.497-.013-.005-1.27-1.267-2.793-2.805A449.655 449.655 0 0011.041 0zM9.223 7.367c.091.038 7.951 4.608 7.957 4.627.003.013-1.781 1.056-3.965 2.32a999.898 999.898 0 01-3.996 2.307c-.019.006-.026-1.266-.026-4.629 0-3.7.007-4.634.03-4.625Z"/></svg><span><span class="server-chip-name">Emby</span><span class="server-chip-note">Username and password sign-in</span></span></a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ FINAL CTA (sunset poster) ============ -->
+    <section class="section-final">
+      <div class="container final-inner reveal">
+        <img src="./logo/nostalgex-black.svg" alt="" aria-hidden="true" class="final-logo" width="545" height="72" loading="lazy">
+        <h2>Cable's back. Now on Apple TV.</h2>
+        <p>Free, native, and built for the couch.</p>
+        <div class="cta-row cta-center">
+          <a class="btn btn-ink btn-lg" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Get it on Apple TV</a>
+          <a class="btn btn-paper btn-lg" href="/web-tuner">Open the web tuner</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="./logo/nostalgex-black.svg" alt="Nostalgex" width="545" height="72" class="footer-logo footer-logo-day" loading="lazy">
+        <img src="./logo/nostalgex-white.svg" alt="Nostalgex" width="545" height="72" class="footer-logo footer-logo-nite" loading="lazy">
+        <p>Retro cable TV for your own library.</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Apple TV app</a>
+        <a href="/web-tuner">Web tuner</a>
+        <a href="/plex">Plex</a>
+        <a href="/jellyfin">Jellyfin</a>
+        <a href="/emby">Emby</a>
+        <a href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+        <button class="nav-link-btn footer-link-btn" type="button" data-changelog-open>What's new</button>
+        <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">Buy me a coffee</a>
+      </nav>
+      <div class="footer-signup">
+        <p class="footer-signup-label">Update emails, when there's something to say</p>
+        <form class="subscribe-form js-subscribe-form" novalidate>
+          <label class="visually-hidden" for="footerEmail">Email address</label>
+          <input class="subscribe-input" id="footerEmail" type="email" name="email" placeholder="you@somewhere.tv" autocomplete="email" maxlength="254" required>
+          <button class="btn btn-ink btn-sm subscribe-btn" type="submit">Sign up</button>
+        </form>
+        <p class="subscribe-msg" role="status" aria-live="polite"></p>
+      </div>
+      <p class="footer-note">Not affiliated with Plex, Jellyfin, Emby, or Apple.</p>
+    </div>
+  </footer>
+
+  <!-- ============ WHAT'S NEW (changelog modal) ============
+       Entries are generated from content/changelog.json by scripts/render-changelog.mjs,
+       which runs on every `npm run build`. Do not hand-edit between the markers. -->
+  <dialog class="changelog" id="changelogDialog" aria-labelledby="changelogTitle">
+    <div class="changelog-head">
+      <h2 id="changelogTitle">What's new</h2>
+      <button class="btn btn-paper btn-sm" type="button" data-changelog-close autofocus>Close</button>
+    </div>
+    <div class="changelog-body">
+    <!-- CHANGELOG:START (auto-generated) -->
+    <div class="changelog__entry changelog__entry--latest">
+      <div class="changelog__meta"><span class="changelog__version">1.0.21</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>Channels play again</h3>
+      <ul>
+        <li>Fixed: many channels showed the tuning screen and never cleared, or played sound over a black picture. Anything your Plex server has to convert now starts in a couple of seconds on Apple TV running tvOS 26.</li>
+        <li>Fixed: flipping channels quickly, or the app retrying a stream, could get refused by the server. The app now asks the server first the way Plex's own players do.</li>
+        <li>Fixed: some HEVC MP4 files played audio with no picture. They now go through the server, which sends a version the Apple TV can show.</li>
+        <li>A file that opens but shows nothing now switches to the server stream instead of skipping the program.</li>
+        <li>Checked on both an Apple TV 4K and an older Apple TV HD against MKV, MP4, AVI, AV1, VC-1, 4K and HDR files: every file the server can serve played.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.20</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>Stays signed in, opens instantly</h3>
+      <ul>
+        <li>Fixed: the app forgot your Plex sign-in after a force quit or restart. A fresh sign-in was never being saved (since May). Sign in once on this build and it sticks.</li>
+        <li>Fixed: every launch rebuilt the whole channel guide. The saved guide was never actually written on a real Apple TV, only in testing. Now the guide comes back instantly and refreshes quietly in the background.</li>
+        <li>Fixed: the Top Shelf on the Apple TV home screen never showed what's on now, for the same reason. It does now.</li>
+        <li>The 6-hour refresh asks your Plex server whether anything changed before rescanning. Nothing new, no rebuild. A full rescan still runs at least once a day.</li>
+        <li>Signing in again no longer discards the saved guide.</li>
+        <li>Tapping Connect retries a flaky plex.tv call and, if it still fails, says exactly why.</li>
+        <li>The connect screen shows a small diagnostic line. If you ever land there unexpectedly, a photo of it tells us what happened.</li>
+        <li>Settings text is bigger and brighter. Nothing under 20pt, subtitles at 80%, and the long explainers trimmed to one line.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.16</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>You stay signed in</h3>
+      <ul>
+        <li>Fixed: the app could forget your Plex sign-in after a force quit or restart and drop you on the connect screen. Your sign-in is now stored in two places and never deleted by the app itself. Only Disconnect in Settings signs you out.</li>
+        <li>A missing server list no longer counts as signed out. The app re-finds your servers from plex.tv on the next load.</li>
+        <li>A refused request (401) no longer signs you out after repeated tries. You see what Plex said and decide.</li>
+        <li>Tapping Connect retries a flaky plex.tv call a few times and, if it still fails, tells you exactly why instead of a generic connection error.</li>
+        <li>If a device ever does lose a sign-in, the connect screen now says so with a code to report.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.15</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>The same movie stops repeating itself</h3>
+      <ul>
+        <li>Fixed: a movie could air twice in a row with no gap on channels with a smaller lineup. Two separate causes, both fixed: one mid-day, one right at midnight.</li>
+        <li>TRUE CRIME was showing every documentary in the library, sports and music included. Now it is actually true crime.</li>
+        <li>R RATED COMEDY dropped a handful of prestige dramas that only technically counted as comedies.</li>
+        <li>Playback that silently went black and never recovered now gets caught and skipped.</li>
+        <li>Top Shelf logs more clearly when it has nothing new to show.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.14</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>A premieres channel, and seven more</h3>
+      <ul>
+        <li>New PREMIERES channel. Anything you add to your server turns up here first, then settles into the rest of the lineup.</li>
+        <li>A newly added film used to premiere on every channel that carried it, all at the same time. It now premieres once, on PREMIERES.</li>
+        <li>Eight new channels: PREMIERES, MILLENNIUM CARTOONS, DREAMWORKS, TOON TOWN, SPY GAMES, MIRAMAX, R RATED COMEDY and SKETCH COMEDY.</li>
+        <li>Films tagged History were being blocked from every channel. Apollo 13, 12 Years a Slave and a dozen others have a home again.</li>
+        <li>Westerns on TV now have a channel, sci-fi horror shows up on SCI-FI, and SPORTS DOCS is no longer empty.</li>
+        <li>ROM COMS, DATE NIGHT, GIRLS NIGHT and TEEN MOVIES stop showing each other the same films.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.13</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>What is on, from the home screen</h3>
+      <ul>
+        <li>What you are watching now shows up in Control Center and in the Remote app, with the channel and the poster.</li>
+        <li>Put Nostalgex in the top row of your Apple TV home screen and it shows what is on right now across your channels. Pick one and it tunes straight to it.</li>
+        <li>CRITERION was playing the wrong films. It now plays what it says it does.</li>
+        <li>Nine channels pull from a much bigger pool: BUDDIES, DATE NIGHT, RUSH, FRONT LINE, DRAMA TV, BIOPICS, FOREIGN FILMS, MIDNIGHT and CULT CLASSICS.</li>
+        <li>Channels stick to their own rules again, so cartoons stop turning up on SCI-FI.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.12</span><span class="changelog__date">SEP 2026</span></div>
+      <h3>Collections become channels</h3>
+      <ul>
+        <li>Your collections turn into channels. A collection on your Plex, Jellyfin or Emby server now shows up as its own channel alongside the rest of the lineup.</li>
+        <li>Open in Plex sends whatever is playing straight into the Plex app.</li>
+        <li>New additions premiere at prime time, and films that come in two parts are scheduled back to back.</li>
+        <li>The lineup refreshes every six hours instead of once a day, so something you added today can turn up tonight.</li>
+        <li>Fixes: the bottom channel in the guide is selectable again, HEVC files no longer black screen on the Apple TV HD, multi-part movies on Jellyfin and Emby play straight through, and a library scan that gets interrupted keeps what it already loaded instead of starting over.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.11</span><span class="changelog__date">AUG 2026</span></div>
+      <h3>Faster loading, and a Now Playing panel</h3>
+      <ul>
+        <li>Big libraries load a lot faster, and the loading screen tells you what it is actually doing the whole way through instead of parking on one step.</li>
+        <li>Slow or flaky connections no longer take the app down with them. Loading and playback both keep going instead of hanging.</li>
+        <li>New Now Playing panel while you watch. Closed captions, subtitle and audio language, stream quality, retro mode, and a sleep timer, all without leaving the program.</li>
+        <li>Open in Plex sends whatever is on straight into the Plex app.</li>
+        <li>Your sign-in sticks. No more getting kicked back to the connect screen after the Apple TV restarts.</li>
+        <li>Guide fixes: rows line up properly, the bottom channel is selectable again, and a program that ends quietly moves on instead of stalling.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.10</span><span class="changelog__date">JUL 2026</span></div>
+      <h3>Music videos, more channels, and playback upgrades</h3>
+      <ul>
+        <li>Music videos work now. Drop them in and they fill up HIGH ROTATION, plus a batch of new ones: Y2K, Current Spin, Dance Floor, Caliente, Headbangers, and Get Down. Even videos sitting in a regular movie library get picked up as long as they are tagged Music.</li>
+        <li>New channels: Cartoon Network, Record Store, and an Arthouse pack.</li>
+        <li>Pick your audio language. If a movie has more than one audio track, Nostalgex remembers the one you want.</li>
+        <li>Movies split across a couple of files play straight through now instead of stopping halfway.</li>
+        <li>Your server logins stick. No more re-entering Plex, Jellyfin, or Emby credentials after the Apple TV restarts or restores.</li>
+        <li>Guide cleanup: smoother episode skipping, titles that stay put, a better screensaver, and a curation pass so titles land on the right channel.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.9</span><span class="changelog__date">JUN 2026</span></div>
+      <h3>Emby support and self-filling Rewatchables</h3>
+      <ul>
+        <li>Emby support on Apple TV. Connect an Emby server alongside Plex and Jellyfin.</li>
+        <li>Your Rewatchables channels build themselves now. What you watch in Nostalgex counts toward your Plex history, and Rewatchables kicks in at 3 watches instead of 4.</li>
+        <li>New channels (Drama TV, Biopics, Buddies) plus a big curation pass so titles land on the right channel.</li>
+        <li>Fixed the channel guide so it lines up with whatever is on right now, and brought back full late-night schedules.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.5</span><span class="changelog__date">JUN 2026</span></div>
+      <h3>Performance + polish update</h3>
+      <ul>
+        <li>General stability improvements across the Apple TV app and web tuner.</li>
+        <li>UI polish and small fixes based on early feedback.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.4</span><span class="changelog__date">JUN 2026</span></div>
+      <h3>Quality-of-life improvements</h3>
+      <ul>
+        <li>Small improvements to navigation, readability, and overall responsiveness.</li>
+        <li>Bug fixes and under-the-hood tuning.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.3</span><span class="changelog__date">MAY 2026</span></div>
+      <h3>16 new channels and a True Crime bundle</h3>
+      <ul>
+        <li>New True Crime bundle: true crime docs, crime films, thrillers, mystery, and crime TV.</li>
+        <li>Added Last Action Heroes, Sci-Fi, Fantasy, Westerns, Teen Movies, Retro Toons, Stand-Up, Docs, Musicals, and an all-ages Anime channel.</li>
+        <li>Smarter curation. Anime and stand-up now pull from a tuned database instead of loose genre tags.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0.2</span><span class="changelog__date">MAY 2026</span></div>
+      <h3>A cleaner channel guide</h3>
+      <ul>
+        <li>Renumbered every channel into tidy bundles, in real channel-guide order.</li>
+        <li>Lineup stays in sync across the web tuner and the Apple TV app.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">1.0</span><span class="changelog__date">MAY 2026</span></div>
+      <h3>Nostalgex landed on Apple TV</h3>
+      <ul>
+        <li>Native tvOS app with a real on-screen channel guide.</li>
+        <li>Music video channels get richer genres through MusicBrainz.</li>
+      </ul>
+    </div>
+    <div class="changelog__entry">
+      <div class="changelog__meta"><span class="changelog__version">WEB TUNER</span><span class="changelog__date">APR 2026</span></div>
+      <h3>The free web tuner</h3>
+      <ul>
+        <li>Your Plex library as cable TV, right in the browser.</li>
+        <li>A fresh daily schedule so there&rsquo;s always something on.</li>
+      </ul>
+    </div>
+    <!-- CHANGELOG:END (auto-generated) -->
+    </div>
+  </dialog>
+
+  <!-- type="module" so Vite bundles it into dist/assets. A plain <script src> is
+       left unbundled and 404s in production (only scripts/*.js get copied). -->
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Schedule explorer — Nostalgex devtools</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">NOSTALGEX · DEVTOOLS</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/schedule.html" class="active">Schedule</a>
+      <a href="/pools.html">Pools</a>
+      <a href="/memberships.html">Memberships</a>
+      <a href="/audit.html">Audit</a>
+      <a href="/coverage.html">Coverage</a>
+    </nav>
+  </header>
+
+  <div id="snapshot-bar"></div>
+
+  <div class="page-head">
+    <h1>SCHEDULE EXPLORER</h1>
+    <p>Past 7 days through next 7 days · search any title to see when and where it airs.</p>
+  </div>
+
+  <div id="warn" class="warn-banner" style="display:none"></div>
+
+  <div class="controls">
+    <input id="q" class="search" placeholder="SEARCH TITLE…" autofocus>
+    <select id="channel" class="select"><option value="">All channels</option></select>
+    <select id="window" class="select" title="Time window">
+      <option value="all" selected>Past 7d + Next 7d</option>
+      <option value="past">Past 7 days only</option>
+      <option value="future">Next 7 days only</option>
+      <option value="today">Today only</option>
+    </select>
+    <button id="reload" class="btn ghost" type="button">RELOAD</button>
+    <button id="refresh-plex" class="btn ghost" type="button">REFRESH PLEX</button>
+  </div>
+
+  <div class="meta-row">
+    <div><span class="count" id="count">—</span> airings</div>
+    <div id="status">Loading channel list…</div>
+  </div>
+
+  <div class="scroll-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="time">Air time</th>
+          <th class="ch">CH</th>
+          <th class="chname">Channel</th>
+          <th class="title">Title</th>
+          <th class="year">Year</th>
+        </tr>
+      </thead>
+      <tbody id="rows">
+        <tr><td colspan="5"><div class="loading">Building 14-day schedule<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/snapshot-bar.js"></script>
+<script>
+const qInput = document.getElementById("q");
+const chSel = document.getElementById("channel");
+const winSel = document.getElementById("window");
+const rowsEl = document.getElementById("rows");
+const countEl = document.getElementById("count");
+const statusEl = document.getElementById("status");
+const warnEl = document.getElementById("warn");
+
+// Map window selector value to {back, forward} day counts. "today" is a tight
+// 0+1 window that we further trim client-side to just today's date.
+function windowBounds() {
+  switch (winSel.value) {
+    case "past":   return { back: 7, forward: 0 };
+    case "future": return { back: 0, forward: 7 };
+    case "today":  return { back: 0, forward: 1 };
+    default:       return { back: 7, forward: 7 };
+  }
+}
+
+const fmt = (sec) => {
+  const d = new Date(sec * 1000);
+  return d.toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+};
+
+let allRows = [];
+let lastFetch = 0;
+let nowSec = Math.floor(Date.now() / 1000);
+
+async function loadChannels() {
+  const r = await fetch("/api/channels");
+  const data = await r.json();
+  if (data.error) { warn(data.error); return; }
+  chSel.innerHTML = '<option value="">All channels</option>' +
+    data.channels.map(c => `<option value="${c.id}">CH ${c.number} · ${c.name}${c.unsupportedRules.length ? " ⚠" : ""}</option>`).join("");
+  const warned = data.channels.filter(c => c.unsupportedRules.length);
+  if (warned.length) {
+    warnEl.style.display = "block";
+    warnEl.innerHTML = `<strong>${warned.length} channel${warned.length === 1 ? "" : "s"} use rules this dev tool can't fully evaluate</strong> (keywords, networks, ratingMin — these need TMDB/OMDb enrichment that only the iOS app has). Affected channels may show <strong>fewer</strong> airings here than in the actual app, since the missing rules typically broaden matches.`;
+  }
+}
+
+async function loadSchedule() {
+  const channelId = chSel.value;
+  const q = qInput.value.trim();
+  const { back, forward } = windowBounds();
+  statusEl.textContent = "Fetching schedule…";
+  const t0 = performance.now();
+  const url = new URL("/api/schedule", location.origin);
+  url.searchParams.set("back", String(back));
+  url.searchParams.set("forward", String(forward));
+  if (channelId) url.searchParams.set("channelId", channelId);
+  if (q) url.searchParams.set("q", q);
+  const r = await fetch(url);
+  const data = await r.json();
+  if (data.error) { warn(data.error); return; }
+  nowSec = data.nowSec;
+  allRows = data.rows;
+  // For "today" mode, trim to entries that overlap today's calendar date.
+  if (winSel.value === "today") {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    const end = new Date(start); end.setDate(end.getDate() + 1);
+    const startSec = Math.floor(start.getTime() / 1000);
+    const endSec = Math.floor(end.getTime() / 1000);
+    allRows = allRows.filter(r => r.startSec < endSec && r.endSec > startSec);
+  }
+  lastFetch = Math.round(performance.now() - t0);
+  render();
+}
+
+function render() {
+  countEl.textContent = allRows.length.toLocaleString();
+  statusEl.textContent = `computed in ${lastFetch}ms · cached`;
+  if (!allRows.length) {
+    rowsEl.innerHTML = `<tr><td colspan="5"><div class="empty">No airings match.</div></td></tr>`;
+    return;
+  }
+  // Limit DOM nodes for perf; we already filter server-side, so 10k cap is fine.
+  const html = allRows.map(r => {
+    const isPast = r.endSec < nowSec;
+    const isNow = r.startSec <= nowSec && r.endSec > nowSec;
+    const cls = isNow ? "now" : isPast ? "past" : "";
+    return `<tr class="${cls}">
+      <td class="time">${fmt(r.startSec)}</td>
+      <td class="ch">CH ${r.channelNumber}</td>
+      <td class="chname">${escapeHtml(r.channelName)}</td>
+      <td class="title">${escapeHtml(r.title)}</td>
+      <td class="year">${r.year || ""}</td>
+    </tr>`;
+  }).join("");
+  rowsEl.innerHTML = html;
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]); }
+function warn(msg) {
+  warnEl.style.display = "block";
+  warnEl.style.color = "var(--red)";
+  warnEl.style.borderColor = "var(--red)";
+  warnEl.textContent = msg;
+}
+
+let debounce;
+qInput.addEventListener("input", () => {
+  clearTimeout(debounce);
+  debounce = setTimeout(loadSchedule, 250);
+});
+chSel.addEventListener("change", loadSchedule);
+winSel.addEventListener("change", loadSchedule);
+document.getElementById("reload").addEventListener("click", loadSchedule);
+document.getElementById("refresh-plex").addEventListener("click", async () => {
+  statusEl.textContent = "Refreshing Plex library cache…";
+  await fetch("/api/items/refresh", { method: "POST" });
+  loadSchedule();
+});
+
+(async () => {
+  await loadChannels();
+  loadSchedule();
+})();
+</script>
+</body>
+</html>

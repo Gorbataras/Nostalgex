@@ -1,0 +1,931 @@
+import Foundation
+import Observation
+import SwiftUI
+import AVFoundation
+import Combine
+import UIKit
+
+// Player control, subtitles and audio selection, sleep timer, retries and auto-advance.
+// Split out of AppState.swift; behavior unchanged.
+extension AppState {
+    // MARK: - Open in Plex
+
+    /// Whether the current program can be handed to the Plex app: Plex backend, not demo,
+    /// and the Plex app is installed (canOpenURL requires the scheme to be declared in
+    /// LSApplicationQueriesSchemes).
+    var canOpenCurrentItemInPlex: Bool {
+        guard backendKind == .plex, !isDemoMode, currentItem != nil,
+              let probe = URL(string: "plex://") else { return false }
+        return UIApplication.shared.canOpenURL(probe)
+    }
+
+    /// Deep-links the current program into the Plex app via the community-documented
+    /// preplay scheme. Completion false means the app refused or the scheme didn't
+    /// resolve — the row shows that instead of failing silently.
+    func openCurrentItemInPlex(completion: @escaping (Bool) -> Void) {
+        guard let item = currentItem else { completion(false); return }
+        let machineID = item.serverID ?? selectedServers.first?.machineIdentifier ?? ""
+        var components = URLComponents()
+        components.scheme = "plex"
+        components.host = "preplay"
+        components.path = "/"
+        components.queryItems = [
+            .init(name: "metadataKey", value: "/library/metadata/\(item.ratingKey)"),
+            .init(name: "server", value: machineID),
+        ]
+        guard let url = components.url else { completion(false); return }
+        print("[Plex90] OPEN IN PLEX: \(url.absoluteString)")
+        UIApplication.shared.open(url, options: [:], completionHandler: completion)
+    }
+
+    /// Poster for the panel header. Plex-only: its server-side thumbnail transcode puts
+    /// the token in the URL, which is what lets plain AsyncImage load it.
+    func posterURL(for item: PlexMediaItem) -> URL? {
+        guard backendKind == .plex, !isDemoMode else { return nil }
+        if let sid = item.serverID,
+           let server = selectedServers.first(where: { $0.machineIdentifier == sid }),
+           let service = apiForServer(server) as? PlexAPIService {
+            return service.thumbnailURL(for: item, width: 300)
+        }
+        return (api as? PlexAPIService)?.thumbnailURL(for: item, width: 300)
+    }
+
+    // MARK: - Subtitles (fullscreen + media selection)
+
+    private var resolvedPreferredSubtitleLanguageCode: String {
+        SubtitleSelectionLogic.resolvedLanguageCode(storedCode: preferredSubtitleLanguageCode, locale: Locale.current)
+    }
+
+    private var resolvedPreferredAudioLanguageCode: String {
+        SubtitleSelectionLogic.resolvedLanguageCode(storedCode: preferredAudioLanguageCode, locale: Locale.current)
+    }
+
+    /// Applies legible track selection to the current item: on when fullscreen + toggle, or
+    /// (fullscreen) when no audio track matches the preferred audio language; otherwise off.
+    /// Pass `loadGenerationToken` from playback ready handlers so async work does not affect a replaced item.
+    func applySubtitleSelection(loadGenerationToken: Int? = nil) {
+        guard let playerItem = player?.currentItem else { return }
+        if let token = loadGenerationToken, loadGeneration != token { return }
+
+        let preferredLang = resolvedPreferredSubtitleLanguageCode.lowercased()
+        let preferredAudioLang = resolvedPreferredAudioLanguageCode.lowercased()
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let token = loadGenerationToken, self.loadGeneration != token { return }
+            guard self.player?.currentItem === playerItem else { return }
+
+            do {
+                guard let group = try await playerItem.asset.loadMediaSelectionGroup(for: .legible) else { return }
+                if let token = loadGenerationToken, self.loadGeneration != token { return }
+                guard self.player?.currentItem === playerItem else { return }
+
+                // Publish caption availability so the Now Playing panel can disable the
+                // CC toggle when a stream exposes no real (non-forced) subtitle track.
+                self.hasSubtitleTracks = group.options.contains { !Self.isForcedOnly($0) }
+
+                var shouldEnable = self.subtitlesInFullscreenEnabled && self.isFullScreen
+                var autoEnabled = false
+                if !shouldEnable, self.autoSubtitlesForForeignAudioEnabled, self.isFullScreen,
+                   let audioGroup = try? await playerItem.asset.loadMediaSelectionGroup(for: .audible) {
+                    if let token = loadGenerationToken, self.loadGeneration != token { return }
+                    guard self.player?.currentItem === playerItem else { return }
+                    // Foreign-audio fallback: nothing plays in the preferred audio language,
+                    // so show subtitles even though the fullscreen-subtitles toggle is off.
+                    let audioTags = audioGroup.options.map { Self.languageTag(for: $0) }
+                    shouldEnable = SubtitleSelectionLogic.shouldAutoEnableSubtitles(
+                        audioTags: audioTags,
+                        preferredAudioLowercased: preferredAudioLang
+                    )
+                    autoEnabled = shouldEnable
+                }
+
+                if !shouldEnable {
+                    // Even with subtitles off, surface forced narrative subs in the
+                    // preferred language (e.g. Na'vi sections of Avatar). If no
+                    // forced track exists, turn subtitles fully off.
+                    if let forced = Self.pickForcedLegibleOption(in: group, preferredLanguage: preferredLang) {
+                        playerItem.select(forced, in: group)
+                    } else if group.allowsEmptySelection {
+                        playerItem.select(nil, in: group)
+                    } else if let off = group.options.first(where: { $0.displayName.localizedCaseInsensitiveContains("off") }) {
+                        playerItem.select(off, in: group)
+                    } else {
+                        playerItem.select(nil, in: group)
+                    }
+                    return
+                }
+
+                let pick = Self.pickLegibleOption(in: group, preferredLanguage: preferredLang)
+                if autoEnabled, let pick {
+                    // Auto mode: only show subs that actually match the preferred subtitle
+                    // language — wrong-language subs are worse than none. Fall back to the
+                    // forced-narrative/off handling used when subtitles are disabled.
+                    let tag = Self.languageTag(for: pick)?.lowercased()
+                    if let tag, tag == preferredLang || tag.hasPrefix(preferredLang + "-") {
+                        playerItem.select(pick, in: group)
+                    } else if let forced = Self.pickForcedLegibleOption(in: group, preferredLanguage: preferredLang) {
+                        playerItem.select(forced, in: group)
+                    } else if group.allowsEmptySelection {
+                        playerItem.select(nil, in: group)
+                    }
+                } else if let pick {
+                    playerItem.select(pick, in: group)
+                }
+            } catch {
+                // Stream may not expose a legible group (common for some direct-play paths).
+            }
+        }
+    }
+
+    /// Selects the preferred audio track on the current player item.
+    /// Falls back to the default track if no match is found rather than forcing silence.
+    func applyAudioTrackSelection(loadGenerationToken: Int? = nil) {
+        guard let playerItem = player?.currentItem else { return }
+        if let token = loadGenerationToken, loadGeneration != token { return }
+
+        let preferredLang = resolvedPreferredAudioLanguageCode.lowercased()
+
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            if let token = loadGenerationToken, self.loadGeneration != token { return }
+            guard self.player?.currentItem === playerItem else { return }
+
+            do {
+                guard let group = try await playerItem.asset.loadMediaSelectionGroup(for: .audible) else { return }
+                if let token = loadGenerationToken, self.loadGeneration != token { return }
+                guard self.player?.currentItem === playerItem else { return }
+
+                let tags = group.options.map { Self.languageTag(for: $0) }
+                let idx = SubtitleSelectionLogic.preferredTrackIndex(tags: tags, preferredLowercased: preferredLang)
+                playerItem.select(group.options[idx], in: group)
+
+                // Publish descriptors for the Now Playing panel. Behind the same
+                // generation + item-identity guards, so stale loads never publish.
+                self.audibleGroup = group
+                self.audibleGroupItem = playerItem
+                self.audioTracks = AudioTrackDescriptorBuilder.build(from: group)
+                self.selectedAudioTrackID = idx
+            } catch {
+                // Stream doesn't expose an audible group — leave AVPlayer's default selection
+            }
+        }
+    }
+
+    private static func isForcedOnly(_ opt: AVMediaSelectionOption) -> Bool {
+        opt.hasMediaCharacteristic(.containsOnlyForcedSubtitles)
+    }
+
+    private static func languageTag(for opt: AVMediaSelectionOption) -> String? {
+        let ext: String?
+        if #available(tvOS 16.0, *) {
+            ext = opt.extendedLanguageTag
+        } else {
+            ext = nil
+        }
+        return SubtitleSelectionLogic.languageTagForComparison(
+            extendedLanguageTag: ext,
+            localeIdentifier: opt.locale?.identifier
+        )
+    }
+
+    /// Find a forced-only subtitle track matching the preferred language.
+    /// Used when the user has subtitles disabled but we still want foreign-dialogue
+    /// captions (Avatar's Na'vi, Star Wars' Huttese, etc.) to display.
+    private static func pickForcedLegibleOption(
+        in group: AVMediaSelectionGroup,
+        preferredLanguage: String
+    ) -> AVMediaSelectionOption? {
+        group.options.first { opt in
+            guard isForcedOnly(opt) else { return false }
+            guard let tag = languageTag(for: opt)?.lowercased() else { return false }
+            return tag == preferredLanguage || tag.hasPrefix(preferredLanguage + "-")
+        }
+    }
+
+    /// Pick the full legible track for the preferred language. When multiple
+    /// tracks share the language, prefer the non-forced one so the user gets
+    /// complete subtitles, not just foreign-dialogue translations.
+    private static func pickLegibleOption(
+        in group: AVMediaSelectionGroup,
+        preferredLanguage: String
+    ) -> AVMediaSelectionOption? {
+        let candidates = group.options
+        guard !candidates.isEmpty else { return nil }
+
+        // First pass: non-forced match for preferred language
+        if let full = candidates.first(where: { opt in
+            guard !isForcedOnly(opt) else { return false }
+            guard let tag = languageTag(for: opt)?.lowercased() else { return false }
+            return tag == preferredLanguage || tag.hasPrefix(preferredLanguage + "-")
+        }) {
+            return full
+        }
+
+        // Fallback: existing index-based lookup (may land on forced if that's all there is)
+        let tags = candidates.map { languageTag(for: $0) }
+        let idx = SubtitleSelectionLogic.preferredTrackIndex(tags: tags, preferredLowercased: preferredLanguage)
+        return candidates[idx]
+    }
+
+    // MARK: - Shared playback
+
+    /// Stops the previous transcode session immediately (don't wait on the server's idle
+    /// timeout) so sessions don't pile up while channel-surfing. Fire-and-forget, off-MainActor.
+    func stopActiveTranscodeIfNeeded() {
+        guard let active = activeTranscode else { return }
+        activeTranscode = nil
+        let backend = api(for: active.serverID)
+        let psid = active.playSessionId
+        Task.detached { await backend.stopTranscode(playSessionId: psid) }
+    }
+
+    // MARK: - Sleep timer
+
+    /// Arms the sleep timer for `minutes`. `minutes <= 0` cancels. Survives channel changes.
+    func startSleepTimer(minutes: Int) {
+        sleepTimer?.invalidate()
+        sleepGraceTimer?.invalidate()
+        sleepGracePromptActive = false
+        guard minutes > 0 else {
+            sleepTimerEndDate = nil
+            sleepTimerMinutes = nil
+            return
+        }
+        let interval = TimeInterval(minutes * 60)
+        sleepTimerEndDate = Date().addingTimeInterval(interval)
+        sleepTimerMinutes = minutes
+        sleepTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: false) { _ in
+            Task { @MainActor [weak self] in self?.beginSleepGrace() }
+        }
+    }
+
+    /// Cancels the sleep timer and dismisses any grace prompt.
+    func cancelSleepTimer() {
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        sleepGraceTimer?.invalidate()
+        sleepGraceTimer = nil
+        sleepTimerEndDate = nil
+        sleepTimerMinutes = nil
+        sleepGracePromptActive = false
+    }
+
+    /// User responded to the "Still watching?" prompt — keep playing, consume the timer.
+    func keepAwakeFromGrace() {
+        sleepGraceTimer?.invalidate()
+        sleepGraceTimer = nil
+        sleepGracePromptActive = false
+        sleepTimerEndDate = nil
+        sleepTimerMinutes = nil
+    }
+
+    /// Timer reached zero: show the grace prompt, then stop playback if it's ignored.
+    private func beginSleepGrace() {
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        sleepGracePromptActive = true
+        sleepGraceTimer?.invalidate()
+        sleepGraceTimer = Timer.scheduledTimer(withTimeInterval: 20, repeats: false) { _ in
+            Task { @MainActor [weak self] in self?.expireSleepTimer() }
+        }
+    }
+
+    /// Lightweight stop: pause the stream, drop the transcode, return to the guide.
+    /// Deliberately NOT `disconnect()` — that would drop server credentials.
+    private func expireSleepTimer() {
+        player?.pause()
+        stopActiveTranscodeIfNeeded()
+        cancelSleepTimer()
+        isFullScreen = false
+    }
+
+    /// Re-checks the sleep timer on foreground — a backgrounded `Timer` may not have fired.
+    func revalidateSleepTimerOnForeground() {
+        guard sleepTimerEndDate != nil, !sleepGracePromptActive else { return }
+        if SleepTimerLogic.isExpired(endDate: sleepTimerEndDate, now: Date()) {
+            beginSleepGrace()
+        }
+    }
+
+    /// Shows an error frame briefly, then advances so a single bad item never strands a channel.
+    private func showErrorThenSkip(_ message: String, generation: Int) {
+        playbackState = .error(message)
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            guard let self, self.loadGeneration == generation else { return }
+            self.advanceToNextItem()
+        }
+    }
+
+    func loadCurrentItem() {
+        // Clear the previous item's audio-track list so a new/uni-track program never
+        // shows stale tracks; applyAudioTrackSelection republishes when the group loads.
+        audioTracks = []
+        selectedAudioTrackID = nil
+        audibleGroup = nil
+        audibleGroupItem = nil
+        hasSubtitleTracks = false
+
+        // Stop the previous tracker before anything else so its scrobble fires cleanly.
+        let outgoing = playbackTracker
+        playbackTracker = nil
+        outgoing?.stop()
+
+        // Invalidate everything from previous load
+        loadDebounceTimer?.invalidate()
+        cancellables.removeAll()
+        loadGeneration += 1
+        let generation = loadGeneration
+        // Free any prior transcode before starting the next one (covers selectChannel /
+        // next/previousChannel / advanceToNextItem — they all funnel through here).
+        stopActiveTranscodeIfNeeded()
+
+        guard let item = currentItem else {
+            print("[Plex90] gen=\(generation) | No item, going idle")
+            playbackState = .idle
+            return
+        }
+
+        // Create a fresh tracker for this item. The API is nil for Jellyfin/Emby/demo, or
+        // when the user has turned off Plex activity sync — tracker still accumulates time
+        // but skips all Plex API calls (no timeline, so nothing lands in Continue Watching).
+        let trackerAPI = (backendKind == .plex && !isDemoMode && syncPlexActivity) ? api(for: item.serverID) as? PlexAPIService : nil
+        playbackTracker = PlaybackTracker(item: item, seekOffset: seekOffset, plexAPI: trackerAPI)
+
+        // Show the retro "tuning" loading state while we resolve + start playback. The
+        // overlay itself only appears after a ~0.75s threshold (view-side), so fast starts
+        // don't flash it. readyToPlay flips this to .playing.
+        playbackState = .loading
+
+        // Demo mode: every channel plays Apple's canonical HLS sample stream (bipbop).
+        // Hosted on Apple's own devstreaming-cdn, so it's reachable from Apple's review
+        // network and doesn't require a Plex auth header.
+        let demoStreamURL = URL(string: "https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8")
+
+        // Synchronous decisions. Direct play resolves now; the transcode branch resolves
+        // asynchronously inside the Task below (Jellyfin PlaybackInfo handshake).
+        let itemAPI: (any MediaBackend)? = isDemoMode ? nil : api(for: item.serverID)
+        let directPlayHeaders = itemAPI?.authHeaders ?? [:]
+        let directURL = itemAPI?.buildDirectPlayURL(for: item)
+        // Fallback for direct play failing at runtime. Built with its own session id so the
+        // stop on the next channel change ends this transcode and no other.
+        let fallbackSession = UUID().uuidString
+        let fallbackStartsAtOffset = itemAPI is PlexAPIService && seekOffset > 0
+        let transcodeURL: URL? = (itemAPI as? PlexAPIService)?.transcodeURL(for: item, sessionID: fallbackSession, offsetSeconds: seekOffset)
+            ?? itemAPI?.buildTranscodeURL(for: item)
+
+        if !isDemoMode && directURL == nil && transcodeURL == nil {
+            print("[Plex90] gen=\(generation) | No URL available")
+            showErrorThenSkip("No playable source", generation: generation)
+            return
+        }
+
+        let title = item.title
+        let chName = currentChannel?.name ?? "?"
+        let codec = "\(item.videoCodec ?? "?"):\(item.audioCodec ?? "?") (\(item.container ?? "?"))"
+        let hdr = item.videoProfile?.lowercased().contains("10") == true ? " HDR" : ""
+        let initialDirect = directURL != nil
+        print("[Plex90] gen=\(generation) | LOAD: \"\(title)\" on CH \(chName) | \(codec)\(hdr) | seekOffset=\(seekOffset) | direct=\(initialDirect)")
+
+        // Pause immediately to stop old content
+        player?.pause()
+
+        // Tear down old item before creating new one
+        player?.replaceCurrentItem(with: nil)
+
+        // Small delay to let AVPlayer clean up the old item
+        var seekTo = seekOffset > 0 ? seekOffset : nil
+        hlsRequestedOffset = 0
+        hlsBaseOffset = 0
+        let itemServerID = item.serverID
+        loadDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.loadGeneration == generation else {
+                    print("[Plex90] gen=\(generation) | STALE: debounce fired but generation changed")
+                    return
+                }
+
+                // Resolve the final playback URL.
+                let resolvedURL: URL
+                let isDirectPlay: Bool
+                if isDemoMode, let demo = demoStreamURL {
+                    resolvedURL = demo; isDirectPlay = false
+                } else if let directURL {
+                    resolvedURL = directURL; isDirectPlay = true
+                } else {
+                    // Transcode branch: ask the backend how to play it (Jellyfin = PlaybackInfo,
+                    // others = hand-built URL). This is the only await in the load path.
+                    guard let api = itemAPI else {
+                        self.showErrorThenSkip("No playable source", generation: generation)
+                        return
+                    }
+                    let resolved = await api.resolveTranscodePlayback(for: item, offsetSeconds: self.seekOffset)
+                    let resolution = resolved?.resolution
+                    if resolved?.startsAtOffset == true {
+                        self.hlsRequestedOffset = self.seekOffset
+                        seekTo = nil
+                    }
+                    guard self.loadGeneration == generation else {
+                        // A channel-flip superseded us mid-handshake. PlaybackInfo just opened a
+                        // server-side transcode session that the superseding load couldn't see
+                        // (activeTranscode was still nil) — stop it here so it doesn't orphan.
+                        if let psid = resolution?.playSessionId {
+                            Task.detached { await api.stopTranscode(playSessionId: psid) }
+                        }
+                        return
+                    }
+                    guard let resolution else {
+                        print("[Plex90] gen=\(generation) | No playable source after PlaybackInfo")
+                        self.showErrorThenSkip("Transcoding unavailable", generation: generation)
+                        return
+                    }
+                    resolvedURL = resolution.url
+                    isDirectPlay = resolution.isDirectPlay
+                    self.activeTranscode = (itemServerID, resolution.playSessionId)
+                }
+
+                print("[Plex90] gen=\(generation) | Creating AVPlayerItem for \"\(title)\" (direct=\(isDirectPlay))")
+                // Direct play: use AVURLAsset with auth headers (token not in URL)
+                // Transcode: token stays in URL query params (HLS segments inherit it)
+                let playerItem: AVPlayerItem
+                if isDirectPlay {
+                    let asset = AVURLAsset(url: resolvedURL, options: [
+                        "AVURLAssetHTTPHeaderFieldsKey": directPlayHeaders
+                    ])
+                    playerItem = AVPlayerItem(asset: asset)
+                } else {
+                    playerItem = AVPlayerItem(url: resolvedURL)
+                }
+                playerItem.preferredForwardBufferDuration = 5
+
+                self.installFreshPlayer(with: playerItem, generation: generation)
+
+                // Status observer
+                playerItem.publisher(for: \.status)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] status in
+                        guard let self, self.loadGeneration == generation else {
+                            print("[Plex90] gen=\(generation) | STALE: status callback ignored")
+                            return
+                        }
+                        switch status {
+                        case .readyToPlay:
+                            print("[Plex90] gen=\(generation) | READY: \"\(title)\"")
+                            if let seekTo, seekTo > 0 {
+                                print("[Plex90] gen=\(generation) | Seeking to \(seekTo)s")
+                                let target = CMTime(seconds: Double(seekTo), preferredTimescale: 600)
+                                self.player?.seek(to: target) { finished in
+                                    Task { @MainActor [weak self] in
+                                        guard let self, self.loadGeneration == generation else { return }
+                                        print("[Plex90] gen=\(generation) | Seek done (finished=\(finished)), playing")
+                                        self.playbackState = .playing
+                                        self.player?.play()
+                                        self.applySubtitleSelection(loadGenerationToken: generation)
+                                        self.applyAudioTrackSelection(loadGenerationToken: generation)
+                                        self.playbackTracker?.onPlaybackReady()
+                                    }
+                                }
+                            } else {
+                                print("[Plex90] gen=\(generation) | No seek needed, playing")
+                                self.noteHLSTimelineStart(playerItem, generation: generation)
+                                self.playbackState = .playing
+                                self.player?.play()
+                                self.applySubtitleSelection(loadGenerationToken: generation)
+                                self.applyAudioTrackSelection(loadGenerationToken: generation)
+                                self.playbackTracker?.onPlaybackReady()
+                            }
+                        case .failed:
+                            guard self.loadGeneration == generation else { return }
+                            let errMsg = playerItem.error?.localizedDescription ?? "Unknown error"
+                            print("[Plex90] gen=\(generation) | FAILED: \"\(title)\" - \(errMsg)")
+                            // If direct play failed and we have a transcode URL, fall back
+                            if isDirectPlay, let fallback = transcodeURL {
+                                print("[Plex90] gen=\(generation) | Direct play failed, falling back to transcode")
+                                if itemAPI is PlexAPIService { self.activeTranscode = (itemServerID, fallbackSession) }
+                                if fallbackStartsAtOffset { self.hlsRequestedOffset = self.seekOffset }
+                                self.fallbackToTranscode(url: fallback, seekTo: fallbackStartsAtOffset ? nil : seekTo, generation: generation)
+                            } else {
+                                // Already transcode or no fallback — retry once. A URL that
+                                // carries the offset must not be seeked again on the client.
+                                self.retryLoad(url: resolvedURL, seekTo: self.hlsRequestedOffset > 0 ? nil : seekTo, generation: generation, isDirectPlay: isDirectPlay)
+                            }
+                        default:
+                            break
+                        }
+                    }
+                    .store(in: &self.cancellables)
+
+                // Auto-advance when content finishes (or play next disc for multi-part movies)
+                NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        guard let self, self.loadGeneration == generation else { return }
+                        print("[Plex90] gen=\(generation) | END OF ITEM: \"\(title)\" - checking for next part")
+                        self.handlePartEnded()
+                    }
+                    .store(in: &self.cancellables)
+
+                self.installEndOfItemFallback(for: playerItem, generation: generation, title: title)
+
+                // Playback watchdog. Symptom we're handling: on first-channel auto-play
+                // at launch, occasionally the readyToPlay observer fires but the player
+                // doesn't actually start (rate stays 0), or the first scheduled item is
+                // unplayable (bad codec / no audio track / corrupt file) and the user
+                // sees a static black screen until they manually channel-up.
+                // After 4s: nudge play() once. Then give it up to the skip deadline before
+                // advancing — direct play should start fast (7s), but a transcode must spin
+                // up ffmpeg from a mid-content offset, so it gets a much longer leash (20s).
+                // The .loading "tuning" overlay covers the wait visually.
+                // rate==0 alone misses one real failure mode: `automaticallyWaitsToMinimizeStalling`
+                // combined with Plex's HLS transcode manifest (a rolling playlist while segments
+                // are still being generated, not a plain VOD file) can leave AVPlayer reporting
+                // rate==1 — "playing" — while playbackBufferEmpty stays true and nothing ever
+                // decodes: a black screen the rate check alone cannot see. Good Burger (1997)
+                // reproduced this: full-screen black past the deadline with no recovery, because
+                // the watchdog only ever asked about rate.
+                self.installWatchdog(for: playerItem, item: item, isDirectPlay: isDirectPlay, generation: generation, allowCappedRetry: true)
+            }
+        }
+    }
+
+    private func retryLoad(url: URL, seekTo: Int?, generation: Int, isDirectPlay: Bool = false) {
+        guard loadGeneration == generation else { return }
+        let title = currentItem?.title ?? "Unknown"
+        print("[Plex90] gen=\(generation) | RETRY: \"\(title)\" - waiting 300ms")
+        cancellables.removeAll()
+        player?.replaceCurrentItem(with: nil)
+
+        // Wait briefly then try once more
+        loadDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.loadGeneration == generation else {
+                    print("[Plex90] gen=\(generation) | STALE: retry fired but generation changed")
+                    return
+                }
+
+                print("[Plex90] gen=\(generation) | RETRY: creating new AVPlayerItem for \"\(title)\"")
+                let playerItem = AVPlayerItem(url: url)
+                playerItem.preferredForwardBufferDuration = 5
+                self.installFreshPlayer(with: playerItem, generation: generation)
+
+                playerItem.publisher(for: \.status)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] status in
+                        guard let self, self.loadGeneration == generation else { return }
+                        switch status {
+                        case .readyToPlay:
+                            print("[Plex90] gen=\(generation) | RETRY READY: \"\(title)\"")
+                            if let seekTo, seekTo > 0 {
+                                let target = CMTime(seconds: Double(seekTo), preferredTimescale: 600)
+                                self.player?.seek(to: target) { _ in
+                                    Task { @MainActor [weak self] in
+                                        guard let self, self.loadGeneration == generation else { return }
+                                        print("[Plex90] gen=\(generation) | RETRY seek done, playing")
+                                        self.playbackState = .playing
+                                        self.player?.play()
+                                        self.applySubtitleSelection(loadGenerationToken: generation)
+                                        self.playbackTracker?.onPlaybackReady()
+                                    }
+                                }
+                            } else {
+                                print("[Plex90] gen=\(generation) | RETRY no seek, playing")
+                                self.noteHLSTimelineStart(playerItem, generation: generation)
+                                self.playbackState = .playing
+                                self.player?.play()
+                                self.applySubtitleSelection(loadGenerationToken: generation)
+                                self.playbackTracker?.onPlaybackReady()
+                            }
+                        case .failed:
+                            guard self.loadGeneration == generation else { return }
+                            let msg = playerItem.error?.localizedDescription ?? "Unknown error"
+                            print("[Plex90] gen=\(generation) | RETRY FAILED: \"\(title)\" - \(msg)")
+                            self.autoSkipOnError(generation: generation)
+                        default:
+                            break
+                        }
+                    }
+                    .store(in: &self.cancellables)
+
+                NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        guard let self, self.loadGeneration == generation else { return }
+                        print("[Plex90] gen=\(generation) | RETRY END OF ITEM: \"\(title)\" - checking for next part")
+                        self.handlePartEnded()
+                    }
+                    .store(in: &self.cancellables)
+
+                self.installEndOfItemFallback(for: playerItem, generation: generation, title: title)
+                self.installWatchdog(for: playerItem, item: self.currentItem, isDirectPlay: isDirectPlay, generation: generation, allowCappedRetry: !isDirectPlay)
+            }
+        }
+    }
+
+    private func fallbackToTranscode(url: URL, seekTo: Int?, generation: Int, allowCappedRetry: Bool = true, prepared: Bool = false) {
+        guard loadGeneration == generation else { return }
+        let title = currentItem?.title ?? "Unknown"
+        print("[Plex90] gen=\(generation) | TRANSCODE FALLBACK: \"\(title)\"")
+        cancellables.removeAll()
+        player?.replaceCurrentItem(with: nil)
+
+        loadDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.loadGeneration == generation else { return }
+
+                if !prepared, let serverID = self.currentItem?.serverID {
+                    await self.api(for: serverID).prepareTranscodeSession(startURL: url)
+                    guard self.loadGeneration == generation else { return }
+                }
+                print("[Plex90] gen=\(generation) | TRANSCODE: creating AVPlayerItem for \"\(title)\"")
+                let playerItem = AVPlayerItem(url: url)
+                playerItem.preferredForwardBufferDuration = 5
+                self.installFreshPlayer(with: playerItem, generation: generation)
+
+                playerItem.publisher(for: \.status)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] status in
+                        guard let self, self.loadGeneration == generation else { return }
+                        switch status {
+                        case .readyToPlay:
+                            print("[Plex90] gen=\(generation) | TRANSCODE READY: \"\(title)\"")
+                            if let seekTo, seekTo > 0 {
+                                let target = CMTime(seconds: Double(seekTo), preferredTimescale: 600)
+                                self.player?.seek(to: target) { _ in
+                                    Task { @MainActor [weak self] in
+                                        guard let self, self.loadGeneration == generation else { return }
+                                        self.playbackState = .playing
+                                        self.player?.play()
+                                        self.applySubtitleSelection(loadGenerationToken: generation)
+                                        self.playbackTracker?.onPlaybackReady()
+                                    }
+                                }
+                            } else {
+                                self.noteHLSTimelineStart(playerItem, generation: generation)
+                                self.playbackState = .playing
+                                self.player?.play()
+                                self.applySubtitleSelection(loadGenerationToken: generation)
+                                self.playbackTracker?.onPlaybackReady()
+                            }
+                        case .failed:
+                            guard self.loadGeneration == generation else { return }
+                            let msg = playerItem.error?.localizedDescription ?? "Unknown error"
+                            print("[Plex90] gen=\(generation) | TRANSCODE FAILED: \"\(title)\" - \(msg)")
+                            self.autoSkipOnError(generation: generation)
+                        default:
+                            break
+                        }
+                    }
+                    .store(in: &self.cancellables)
+
+                NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime, object: playerItem)
+                    .receive(on: DispatchQueue.main)
+                    .sink { [weak self] _ in
+                        guard let self, self.loadGeneration == generation else { return }
+                        self.handlePartEnded()
+                    }
+                    .store(in: &self.cancellables)
+
+                self.installEndOfItemFallback(for: playerItem, generation: generation, title: title)
+                self.installWatchdog(for: playerItem, item: self.currentItem, isDirectPlay: false, generation: generation, allowCappedRetry: allowCappedRetry)
+            }
+        }
+    }
+
+    // MARK: - Auto-skip on error
+
+    /// Gives a load a bounded time to show picture, then either retries once with the video
+    /// forced to 1080p (an HLS copy the device could not decode) or advances.
+    private func installWatchdog(for playerItem: AVPlayerItem, item: PlexMediaItem?, isDirectPlay: Bool, generation: Int, allowCappedRetry: Bool) {
+        let deadline = PlaybackWatchdog.deadlineSeconds(
+            isDirectPlay: isDirectPlay, videoWidth: item?.videoWidth, videoHeight: item?.videoHeight)
+        // Ask for decoded frames, not a declared size: a 4K H.264 copy reported 3840x2160
+        // while never producing a single picture.
+        let probe = AVPlayerItemVideoOutput(pixelBufferAttributes: nil)
+        playerItem.add(probe)
+        videoFrameProbe = probe
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(4))
+            guard let self, self.loadGeneration == generation else { return }
+            if self.player?.rate == 0, playerItem.status != .failed {
+                print("[Plex90] gen=\(generation) | WATCHDOG: 4s in, not playing yet (state=\(self.playbackState)) — nudging play()")
+                self.player?.play()
+            }
+            let window = PlaybackWatchdog.progressWindowSeconds
+            try? await Task.sleep(for: .seconds(max(1, deadline - 4 - window)))
+            guard self.loadGeneration == generation else { return }
+            let sampleA = playerItem.currentTime().seconds
+            try? await Task.sleep(for: .seconds(window))
+            guard self.loadGeneration == generation else { return }
+            let sampleB = playerItem.currentTime().seconds
+            let progressed = sampleB - sampleA
+            let reachedReady = self.playbackState == .playing || playerItem.status == .readyToPlay
+            let frames = probe.hasNewPixelBuffer(forItemTime: playerItem.currentTime())
+            guard !PlaybackWatchdog.hasPicture(reachedReady: reachedReady, progressedSeconds: progressed, decodedFrame: frames) else { return }
+            let access = playerItem.accessLog()?.events.last.map { "segments=\($0.numberOfMediaRequests) stalls=\($0.numberOfStalls) bytes=\($0.numberOfBytesTransferred) dropped=\($0.numberOfDroppedVideoFrames) watched=\(String(format: "%.1f", $0.durationWatched))s" } ?? "no access log"
+            let errors = playerItem.errorLog()?.events.suffix(3).map { "\($0.errorStatusCode) \($0.errorComment ?? "") \(($0.uri ?? "").suffix(48))" }.joined(separator: " | ") ?? ""
+            let detail = "ready=\(reachedReady), playhead moved \(String(format: "%.1f", progressed))s, frames=\(frames), declared \(Int(playerItem.presentationSize.width))x\(Int(playerItem.presentationSize.height)), rate=\(self.player?.rate ?? -1), status=\(playerItem.status.rawValue), \(access)\(errors.isEmpty ? "" : ", errors: " + errors)"
+            if isDirectPlay, let item {
+                // Audio with a black picture is the signature of a file AVPlayer opened but
+                // cannot render: an HEVC MP4 tagged hev1, an exotic profile, a broken index.
+                // The server stream is the answer, and it gets its own capped retry after.
+                print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, direct play gave no picture (\(detail)) — switching to the server stream")
+                let backend = self.api(for: item.serverID)
+                let offset = self.seekOffset
+                Task { @MainActor [weak self] in
+                    guard let self, self.loadGeneration == generation else { return }
+                    guard let resolved = await backend.resolveTranscodePlayback(for: item, offsetSeconds: offset),
+                          self.loadGeneration == generation else {
+                        if self.loadGeneration == generation { self.advanceToNextItem() }
+                        return
+                    }
+                    self.activeTranscode = (item.serverID, resolved.resolution.playSessionId)
+                    self.hlsRequestedOffset = resolved.startsAtOffset ? offset : 0
+                    self.fallbackToTranscode(url: resolved.resolution.url, seekTo: resolved.startsAtOffset ? nil : offset,
+                                             generation: generation, allowCappedRetry: true, prepared: true)
+                }
+                return
+            }
+            if allowCappedRetry, !isDirectPlay, let item,
+               let backend = Optional(self.api(for: item.serverID)),
+               let capped = backend.cappedTranscodeURL(for: item, offsetSeconds: self.seekOffset, sessionID: UUID().uuidString) {
+                print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, no picture (\(detail)) — retrying once with video capped at 1080p")
+                self.stopActiveTranscodeIfNeeded()
+                let session = URLComponents(url: capped, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "session" }?.value
+                self.activeTranscode = (item.serverID, session)
+                self.hlsRequestedOffset = self.seekOffset
+                self.fallbackToTranscode(url: capped, seekTo: nil, generation: generation, allowCappedRetry: false)
+                return
+            }
+            print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, no picture (\(detail)) — advancing to next item")
+            self.advanceToNextItem()
+        }
+    }
+
+    /// One AVPlayer per load. Reusing a single player across dozens of item swaps, mixing
+    /// HLS and raw files, degraded on a real Apple TV: after about forty channel changes,
+    /// files that had played fine minutes earlier stopped reaching ready. The video layer
+    /// follows `player`, so swapping the instance costs nothing visible.
+    private func installFreshPlayer(with playerItem: AVPlayerItem, generation: Int) {
+        let old = player
+        old?.pause()
+        old?.replaceCurrentItem(with: nil)
+        let fresh = AVPlayer(playerItem: playerItem)
+        fresh.automaticallyWaitsToMinimizeStalling = true
+        player = fresh
+        print("[Plex90] gen=\(generation) | Fresh AVPlayer")
+    }
+
+    private func noteHLSTimelineStart(_ playerItem: AVPlayerItem, generation: Int) {
+        guard hlsRequestedOffset > 0 else { hlsBaseOffset = 0; return }
+        let t = playerItem.currentTime().seconds
+        hlsBaseOffset = PlaybackWatchdog.hlsBaseOffset(requested: hlsRequestedOffset, observedStart: t)
+        print("[Plex90] gen=\(generation) | HLS timeline starts at \(String(format: "%.1f", t))s for a \(hlsRequestedOffset)s offset, base \(Int(hlsBaseOffset))s")
+    }
+
+    private func autoSkipOnError(generation: Int) {
+        guard loadGeneration == generation else { return }
+        let title = currentItem?.title ?? "Unknown"
+        print("[Plex90] gen=\(generation) | AUTO-SKIP: \"\(title)\" failed, skipping to next")
+        advanceToNextItem()
+    }
+
+    /// Backstop for an item that finishes without announcing it.
+    ///
+    /// `AVPlayerItemDidPlayToEndTime` is the primary end-of-item signal, but it does not
+    /// always arrive. A Plex HLS transcode whose playlist never receives `#EXT-X-ENDLIST`,
+    /// or a transcode session that dies as the file runs out, leaves AVPlayer parked on the
+    /// final frame with no notification and no error. The channel then sits on a finished
+    /// program until the user tunes away and back, which is the one thing a continuously
+    /// playing guide must never do.
+    ///
+    /// Safe to treat a stopped rate as "ended" because fullscreen playback has no pause:
+    /// Play/Pause only flashes the OSD (see PlayerView), so the user cannot park the player
+    /// here deliberately. Firing advances the schedule, which bumps `loadGeneration` and
+    /// retires this timer, so it cannot fire twice for the same item.
+    private func installEndOfItemFallback(for playerItem: AVPlayerItem, generation: Int, title: String) {
+        Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, self.loadGeneration == generation else { return }
+                guard case .playing = self.playbackState, let player = self.player else { return }
+                let duration = playerItem.duration
+                guard duration.isNumeric else { return }
+                let total = duration.seconds
+                let current = player.currentTime().seconds + self.hlsBaseOffset
+                guard total.isFinite, total > 0, current.isFinite else { return }
+                let remaining = total - current
+                // Parked at the tail with no forward motion. Mid-item buffering also stops
+                // the rate, hence the requirement that we are already at the end.
+                guard remaining <= 2.0, player.rate == 0 else { return }
+                print("[Plex90] gen=\(generation) | END FALLBACK: \"\(title)\" parked \(String(format: "%.1f", remaining))s from end, no end-of-item notification — advancing")
+                self.handlePartEnded()
+            }
+            .store(in: &self.cancellables)
+    }
+
+    // MARK: - Auto-advance
+
+    // Called when AVPlayerItemDidPlayToEndTime fires. For multi-disc Plex movies (stored as
+    // a single item with multiple Media.Part entries), plays the next disc before advancing
+    // the schedule. For single-disc / single-file content, advances to the next item.
+    private func handlePartEnded() {
+        if let item = currentItem,
+           let extra = item.additionalPartKeys,
+           currentPartIndex < extra.count {
+            let nextKey = extra[currentPartIndex]
+            let partNum = currentPartIndex + 2  // human-readable: disc 2, disc 3, …
+            let totalParts = extra.count + 1
+            print("[Plex90] MULTI-PART: \"\(item.title)\" — starting disc \(partNum) of \(totalParts)")
+            currentPartIndex += 1
+            currentItem = item.withPartKey(nextKey)
+            seekOffset = 0
+            loadCurrentItem()
+        } else {
+            currentPartIndex = 0
+            advanceToNextItem(fromNaturalEnd: true)
+        }
+    }
+
+    // fromNaturalEnd: true when called from AVPlayerItemDidPlayToEndTime. In that case we
+    // always start the next item at 0 — actual file durations differ from Jellyfin/Plex
+    // metadata (sometimes by 40+ seconds), so applying schedule.elapsedSeconds would skip
+    // into the next episode. Schedule-sync seeks are only correct when tuning into a channel.
+    private func advanceToNextItem(fromNaturalEnd: Bool = false) {
+        guard let channel = currentChannel else { return }
+        let prevRatingKey = currentItem?.ratingKey
+        let prevTitle = currentItem?.title ?? "nil"
+
+        if let schedule = ChannelScheduleBuilder.buildSchedule(
+            for: channel,
+            credentialFingerprint: scheduleCredentialFingerprint
+        ) {
+            let scheduleHasMoved = schedule.nowPlaying?.item.ratingKey != prevRatingKey
+            var pick = scheduleHasMoved
+                ? schedule.nowPlaying?.item
+                : (schedule.upNext?.item ?? schedule.nowPlaying?.item)
+            // Never seek on natural playback end: file duration ≠ scheduled duration,
+            // so elapsedSeconds would skip into the next item. Only apply seek when
+            // the schedule is being re-synced from outside (channel change, watchdog).
+            var newSeekOffset = (scheduleHasMoved && pick != nil && !fromNaturalEnd) ? schedule.elapsedSeconds : 0
+
+            if let item = pick,
+               let conflictCH = ChannelScheduleBuilder.findConflict(
+                   item: item,
+                   excludingChannelID: channel.id,
+                   in: channels,
+                   credentialFingerprint: scheduleCredentialFingerprint
+               ) {
+                print("[Plex90] ADVANCE CONFLICT: \"\(item.title)\" already on CH \(conflictCH), skipping")
+                if let idx = schedule.entries.firstIndex(where: { $0.item.ratingKey == pick?.ratingKey }),
+                   idx + 1 < schedule.entries.count {
+                    pick = schedule.entries[idx + 1].item
+                    newSeekOffset = 0
+                }
+            }
+
+            if let next = pick {
+                currentItem = next
+                seekOffset = newSeekOffset
+                print("[Plex90] ADVANCE: \"\(prevTitle)\" -> \"\(next.title)\" on CH \(channel.name) seek=\(newSeekOffset)s (from schedule)")
+            } else {
+                currentItem = channel.filteredPool().randomElement()
+                seekOffset = 0
+                print("[Plex90] ADVANCE: \"\(prevTitle)\" -> \"\(currentItem?.title ?? "nil")\" on CH \(channel.name) (random fallback)")
+            }
+        } else {
+            currentItem = channel.filteredPool().randomElement()
+            seekOffset = 0
+            print("[Plex90] ADVANCE: \"\(prevTitle)\" -> \"\(currentItem?.title ?? "nil")\" on CH \(channel.name) (random fallback)")
+        }
+        loadCurrentItem()
+    }
+}
+
+// MARK: - Now Playing Info Center
+
+extension AppState {
+    /// Push the current programme to the system now-playing card. Driven from
+    /// `didSet` on `currentItem` and `playbackState`, so every playback path
+    /// feeds it without eight separate call sites to keep in step.
+    func refreshNowPlayingInfo() {
+        guard let item = currentItem else {
+            NowPlayingInfoService.clear()
+            return
+        }
+        let playing: Bool
+        if case .playing = playbackState { playing = true } else { playing = false }
+
+        // Only AppState knows which server this item came from, so the artwork
+        // URL is resolved here rather than inside the service.
+        let artwork = apiForServer(selectedServers.first).thumbnailURL(for: item)
+
+        NowPlayingInfoService.update(
+            item: item,
+            channel: currentChannel,
+            isPlaying: playing,
+            elapsed: (player?.currentTime().seconds ?? 0) + hlsBaseOffset,
+            artworkURL: artwork
+        )
+    }
+}

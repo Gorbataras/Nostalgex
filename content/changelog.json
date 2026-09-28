@@ -1,0 +1,184 @@
+{
+  "entries": [
+    {
+      "version": "1.0.21",
+      "date": "SEP 2026",
+      "title": "Channels play again",
+      "bullets": [
+        "Fixed: many channels showed the tuning screen and never cleared, or played sound over a black picture. Anything your Plex server has to convert now starts in a couple of seconds on Apple TV running tvOS 26.",
+        "Fixed: flipping channels quickly, or the app retrying a stream, could get refused by the server. The app now asks the server first the way Plex's own players do.",
+        "Fixed: some HEVC MP4 files played audio with no picture. They now go through the server, which sends a version the Apple TV can show.",
+        "A file that opens but shows nothing now switches to the server stream instead of skipping the program.",
+        "Checked on both an Apple TV 4K and an older Apple TV HD against MKV, MP4, AVI, AV1, VC-1, 4K and HDR files: every file the server can serve played."
+      ]
+    },
+    {
+      "version": "1.0.20",
+      "date": "SEP 2026",
+      "title": "Stays signed in, opens instantly",
+      "bullets": [
+        "Fixed: the app forgot your Plex sign-in after a force quit or restart. A fresh sign-in was never being saved (since May). Sign in once on this build and it sticks.",
+        "Fixed: every launch rebuilt the whole channel guide. The saved guide was never actually written on a real Apple TV, only in testing. Now the guide comes back instantly and refreshes quietly in the background.",
+        "Fixed: the Top Shelf on the Apple TV home screen never showed what's on now, for the same reason. It does now.",
+        "The 6-hour refresh asks your Plex server whether anything changed before rescanning. Nothing new, no rebuild. A full rescan still runs at least once a day.",
+        "Signing in again no longer discards the saved guide.",
+        "Tapping Connect retries a flaky plex.tv call and, if it still fails, says exactly why.",
+        "The connect screen shows a small diagnostic line. If you ever land there unexpectedly, a photo of it tells us what happened.",
+        "Settings text is bigger and brighter. Nothing under 20pt, subtitles at 80%, and the long explainers trimmed to one line."
+      ]
+    },
+    {
+      "version": "1.0.16",
+      "date": "SEP 2026",
+      "title": "You stay signed in",
+      "bullets": [
+        "Fixed: the app could forget your Plex sign-in after a force quit or restart and drop you on the connect screen. Your sign-in is now stored in two places and never deleted by the app itself. Only Disconnect in Settings signs you out.",
+        "A missing server list no longer counts as signed out. The app re-finds your servers from plex.tv on the next load.",
+        "A refused request (401) no longer signs you out after repeated tries. You see what Plex said and decide.",
+        "Tapping Connect retries a flaky plex.tv call a few times and, if it still fails, tells you exactly why instead of a generic connection error.",
+        "If a device ever does lose a sign-in, the connect screen now says so with a code to report."
+      ]
+    },
+    {
+      "version": "1.0.15",
+      "date": "SEP 2026",
+      "title": "The same movie stops repeating itself",
+      "bullets": [
+        "Fixed: a movie could air twice in a row with no gap on channels with a smaller lineup. Two separate causes, both fixed: one mid-day, one right at midnight.",
+        "TRUE CRIME was showing every documentary in the library, sports and music included. Now it is actually true crime.",
+        "R RATED COMEDY dropped a handful of prestige dramas that only technically counted as comedies.",
+        "Playback that silently went black and never recovered now gets caught and skipped.",
+        "Top Shelf logs more clearly when it has nothing new to show."
+      ]
+    },
+    {
+      "version": "1.0.14",
+      "date": "SEP 2026",
+      "title": "A premieres channel, and seven more",
+      "bullets": [
+        "New PREMIERES channel. Anything you add to your server turns up here first, then settles into the rest of the lineup.",
+        "A newly added film used to premiere on every channel that carried it, all at the same time. It now premieres once, on PREMIERES.",
+        "Eight new channels: PREMIERES, MILLENNIUM CARTOONS, DREAMWORKS, TOON TOWN, SPY GAMES, MIRAMAX, R RATED COMEDY and SKETCH COMEDY.",
+        "Films tagged History were being blocked from every channel. Apollo 13, 12 Years a Slave and a dozen others have a home again.",
+        "Westerns on TV now have a channel, sci-fi horror shows up on SCI-FI, and SPORTS DOCS is no longer empty.",
+        "ROM COMS, DATE NIGHT, GIRLS NIGHT and TEEN MOVIES stop showing each other the same films."
+      ]
+    },
+    {
+      "version": "1.0.13",
+      "date": "SEP 2026",
+      "title": "What is on, from the home screen",
+      "bullets": [
+        "What you are watching now shows up in Control Center and in the Remote app, with the channel and the poster.",
+        "Put Nostalgex in the top row of your Apple TV home screen and it shows what is on right now across your channels. Pick one and it tunes straight to it.",
+        "CRITERION was playing the wrong films. It now plays what it says it does.",
+        "Nine channels pull from a much bigger pool: BUDDIES, DATE NIGHT, RUSH, FRONT LINE, DRAMA TV, BIOPICS, FOREIGN FILMS, MIDNIGHT and CULT CLASSICS.",
+        "Channels stick to their own rules again, so cartoons stop turning up on SCI-FI."
+      ]
+    },
+    {
+      "version": "1.0.12",
+      "date": "SEP 2026",
+      "title": "Collections become channels",
+      "bullets": [
+        "Your collections turn into channels. A collection on your Plex, Jellyfin or Emby server now shows up as its own channel alongside the rest of the lineup.",
+        "Open in Plex sends whatever is playing straight into the Plex app.",
+        "New additions premiere at prime time, and films that come in two parts are scheduled back to back.",
+        "The lineup refreshes every six hours instead of once a day, so something you added today can turn up tonight.",
+        "Fixes: the bottom channel in the guide is selectable again, HEVC files no longer black screen on the Apple TV HD, multi-part movies on Jellyfin and Emby play straight through, and a library scan that gets interrupted keeps what it already loaded instead of starting over."
+      ]
+    },
+    {
+      "version": "1.0.11",
+      "date": "AUG 2026",
+      "title": "Faster loading, and a Now Playing panel",
+      "bullets": [
+        "Big libraries load a lot faster, and the loading screen tells you what it is actually doing the whole way through instead of parking on one step.",
+        "Slow or flaky connections no longer take the app down with them. Loading and playback both keep going instead of hanging.",
+        "New Now Playing panel while you watch. Closed captions, subtitle and audio language, stream quality, retro mode, and a sleep timer, all without leaving the program.",
+        "Open in Plex sends whatever is on straight into the Plex app.",
+        "Your sign-in sticks. No more getting kicked back to the connect screen after the Apple TV restarts.",
+        "Guide fixes: rows line up properly, the bottom channel is selectable again, and a program that ends quietly moves on instead of stalling."
+      ]
+    },
+    {
+      "version": "1.0.10",
+      "date": "JUL 2026",
+      "title": "Music videos, more channels, and playback upgrades",
+      "bullets": [
+        "Music videos work now. Drop them in and they fill up HIGH ROTATION, plus a batch of new ones: Y2K, Current Spin, Dance Floor, Caliente, Headbangers, and Get Down. Even videos sitting in a regular movie library get picked up as long as they are tagged Music.",
+        "New channels: Cartoon Network, Record Store, and an Arthouse pack.",
+        "Pick your audio language. If a movie has more than one audio track, Nostalgex remembers the one you want.",
+        "Movies split across a couple of files play straight through now instead of stopping halfway.",
+        "Your server logins stick. No more re-entering Plex, Jellyfin, or Emby credentials after the Apple TV restarts or restores.",
+        "Guide cleanup: smoother episode skipping, titles that stay put, a better screensaver, and a curation pass so titles land on the right channel."
+      ]
+    },
+    {
+      "version": "1.0.9",
+      "date": "JUN 2026",
+      "title": "Emby support and self-filling Rewatchables",
+      "bullets": [
+        "Emby support on Apple TV. Connect an Emby server alongside Plex and Jellyfin.",
+        "Your Rewatchables channels build themselves now. What you watch in Nostalgex counts toward your Plex history, and Rewatchables kicks in at 3 watches instead of 4.",
+        "New channels (Drama TV, Biopics, Buddies) plus a big curation pass so titles land on the right channel.",
+        "Fixed the channel guide so it lines up with whatever is on right now, and brought back full late-night schedules."
+      ]
+    },
+    {
+      "version": "1.0.5",
+      "date": "JUN 2026",
+      "title": "Performance + polish update",
+      "bullets": [
+        "General stability improvements across the Apple TV app and web tuner.",
+        "UI polish and small fixes based on early feedback."
+      ]
+    },
+    {
+      "version": "1.0.4",
+      "date": "JUN 2026",
+      "title": "Quality-of-life improvements",
+      "bullets": [
+        "Small improvements to navigation, readability, and overall responsiveness.",
+        "Bug fixes and under-the-hood tuning."
+      ]
+    },
+    {
+      "version": "1.0.3",
+      "date": "MAY 2026",
+      "title": "16 new channels and a True Crime bundle",
+      "bullets": [
+        "New True Crime bundle: true crime docs, crime films, thrillers, mystery, and crime TV.",
+        "Added Last Action Heroes, Sci-Fi, Fantasy, Westerns, Teen Movies, Retro Toons, Stand-Up, Docs, Musicals, and an all-ages Anime channel.",
+        "Smarter curation. Anime and stand-up now pull from a tuned database instead of loose genre tags."
+      ]
+    },
+    {
+      "version": "1.0.2",
+      "date": "MAY 2026",
+      "title": "A cleaner channel guide",
+      "bullets": [
+        "Renumbered every channel into tidy bundles, in real channel-guide order.",
+        "Lineup stays in sync across the web tuner and the Apple TV app."
+      ]
+    },
+    {
+      "version": "1.0",
+      "date": "MAY 2026",
+      "title": "Nostalgex landed on Apple TV",
+      "bullets": [
+        "Native tvOS app with a real on-screen channel guide.",
+        "Music video channels get richer genres through MusicBrainz."
+      ]
+    },
+    {
+      "version": "WEB TUNER",
+      "date": "APR 2026",
+      "title": "The free web tuner",
+      "bullets": [
+        "Your Plex library as cable TV, right in the browser.",
+        "A fresh daily schedule so there&rsquo;s always something on."
+      ]
+    }
+  ]
+}

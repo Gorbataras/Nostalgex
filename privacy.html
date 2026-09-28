@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nostalgex - Privacy Policy</title>
+<link rel="icon" type="image/png" href="./logo/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #080810; color: #ccc; font-family: -apple-system, system-ui, sans-serif; line-height: 1.7; }
+  .container { max-width: 700px; margin: 0 auto; padding: 60px 24px; }
+  h1 { color: #00C4FF; font-size: 28px; margin-bottom: 8px; }
+  .date { color: #666; font-size: 14px; margin-bottom: 40px; }
+  h2 { color: #fff; font-size: 18px; margin-top: 32px; margin-bottom: 12px; }
+  p, li { color: #aaa; font-size: 15px; margin-bottom: 12px; }
+  ul { padding-left: 20px; }
+  a { color: #00C4FF; }
+  .back { display: inline-block; margin-bottom: 24px; color: #666; text-decoration: none; font-size: 14px; }
+  .back:hover { color: #00C4FF; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="/" class="back">Back to Nostalgex</a>
+  <h1>Privacy Policy</h1>
+  <p class="date">Effective: September 2, 2026</p>
+
+  <p>Nostalgex turns your own Plex, Jellyfin, or Emby library into live TV channels. We do not host, supply, or stream any media. Everything you watch comes off your own server.</p>
+
+  <p>This policy covers two separate things: the Nostalgex app on Apple TV, and this website. They collect different things, so they are described separately below.</p>
+
+  <h2>Summary</h2>
+  <ul>
+    <li>No accounts. No ads. Nothing is sold or rented to anyone.</li>
+    <li>Your server address and login token stay on your Apple TV.</li>
+    <li>The app sends a small, fixed list of anonymous usage events so we can tell whether things are working. No names, no library contents, no titles.</li>
+    <li>This website uses two lightweight analytics scripts to count page visits.</li>
+    <li>Nothing we collect follows you into other companies' apps or across the web.</li>
+  </ul>
+
+  <h2>The app: what it sends</h2>
+  <p>Nostalgex sends anonymous usage events to <a href="https://telemetrydeck.com" rel="noopener">TelemetryDeck</a>, a privacy-focused analytics service. This is the complete list of events the app can send. There are seven, and there are no others:</p>
+  <ul>
+    <li>A server connection was started</li>
+    <li>A server connection finished, with the number of servers found</li>
+    <li>A server connection failed, with a short reason code (for example <code>no_reachable_server</code> or <code>jellyfin_auth_failed</code>)</li>
+    <li>A library finished loading, with the number of channels, the number of items, and whether it happened in the background</li>
+    <li>A library failed to load, with a short error reason</li>
+    <li>A channel was tuned, with the channel number</li>
+    <li>Playback started, with the channel number</li>
+  </ul>
+
+  <h2>The app: what it never sends</h2>
+  <ul>
+    <li>Your name, email address, or any account details</li>
+    <li>Your Plex, Jellyfin, or Emby username, password, or token</li>
+    <li>Your server address, hostname, or IP address</li>
+    <li>Your library contents. No titles, no filenames, no posters, no watch history</li>
+    <li>Any advertising identifier, and nothing that lets anyone track you across other apps or websites</li>
+  </ul>
+
+  <h2>The app: how events are grouped</h2>
+  <p>Every event carries an anonymous device identifier so one Apple TV's events can be counted as one device instead of many. It comes from Apple's vendor identifier, which is specific to us and is not shared with other developers. It is hashed on your device before it leaves, and TelemetryDeck hashes it again on arrival. It cannot be turned back into you, and it resets if you delete the app.</p>
+  <p>Alongside each event, the analytics library also records ordinary technical details: app version and build number, tvOS version, Apple TV model, platform and architecture, language and region, and whether the build came from the App Store, TestFlight, or a debug run.</p>
+
+  <h2>This website</h2>
+  <p>Three pages on nostalgex.app load two analytics scripts, <a href="https://data-haus.vercel.app" rel="noopener">Data Haus</a> (our own) and statsngraphs: the home page, the connect page, and the support page. They count page visits, referrers, and basic device and country information. They do not use advertising cookies and do not build a profile of you across other sites.</p>
+  <p>The web tuner itself loads neither. Once you are connected and watching, no analytics script is running on the page, so nothing about your library or what you play is measured. This page you are reading now does not load them either. All of this is separate from the app, and nothing from the app is joined to anything from the website.</p>
+
+  <h2>What the app stores on your device</h2>
+  <p>Nostalgex keeps your setup on your Apple TV so you do not have to sign in again:</p>
+  <ul>
+    <li>Your server address and login token, stored in the device Keychain</li>
+    <li>Which server type you connected to, and your Jellyfin or Emby user ID</li>
+    <li>Your channel and bundle preferences, retro mode, subtitle and audio language settings, and the date of your last library scan</li>
+    <li>A cached copy of your channel guide, and a short list of what is on now for the Apple TV home screen. Both are titles and artwork links from your own library, kept in the app's cache on the device</li>
+  </ul>
+  <p>This stays on your device. It is not synced to us, and it is removed when you delete the app.</p>
+
+  <h2>Services the app connects to</h2>
+  <ul>
+    <li>Your own Plex, Jellyfin, or Emby server, for the library and for playback</li>
+    <li>plex.tv, for Plex sign-in using Plex's own PIN flow. That is Plex's system, not ours</li>
+    <li>TMDB (The Movie Database) and OMDb, for public movie and TV metadata used to sort titles onto the right channels</li>
+    <li>MusicBrainz, for public music metadata used by the music video channels</li>
+    <li>A Supabase database we run, which caches the metadata above so it does not have to be fetched again on every device</li>
+  </ul>
+  <p>These lookups use public identifiers and titles for the purpose of matching metadata. The Supabase cache is keyed on public TMDB identifiers and holds metadata about films and shows. It does not record who asked for it, and it holds no account, device, or server information.</p>
+
+  <h2>Sign-in</h2>
+  <p>Plex sign-in runs through Plex's own PIN system. We never see your Plex username or password. Jellyfin and Emby sign-in goes straight from the app to the server you typed in. Tokens are held in the Keychain on your Apple TV and are never sent to us.</p>
+
+  <h2>Plex activity sync</h2>
+  <p>The app can report what you are watching back to your own Plex server, so Continue Watching and play counts stay accurate. This is <strong>off by default</strong> and you turn it on in Settings under Plex Activity. When it is on, the reports go only to your own Plex server. They do not come to us.</p>
+
+  <h2>Tracking</h2>
+  <p>Nostalgex does not track you across apps or websites owned by other companies, and does not use data for advertising or ad measurement.</p>
+
+  <h2>Data retention</h2>
+  <p>Analytics events are held by TelemetryDeck in aggregate and are not tied to an identifiable person. Website analytics are kept as visit counts. Anything stored on your Apple TV stays there until you remove the app, sign out, or reset the device.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li>Deleting Nostalgex removes everything the app stored on your Apple TV, including your server token.</li>
+    <li>Plex activity sync is off unless you turn it on, and you can turn it back off at any time.</li>
+    <li>If you want your app analytics removed, email us and we will ask TelemetryDeck to delete them.</li>
+    <li>If you contact support, you decide what goes in the message.</li>
+  </ul>
+
+  <h2>Children's privacy</h2>
+  <p>Nostalgex is not directed at children and does not knowingly collect personal information from anyone, including children.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes, we'll update it here with a new effective date.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy? Reach us at <a href="mailto:support@nostalgex.app">support@nostalgex.app</a>, or through <a href="/support">the support page</a>.</p>
+  <p>Muell Haus Inc.</p>
+</div>
+</body>
+</html>

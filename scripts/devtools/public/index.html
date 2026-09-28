@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nostalgex devtools</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">NOSTALGEX · DEVTOOLS</div>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="/schedule.html">Schedule</a>
+      <a href="/pools.html">Pools</a>
+      <a href="/memberships.html">Memberships</a>
+      <a href="/audit.html">Audit</a>
+      <a href="/coverage.html">Coverage</a>
+    </nav>
+  </header>
+
+  <div id="snapshot-bar"></div>
+
+  <div class="page-head">
+    <h1>DEV TOOLS</h1>
+    <p>Local-only utilities for inspecting the Nostalgex channel rotation and Plex library health. Not shipped in the app.</p>
+  </div>
+
+  <div id="status" class="warn-banner" style="display:none"></div>
+
+  <div class="cards">
+    <a class="card" href="/schedule.html">
+      <h2>SCHEDULE EXPLORER</h2>
+      <p>Search every airing across all channels for the past 7 + next 7 days. Validates that titles you expect to see are actually in rotation, and confirms the deterministic algorithm is putting them in the right slots.</p>
+      <div class="meta">→ Past 7d / Next 7d · search by title · ~5k airings</div>
+    </a>
+    <a class="card" href="/pools.html">
+      <h2>CHANNEL POOLS</h2>
+      <p>Inspect which titles each channel is allowed to play, plus the rules that produced the pool. Use this to debug "why isn't X on channel Y?" — see the pool size, decade/genre breakdown, and the filter rules side-by-side.</p>
+      <div class="meta">→ One channel at a time · rule summary · pool stats</div>
+    </a>
+    <a class="card" href="/memberships.html">
+      <h2>CHANNEL MEMBERSHIPS</h2>
+      <p>Inspect the TMDB membership manifest — which shows are claimed for which channels, by curated exemplar or by TMDB's recommendation/similar graph. Use this to debug claims, find conflicts, or check why a specific show landed where it did.</p>
+      <div class="meta">→ Per-channel claims · show lookup · multi-channel conflicts</div>
+    </a>
+    <a class="card" href="/audit.html">
+      <h2>LIBRARY AUDIT</h2>
+      <p>Scans every movie / episode in your Plex library and flags files most likely to cause tvOS playback issues — no audio track, lossless audio AVPlayer can't decode, MKV containers, HEVC 10-bit, AV1, wrong default language, very high bitrate.</p>
+      <div class="meta">→ Grouped by issue type · severity ranked</div>
+    </a>
+    <a class="card" href="/coverage.html">
+      <h2>CHANNEL COVERAGE</h2>
+      <p>Every item in your library and how many channels pull it in. Finds orphans (items in zero channels) and groups them by the most likely reason: no TMDB match, no genres, no year, or a rule the tool can't evaluate. Type any title to see exactly which channels carry it.</p>
+      <div class="meta">→ Orphans by reason · thin channels · "where is X?" search · lower bound, not device truth</div>
+    </a>
+  </div>
+</div>
+
+<script src="/snapshot-bar.js"></script>
+<script>
+// Only nag about missing Plex creds when there's ALSO no snapshot AND when the
+// user might actually need them (the only page that requires live Plex is
+// Audit). If a snapshot is uploaded, Schedule/Pools/Channels all work without
+// Plex env vars — no need to warn.
+fetch("/api/health").then(r => r.json()).then(h => {
+  const el = document.getElementById("status");
+  if (h.plexConfigured) return;
+  if (h.snapshot) {
+    // Snapshot covers Schedule/Pools — only Audit needs Plex. Soft hint.
+    el.style.display = "block";
+    el.style.color = "var(--text-dim)";
+    el.style.borderColor = "var(--border)";
+    el.style.background = "var(--surface)";
+    el.innerHTML = "Schedule and Pools work from the snapshot. To run <a href='/audit.html'>Library Audit</a>, restart the server with <span class='code'>PLEX_URL=… PLEX_TOKEN=… node server.mjs</span>.";
+  } else {
+    el.style.display = "block";
+    el.innerHTML = "No snapshot uploaded and no Plex env vars set — nothing to show yet. Either build a snapshot with <span class='code'>npm run snapshot</span> (needs PLEX_URL and PLEX_TOKEN in .env) or restart with <span class='code'>PLEX_URL=… PLEX_TOKEN=… node server.mjs</span>.";
+  }
+});
+</script>
+</body>
+</html>

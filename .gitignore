@@ -1,0 +1,45 @@
+node_modules
+dist
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.vercel
+scripts/.lineup-tmp.html
+
+# Editor / agent scratch. Nothing in these belongs in the repo.
+.claude/
+.cursor/
+
+# Raw screenshot source dump — optimized/clean-named copies live in public/screens/
+img/
+
+# Xcode
+Nostalgex/build/
+Nostalgex/DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# Devtools generated data
+scripts/devtools/snapshot.json
+scripts/devtools/tmdb-keyword-cache.json
+
+# Secrets
+# (TMDBConfig.swift is committed but reads from env/Info.plist; never hardcode keys.)
+.env
+.env.*
+*.env
+Secrets.plist
+Secrets.xcconfig
+*.secret.xcconfig
+TMDBConfig.local.swift
+*.p12
+# App Store Connect API private keys. Downloadable exactly once and valid for
+# every app on the team, so a committed one is a serious leak.
+*.p8
+AuthKey_*.p8
+*.mobileprovision
+*.pem
+*.key
+.env*

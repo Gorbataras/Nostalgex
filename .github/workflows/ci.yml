@@ -1,0 +1,135 @@
+# Nostalgex — confidence guardrails (web build + tvOS unit tests)
+# Repo layout: https://github.com/chadMueller/Nostalgex — see docs/REPOSITORY-LAYOUT.md
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      tvos: ${{ steps.filter.outputs.tvos }}
+      config: ${{ steps.filter.outputs.config }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - '.github/workflows/ci.yml'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'vite.config.*'
+              - 'index.html'
+              - 'apple-tv.html'
+              - 'plex-tuner.html'
+              - 'web-tuner.html'
+              - 'support.html'
+              - 'privacy.html'
+              - '404.html'
+              - 'styles.css'
+              - 'channels.json'
+              - 'api/**'
+              - 'content/**'
+              - 'docs/**'
+              - 'img/**'
+              - 'logo/**'
+              - 'public/**'
+              - 'scripts/**'
+            tvos:
+              - '.github/workflows/ci.yml'
+              - 'Nostalgex/**'
+            config:
+              - '.github/workflows/ci.yml'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'channels.json'
+              - 'channels-memberships.json'
+              - 'CHANNELS.md'
+              - 'scripts/render-channels-doc.mjs'
+              - 'scripts/nostalgex-channel-filter.cjs'
+              - 'scripts/nostalgex-daily-manifest.js'
+              - 'scripts/nostalgex-filter-smoke.mjs'
+              - 'scripts/nostalgex-schedule-order-smoke.mjs'
+
+  channel-engine:
+    name: Channel engine (rule parity, schedule order, docs)
+    needs: changes
+    if: ${{ needs.changes.outputs.config == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+
+      # Three guardrails against the drift found in the 2026-09-02 audit:
+      #   test:filter        - the shared JS rule filter still honours every
+      #                        channels.json field (imdbRatingMin/imdbVotesMin
+      #                        were silently missing on web while Swift enforced them)
+      #   test:schedule      - web daily-manifest ordering still matches the tvOS
+      #                        SchedulePoolOrdering, so both surfaces air the same program
+      #   channels:doc:check - CHANNELS.md is regenerated from channels.json
+      #                        (it had drifted 8 config versions)
+      - name: Run channel engine checks
+        run: npm test
+
+  web-build:
+    name: Web (Vite build)
+    needs: changes
+    if: ${{ needs.changes.outputs.web == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+
+  tvos-unit-tests:
+    name: tvOS unit tests (NostalgexTests)
+    needs: changes
+    if: ${{ needs.changes.outputs.tvos == 'true' }}
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      # tvOS deployment target must be ≤ SDK on the runner (GitHub ships Xcode 16.x; tvOS 26 SDK is not available).
+      - name: Xcode and simulators
+        run: |
+          xcodebuild -version
+          xcrun simctl list devices available "tvOS" | head -40
+
+      - name: Run NostalgexTests
+        run: |
+          set -eo pipefail
+          xcodebuild test \
+            -project Nostalgex/Nostalgex.xcodeproj \
+            -scheme Nostalgex \
+            -destination 'platform=tvOS Simulator,name=Apple TV 4K (3rd generation)' \
+            -only-testing:NostalgexTests \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO

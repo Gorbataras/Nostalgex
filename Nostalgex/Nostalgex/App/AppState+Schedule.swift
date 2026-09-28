@@ -1,0 +1,126 @@
+import Foundation
+import Observation
+import SwiftUI
+import AVFoundation
+import Combine
+import UIKit
+
+// Daily refresh wiring and channel selection / schedule building.
+// Split out of AppState.swift; behavior unchanged.
+extension AppState {
+    // MARK: - Daily library refresh
+
+    /// Start a background loop that re-fetches the Plex library every 24h
+    /// (rolling, not on UTC day boundary — so the refresh doesn't kick in
+    /// mid-evening when UTC midnight crosses for users in western timezones).
+    func startDailyRefresh() {
+        dailyRefreshTask?.cancel()
+        if lastLoadAtUnix == 0 {
+            lastLoadAtUnix = Int(Date().timeIntervalSince1970)
+        }
+        dailyRefreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(900)) // check every 15 min
+                guard !Task.isCancelled else { break }
+                let now = Int(Date().timeIntervalSince1970)
+                let lastLoad = self?.lastLoadAtUnix ?? 0
+                let lastCheck = self?.lastLibraryCheckAtUnix ?? 0
+                if now - lastLoad >= LibrarySnapshotStore.refreshAfterSeconds,
+                   now - lastCheck >= LibrarySnapshotStore.refreshAfterSeconds {
+                    await self?.refreshLibraryIfChanged()
+                }
+            }
+        }
+    }
+
+    // MARK: - Channel control
+
+    func selectChannel(_ channel: Channel, precomputedSchedule: ChannelSchedule? = nil) {
+        let pool = channel.filteredPool()
+        print("[Plex90] SELECT CH \(channel.number) \(channel.name) (pool: \(pool.count) items)")
+        Analytics.track(.channelTuned(channelNumber: channel.number))
+        currentPartIndex = 0
+        currentChannel = channel
+        // Prefer the pre-computed schedule from the guide so the title
+        // the user clicked always matches what actually plays.
+        let schedule = precomputedSchedule ?? ChannelScheduleBuilder.buildSchedule(
+            for: channel,
+            credentialFingerprint: scheduleCredentialFingerprint
+        )
+        if let schedule {
+            currentItem = schedule.nowPlaying?.item
+            seekOffset = schedule.elapsedSeconds
+            print("[Plex90] Schedule: now=\"\(schedule.nowPlaying?.item.title ?? "nil")\" elapsed=\(schedule.elapsedSeconds)s next=\"\(schedule.upNext?.item.title ?? "nil")\" precomputed=\(precomputedSchedule != nil)")
+        } else {
+            currentItem = pool.randomElement()
+            seekOffset = 0
+            print("[Plex90] No schedule, random pick: \"\(currentItem?.title ?? "nil")\"")
+        }
+        loadCurrentItem()
+    }
+
+    func nextChannel() {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }),
+              channels.count > 1 else { return }
+        selectChannel(channels[(idx + 1) % channels.count])
+    }
+
+    func previousChannel() {
+        guard let current = currentChannel,
+              let idx = channels.firstIndex(where: { $0.id == current.id }),
+              channels.count > 1 else { return }
+        selectChannel(channels[(idx - 1 + channels.count) % channels.count])
+    }
+}
+
+// MARK: - Top Shelf snapshot
+
+extension AppState {
+    /// Denormalise "what is on now" for the Top Shelf extension.
+    ///
+    /// The extension cannot reach the app's manifests, snapshot or Keychain, so
+    /// rather than hand it credentials and duplicate the scheduling rules, the
+    /// app writes the answer out. Cheap to produce (the schedules are already
+    /// built) and it keeps every scheduling decision in one place.
+    ///
+    /// Safe to call before the App Group exists: the write no-ops and the Top
+    /// Shelf keeps showing its static image.
+    func refreshTopShelfSnapshot() {
+        guard TopShelfStore.containerURL != nil else {
+            print("[Plex90] TOPSHELF: container unavailable — App Group not granted to this process")
+            return
+        }
+
+        let api = apiForServer(selectedServers.first)
+        var entries: [TopShelfSnapshot.Entry] = []
+
+        for channel in channels.prefix(20) {
+            guard let schedule = ChannelScheduleBuilder.buildSchedule(
+                for: channel,
+                credentialFingerprint: scheduleCredentialFingerprint
+            ), let now = schedule.nowPlaying else { continue }
+
+            entries.append(
+                TopShelfSnapshot.Entry(
+                    channelID: channel.id,
+                    channelNumber: channel.number,
+                    channelName: channel.name,
+                    title: now.item.isMusicVideo ? now.item.musicDisplayLine : now.item.title,
+                    startUnix: Int(now.startTime.timeIntervalSince1970),
+                    endUnix: Int(now.endTime.timeIntervalSince1970),
+                    imageURL: api.thumbnailURL(for: now.item)?.absoluteString
+                )
+            )
+        }
+
+        guard !entries.isEmpty else {
+            print("[Plex90] TOPSHELF: no channel had a live nowPlaying across \(channels.prefix(20).count) checked — writing nothing")
+            return
+        }
+        TopShelfStore.write(
+            TopShelfSnapshot(generatedUnix: Int(Date().timeIntervalSince1970), entries: entries)
+        )
+        print("[Plex90] TOPSHELF: wrote \(entries.count) entries")
+    }
+}

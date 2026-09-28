@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Library audit — Nostalgex devtools</title>
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">NOSTALGEX · DEVTOOLS</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/schedule.html">Schedule</a>
+      <a href="/pools.html">Pools</a>
+      <a href="/memberships.html">Memberships</a>
+      <a href="/audit.html" class="active">Audit</a>
+      <a href="/coverage.html">Coverage</a>
+    </nav>
+  </header>
+
+  <div id="snapshot-bar"></div>
+
+  <div class="page-head">
+    <h1>LIBRARY AUDIT</h1>
+    <p>Scans every movie / episode in your Plex library and flags files most likely to cause tvOS playback issues. (Snapshot mode does not affect audit — it always hits live Plex for file metadata.)</p>
+  </div>
+
+  <div id="warn" class="warn-banner" style="display:none"></div>
+
+  <div class="controls">
+    <button id="start" class="btn" type="button">START SCAN</button>
+    <button id="export" class="btn ghost" type="button" disabled>EXPORT CSV</button>
+    <input id="q" class="search" placeholder="FILTER BY TITLE…">
+  </div>
+
+  <div class="meta-row">
+    <div id="summary" class="count">—</div>
+    <div id="status">Ready.</div>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script src="/snapshot-bar.js"></script>
+<script>
+const startBtn = document.getElementById("start");
+const exportBtn = document.getElementById("export");
+const summaryEl = document.getElementById("summary");
+const statusEl = document.getElementById("status");
+const resultsEl = document.getElementById("results");
+const warnEl = document.getElementById("warn");
+const qInput = document.getElementById("q");
+
+let lastResult = null;
+let pollHandle = null;
+
+async function startAudit() {
+  startBtn.disabled = true;
+  exportBtn.disabled = true;
+  resultsEl.innerHTML = "";
+  summaryEl.textContent = "Scanning…";
+  const r = await fetch("/api/audit/start", { method: "POST" });
+  const data = await r.json();
+  if (data.error) { warn(data.error); startBtn.disabled = false; return; }
+  poll();
+}
+
+async function poll() {
+  pollHandle = setInterval(async () => {
+    const r = await fetch("/api/audit/status");
+    const d = await r.json();
+    if (d.status === "idle") { statusEl.textContent = "Ready."; clearInterval(pollHandle); startBtn.disabled = false; return; }
+    if (d.status === "running") {
+      const p = d.progress || {};
+      let label = "Starting…";
+      if (p.phase === "listing") label = `Listing ${p.section}…`;
+      if (p.phase === "scanning") label = `Scanning ${p.section} (${p.done || 0}/${p.total || "?"})`;
+      if (p.phase === "section-done") label = `Finished ${p.section} (${p.total})`;
+      statusEl.textContent = label;
+      return;
+    }
+    if (d.status === "error") {
+      clearInterval(pollHandle);
+      warn(`Audit failed: ${d.error}`);
+      startBtn.disabled = false;
+      return;
+    }
+    if (d.status === "done") {
+      clearInterval(pollHandle);
+      const s = d.summary;
+      const partial = (s.sectionErrors?.length || 0) + (s.itemErrors || 0);
+      statusEl.textContent = `Done · ${s.totalScanned.toLocaleString()} files scanned${partial ? ` · ${partial} error${partial === 1 ? "" : "s"}` : ""}`;
+      summaryEl.textContent = `${s.findings} flagged across ${s.groupCount} issue type${s.groupCount === 1 ? "" : "s"}`;
+      if (s.sectionErrors?.length || s.itemErrors) {
+        const lines = [];
+        if (s.sectionErrors?.length) lines.push(`<strong>${s.sectionErrors.length} section${s.sectionErrors.length === 1 ? "" : "s"} failed to list:</strong> ${s.sectionErrors.map(e => `${e.section} (${e.error})`).join("; ")}`);
+        if (s.itemErrors) lines.push(`<strong>${s.itemErrors} individual item${s.itemErrors === 1 ? "" : "s"}</strong> failed to fetch detail and were skipped (check server console for the first few causes).`);
+        warnEl.style.display = "block";
+        warnEl.style.color = "var(--yellow)";
+        warnEl.style.borderColor = "rgba(255, 229, 0, 0.35)";
+        warnEl.innerHTML = lines.join("<br>");
+      } else {
+        warnEl.style.display = "none";
+      }
+      await loadResult();
+      startBtn.disabled = false;
+      exportBtn.disabled = false;
+    }
+  }, 800);
+}
+
+async function loadResult() {
+  const r = await fetch("/api/audit/result");
+  const data = await r.json();
+  if (data.error) { warn(data.error); return; }
+  lastResult = data;
+  render();
+}
+
+function render() {
+  if (!lastResult) return;
+  const q = qInput.value.trim().toLowerCase();
+  const html = lastResult.groups.map(group => {
+    const items = q ? group.items.filter(it => it.title.toLowerCase().includes(q)) : group.items;
+    if (q && !items.length) return "";
+    const rows = items.slice(0, 200).map(it => `
+      <tr>
+        <td class="chname">${escapeHtml(it.section)}</td>
+        <td class="title">${escapeHtml(it.title)}</td>
+        <td class="year">${it.year || ""}</td>
+        <td>${escapeHtml(it.container || "")}</td>
+        <td>${escapeHtml(it.videoCodec || "")}${it.videoProfile ? ` <span style="color:var(--text-faint)">(${escapeHtml(it.videoProfile)})</span>` : ""}</td>
+        <td class="year">${it.bitrate ? Math.round(it.bitrate/1000) + " Mbps" : ""}</td>
+      </tr>`).join("");
+    const more = items.length > 200 ? `<tr><td colspan="6" style="color:var(--text-faint);text-align:center;padding:14px">…and ${items.length - 200} more (export CSV to see all)</td></tr>` : "";
+    return `
+      <div class="group">
+        <div class="group-head">
+          <div>
+            <span class="pill ${group.severity}">${group.severity}</span>
+            <span class="tag" style="margin-left:10px">${escapeHtml(group.tag)}</span>
+          </div>
+          <div class="reason">${escapeHtml(group.reason)}</div>
+          <div class="count">${items.length}${q ? "/" + group.items.length : ""}</div>
+        </div>
+        <table class="table">
+          <thead><tr><th>Section</th><th>Title</th><th class="year">Year</th><th>Container</th><th>Video</th><th class="year">Bitrate</th></tr></thead>
+          <tbody>${rows}${more}</tbody>
+        </table>
+      </div>`;
+  }).join("");
+  resultsEl.innerHTML = html || `<div class="empty">No matches.</div>`;
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]); }
+function warn(msg) {
+  warnEl.style.display = "block";
+  warnEl.style.color = "var(--red)";
+  warnEl.style.borderColor = "var(--red)";
+  warnEl.textContent = msg;
+}
+
+startBtn.addEventListener("click", startAudit);
+qInput.addEventListener("input", () => { clearTimeout(qInput._d); qInput._d = setTimeout(render, 200); });
+
+exportBtn.addEventListener("click", () => {
+  if (!lastResult) return;
+  const rows = [];
+  rows.push(["section","title","year","tags","severity","container","videoCodec","videoProfile","bitrate","reasons"]);
+  for (const f of lastResult.findings) {
+    const sev = f.fired.map(r => r.severity).sort((a,b) => (a==="high"?0:a==="medium"?1:2) - (b==="high"?0:b==="medium"?1:2))[0];
+    rows.push([
+      f.section, f.title, f.year,
+      f.fired.map(r => r.tag).join("|"),
+      sev, f.container, f.videoCodec, f.videoProfile,
+      f.bitrate, f.fired.map(r => r.reason).join(" / "),
+    ]);
+  }
+  const csv = rows.map(r => r.map(v => {
+    const s = String(v ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `nostalgex-audit-${new Date().toISOString().split("T")[0]}.csv`;
+  a.click();
+});
+
+// Auto-load if there's already a completed result from this server session
+fetch("/api/audit/status").then(r => r.json()).then(d => {
+  if (d.status === "done") {
+    const s = d.summary;
+    statusEl.textContent = `Last scan done · ${s.totalScanned} files scanned`;
+    summaryEl.textContent = `${s.findings} flagged across ${s.groupCount} issue type${s.groupCount === 1 ? "" : "s"}`;
+    loadResult();
+    exportBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

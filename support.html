@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nostalgex Support - Setup, channels &amp; troubleshooting</title>
+<meta name="description" content="How to connect Plex, Jellyfin, or Emby to Nostalgex, how channels pick your library, and fixes for the problems that come up most.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.nostalgex.app/support">
+<link rel="icon" type="image/png" href="./logo/favicon.png">
+
+<meta property="og:title" content="Nostalgex Support">
+<meta property="og:description" content="Setup, how channels pick your library, and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.nostalgex.app/support">
+<meta property="og:site_name" content="Nostalgex">
+<meta property="og:image" content="https://www.nostalgex.app/og-image.png">
+
+<script defer src="https://data-haus.vercel.app/track.js" data-site="f5b3399a2c57176a"></script>
+<script defer data-site="nostalgex" src="https://statsngraphs.lol/s.js"></script>
+
+<script>
+  /* Theme boot — runs before first paint so there's no flash on reload.
+     Flip DEFAULT_THEME to "light" to change the site default (one line).
+     ?theme=dark / ?theme=light in the URL previews a theme without saving it. */
+  (function () {
+    var DEFAULT_THEME = "dark";
+    var theme = null;
+    try { theme = localStorage.getItem("nostalgex-theme-v2"); } catch (e) {}
+    var q = /[?&]theme=(dark|light)/.exec(location.search);
+    if (q) theme = q[1];
+    if (theme !== "dark" && theme !== "light") theme = DEFAULT_THEME;
+    document.documentElement.setAttribute("data-theme", theme);
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+
+  <header class="nav" id="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="Nostalgex home">
+        <span class="brand-word" role="img" aria-label="Nostalgex">N<svg class="brand-o" viewBox="0 0 126 111" aria-hidden="true"><defs><linearGradient id="brandSun" x1="0" y1="0" x2="1" y2="0.35"><stop offset="0.05" stop-color="#f838ac"/><stop offset="0.5" stop-color="#ff8a3d"/><stop offset="0.95" stop-color="#ffd91c"/></linearGradient></defs><rect x="6" y="6" width="114" height="99" rx="30" fill="url(#brandSun)" stroke="currentColor" stroke-width="11"/><path d="M12 43 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/><path d="M12 70 H114" stroke="currentColor" stroke-width="4" stroke-linecap="round" opacity="0.55"/></svg>STALGEX</span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="/#how">How it works</a>
+        <a href="/#guide">The guide</a>
+        <a href="/#lineup">Lineup</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#top" data-changelog-home>What's new</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-outline btn-sm" href="/web-tuner">Web app</a>
+        <a class="btn btn-ink btn-sm" href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Get the tvOS app</a>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="true" aria-label="Switch to day mode" title="Switch to day mode">
+          <svg class="tt-icon tt-sun" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="12" cy="12" r="4.2"/>
+            <path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6"/>
+          </svg>
+          <svg class="tt-icon tt-moon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 14.5A8.2 8.2 0 0 1 9.5 4a8.3 8.3 0 1 0 10.5 10.5z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="section doc-hero">
+      <div class="container">
+        <h1>Support</h1>
+        <p>Getting connected, how the channels decide what plays, and fixes for the things that go wrong most often.</p>
+      </div>
+    </section>
+
+    <div class="container doc-layout">
+      <nav class="doc-toc" aria-label="Contents">
+          <a href="#getting-started">Getting started</a>
+          <a href="#connect">Connecting your server</a>
+          <a href="#cors">Reverse proxy &amp; CORS</a>
+          <a href="#channels">How channels work</a>
+          <a href="#faq">FAQ</a>
+          <a href="#troubleshooting">Troubleshooting</a>
+          <a href="#contact">Contact</a>
+      </nav>
+
+      <div class="doc-body">
+        <section class="doc-section" id="getting-started">
+<h2>Getting started</h2>
+    <p>Nostalgex points at your own Plex, Jellyfin, or Emby and turns it into flippable TV channels, with an actual channel guide instead of an endless grid. There are two ways to run it.</p>
+    <h3>Apple TV app (the easy one)</h3>
+    <ul>
+      <li>Grab <a href="https://apps.apple.com/app/nostalgex/id6762563534">Nostalgex on the Apple TV App Store</a> (tvOS 18 or later).</li>
+      <li>Sign in with Plex, or point it at a Jellyfin or Emby server by URL.</li>
+      <li>The app talks straight to a server on your network, plain <code>http</code> and raw-IP included, so none of the browser headaches below apply. If you're running a normal home setup, this is the one to use.</li>
+    </ul>
+    <h3>Web tuner</h3>
+    <ul>
+      <li>Open <a href="/web-tuner">the web tuner</a> in a browser and connect Plex, Jellyfin, or Emby.</li>
+      <li>It loads over https, so your server has to be reachable over https too. More on that just below.</li>
+    </ul>
+    <div class="callout">Worth saying plainly: there's no account, and there's no server of mine sitting in the middle. It all runs between your browser (or the app) and your box. Your login, your server URL, your library, your video, none of it comes to me. Open your browser's Network tab and watch the requests if you want proof. They all go straight to your server.</div>
+        </section>
+
+        <section class="doc-section" id="connect">
+<h2>Connecting your server</h2>
+
+    <h3>Plex</h3>
+    <p>Sign in with your Plex account and Nostalgex finds your server on its own. Plex hands out its own secure addresses (<code>plex.direct</code>), so it usually just works on both the app and the web tuner with nothing extra to set up.</p>
+
+    <h3>Jellyfin</h3>
+    <p>Drop in your Jellyfin server URL and sign in, either with your username and password or Quick Connect. Use the whole URL with the scheme on the front, like <code>https://jellyfin.yourdomain.com</code>.</p>
+
+    <h3>Emby</h3>
+    <p>Emby and Jellyfin share an API, so Emby works the same way: drop in your Emby server URL and sign in with your username and password. In the Apple TV app it's its own option; on the web tuner, use the Jellyfin connect and point it at your Emby server.</p>
+
+    <h3>Why the web tuner needs https</h3>
+    <p>The web tuner runs on an https page, and browsers won't let an https page reach out to a plain <code>http</code> or raw-IP address. They call it mixed content, and they just block it. If your server opens fine in another browser tab but the tuner swears it can't reach it, that's almost always what's happening. It's the browser's rule, not something I can flip off from the web.</p>
+    <ul>
+      <li>Give your server an https address. A free tunnel like <a href="https://tailscale.com/kb/1312/serve">Tailscale Serve</a> or a <a href="https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/">Cloudflare Tunnel</a> gets you one in about two commands, then paste that <code>https://</code> URL in.</li>
+      <li>Or just use the Apple TV app, which reaches local <code>http</code>/raw-IP servers directly because native apps don't have this restriction.</li>
+    </ul>
+    <p>A plain http box on your LAN will always work in the Apple TV app and never in a browser tab. That's the one real difference between them.</p>
+        </section>
+
+        <section class="doc-section" id="cors">
+<h2>Reverse proxy &amp; CORS (Jellyfin or Emby behind nginx, haproxy, Caddy)</h2>
+    <p>Here's the one that catches people. Your Jellyfin is on https and reachable, but the tuner still says <em>"COULD NOT REACH THE JELLYFIN SERVER"</em>, and if you pop open the browser dev console you see a <strong>CORS</strong> error. That means your reverse proxy is rejecting the request because it's coming from a different domain (this site). The browser throws away the response unless your server says it's OK for <code>https://nostalgex.app</code> to talk to it.</p>
+    <div class="callout warn">This is a web-tuner-only thing. The Apple TV app doesn't use CORS, so if you're on the app you can ignore all of this.</div>
+    <p>The fix is one header at your proxy: allow requests from <code>https://nostalgex.app</code>. How you do that depends on what you run.</p>
+
+    <h3>haproxy</h3>
+    <pre><code>http-request set-var(txn.cors_origin) req.hdr(Origin)
+acl cors_allowed var(txn.cors_origin) -m str https://nostalgex.app
+http-response set-header Access-Control-Allow-Origin %[var(txn.cors_origin)] if cors_allowed</code></pre>
+
+    <h3>nginx</h3>
+    <pre><code>add_header Access-Control-Allow-Origin "https://nostalgex.app" always;
+add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE" always;
+add_header Access-Control-Allow-Headers "Authorization, Content-Type, X-Emby-Authorization" always;
+# answer the preflight
+if ($request_method = OPTIONS) { return 204; }</code></pre>
+
+    <h3>Caddy</h3>
+    <pre><code>header Access-Control-Allow-Origin "https://nostalgex.app"
+header Access-Control-Allow-Methods "GET, POST, OPTIONS, DELETE"
+header Access-Control-Allow-Headers "Authorization, Content-Type, X-Emby-Authorization"
+@options method OPTIONS
+respond @options 204</code></pre>
+
+    <p>Reload the proxy, hard-refresh the tuner, and try again. The exact syntax shifts around between versions, but the goal is always the same: every response (including the OPTIONS preflight) needs to carry <code>Access-Control-Allow-Origin: https://nostalgex.app</code>.</p>
+    <p>Don't feel like touching your proxy config? Use the Apple TV app. It needs none of this.</p>
+        </section>
+
+        <section class="doc-section" id="channels">
+<h2>How channels pick your stuff</h2>
+    <p>Every channel is just a filter over your own library. Nothing gets downloaded, and nothing gets guessed about your taste. So if a channel looks empty, or a film keeps turning up somewhere weird, it comes down to the metadata on your server. Here's what actually gets checked.</p>
+
+    <h3>What a channel looks at</h3>
+    <ul>
+      <li><strong>Type.</strong> Movie or episode. A movie never lands on a TV channel.</li>
+      <li><strong>Genres.</strong> The big one. Channels let some genres in and shut others out, so a comedy channel can reject anything that's also tagged Animation.</li>
+      <li><strong>Year.</strong> Most channels are locked to a decade. A 1994 film won't show up on an 80s channel no matter what else lines up.</li>
+      <li><strong>Runtime.</strong> Sorts shorts from features from epics. It's also how music videos get told apart from concert films.</li>
+      <li><strong>Studio or network.</strong> For channels built around one producer or broadcaster.</li>
+      <li><strong>Rating.</strong> G through R for the kid-safe channels, plus IMDb score and vote floors on the "best of" ones.</li>
+      <li><strong>Keywords.</strong> Themes from TMDB, matched against your titles. It's how a heist channel or a road-trip channel can exist when no genre covers it.</li>
+      <li><strong>Play count.</strong> The rewatch channels care how often you've actually watched something.</li>
+    </ul>
+    <p>A title has to clear every rule, not just one. That's usually the answer when something you expected is missing: it matched the genre but fell outside the years, or the runtime, or the rating.</p>
+
+    <h3>Fixing it from Jellyfin, Emby or Plex</h3>
+    <p>It all runs off your server's metadata, so you can steer it without touching the app.</p>
+    <ul>
+      <li><strong>Fix the genre.</strong> Biggest win by far. A film tagged only "Drama" is never reaching a thriller channel.</li>
+      <li><strong>Fix the year.</strong> Rips often carry the re-release date instead of the original, which quietly knocks a film out of its decade.</li>
+      <li><strong>Refresh metadata</strong> after you edit, so your server writes the change. Nostalgex picks it up on the next scan, within a few hours.</li>
+      <li><strong>Tag music videos</strong> with a Music genre, or park them in their own library, and they'll route to the music channels instead of the film ones.</li>
+    </ul>
+
+    <h3>Building your own channel</h3>
+    <p>Make a collection on your server (a Collection in Plex, a Collection or BoxSet in Jellyfin and Emby), drop at least three movies in it, and Nostalgex can turn it into its own channel. Switch on the collection Channel Packages in Settings, then run a rescan so it gets picked up. That's how you get a channel that's actually yours: "Dad's Westerns", "Comfort Movies", whatever you want. The collection's name becomes the channel's name.</p>
+
+    <h3>Multi-disc movies</h3>
+    <p>A film ripped across two discs plays straight through as one program, as long as both files carry an obvious marker: part 1 / part 2, pt. 1 / pt. 2, cd1 / cd2, disc 1 / disc 2. Films that genuinely came out in two parts get scheduled back to back for the same reason.</p>
+
+    <h3>Something you just added</h3>
+    <p>Anything you added in the last week gets treated as a premiere and dropped into that evening's prime time, instead of waiting for the rotation to come around to it. The library refreshes itself every few hours, so something you added in the morning is usually on a channel that night.</p>
+        </section>
+
+        <section class="doc-section" id="faq">
+<h2>FAQ</h2>
+
+    <details><summary>Does my data go through your servers?</summary>
+      <div><p>No. It's a straight line from your browser or app to your own server. Your login, server URL, library, and video never reach me. I only host the web page. If you want to check, open the Network tab in your browser and watch where the requests go. Every one of them hits your server, not mine.</p></div>
+    </details>
+
+    <details><summary>Is the web tuner tracking me?</summary>
+      <div><p>No. There are no analytics or tracking scripts on the tuner pages. The marketing landing page counts basic visits, but the part that connects to your server doesn't run anything.</p></div>
+    </details>
+
+    <details><summary>Can I use it with an M3U / IPTV playlist?</summary>
+      <div><p>Not right now. Nostalgex builds channels out of your own Plex, Jellyfin, or Emby library, it doesn't read a list of live streams. M3U isn't on the roadmap yet.</p></div>
+    </details>
+
+    <details><summary>Why does the web tuner need https when the app doesn't?</summary>
+      <div><p>Browsers won't let a secure page reach a plain http or raw-IP server, and they enforce CORS on top of that. A native app has neither rule, so the Apple TV app just connects to your local box directly.</p></div>
+    </details>
+
+    <details><summary>A channel is a black screen, or takes a while to start. What gives?</summary>
+      <div><p>First, make sure you're on the latest version. Older builds couldn't play HEVC/H.265 or mkv and would sit on a black screen. They play fine now. A few seconds of the "tuning" screen at the start is normal too: anything that isn't directly playable gets transcoded by your server, and that takes a moment to spin up. If a channel never starts, check that transcoding is turned on (Jellyfin: Dashboard &rarr; Playback).</p></div>
+    </details>
+        </section>
+
+        <section class="doc-section" id="troubleshooting">
+<h2>Troubleshooting</h2>
+    <h3>"Could not reach the server / check the URL"</h3>
+    <ul>
+      <li>Type the whole URL with the scheme: <code>https://your-server</code>.</li>
+      <li>On the web tuner the server has to be https-reachable. A raw IP or http LAN address won't fly in a browser, so use the Apple TV app for those.</li>
+      <li>Running behind a reverse proxy? Jump to <a href="#cors">Reverse proxy &amp; CORS</a>.</li>
+    </ul>
+    <h3>"Could not load library"</h3>
+    <ul>
+      <li>Check the server's actually up and reachable, then hard-refresh and reconnect.</li>
+      <li>On the app, open Settings, disconnect, and sign back in. Tokens expire sometimes.</li>
+    </ul>
+    <h3>Black screen, or playback won't start</h3>
+    <ul>
+      <li>Update to the latest version.</li>
+      <li>Make sure transcoding is on at the server.</li>
+      <li>Give a transcoded channel a few seconds. The tuning screen means it's working on it.</li>
+    </ul>
+    <h3>It signs me out, or rebuilds the guide every time I open it</h3>
+    <ul>
+      <li>Both were bugs, and both are fixed in 1.0.20. On that build you sign in once and it sticks, and the guide comes back instantly instead of rebuilding from scratch.</li>
+      <li>Still landing on the connect screen? There is a small diagnostic line at the bottom of it. Send me a photo of that and I can tell what happened.</li>
+    </ul>
+    <h3>Channels look wrong or empty</h3>
+    <ul>
+      <li>Channels come from whatever's in your library, so a category with nothing matching just stays empty. In the app, flip the Channel Packages you want on or off in Settings.</li>
+    </ul>
+        </section>
+
+        <section class="doc-section" id="contact">
+<h2>Contact &amp; bug reports</h2>
+    <div class="doc-note">
+      <p><strong>Email</strong> <a href="mailto:support@nostalgex.app">support@nostalgex.app</a></p>
+      <p><strong>Bugs and source</strong> <a href="https://github.com/chadMueller/Nostalgex/issues" target="_blank" rel="noopener">GitHub Issues</a>. The whole app is open source.</p>
+      <p>I usually get back within a day or two.</p>
+    </div>
+    <p>Reporting a bug? The stuff that actually helps me fix it: what you were doing, what you expected versus what happened, your app and tvOS version (Settings &rarr; About), whatever error or diagnostic line showed up, and a photo of the screen if you've got one.</p>
+    <p>Nostalgex is built by Muell Haus Inc. Here's the <a href="/privacy">Privacy Policy</a>.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="./logo/nostalgex-black.svg" alt="Nostalgex" width="545" height="72" class="footer-logo footer-logo-day" loading="lazy">
+        <img src="./logo/nostalgex-white.svg" alt="Nostalgex" width="545" height="72" class="footer-logo footer-logo-nite" loading="lazy">
+        <p>Retro cable TV for your own library.</p>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="https://apps.apple.com/app/nostalgex/id6762563534" target="_blank" rel="noopener">Apple TV app</a>
+        <a href="/web-tuner">Web tuner</a>
+        <a href="/plex">Plex</a>
+        <a href="/jellyfin">Jellyfin</a>
+        <a href="/emby">Emby</a>
+        <a href="/support">Support</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/#top">What's new</a>
+        <a href="https://github.com/chadMueller/Nostalgex" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://buymeacoffee.com/chadmueller" target="_blank" rel="noopener">Buy me a coffee</a>
+      </nav>
+      <div class="footer-signup">
+        <p class="footer-signup-label">Update emails, when there's something to say</p>
+        <form class="subscribe-form js-subscribe-form" novalidate>
+          <label class="visually-hidden" for="footerEmail">Email address</label>
+          <input class="subscribe-input" id="footerEmail" type="email" name="email" placeholder="you@somewhere.tv" autocomplete="email" maxlength="254" required>
+          <button class="btn btn-ink btn-sm subscribe-btn" type="submit">Sign up</button>
+        </form>
+        <p class="subscribe-msg" role="status" aria-live="polite"></p>
+      </div>
+      <p class="footer-note">Not affiliated with Plex, Jellyfin, Emby, or Apple.</p>
+    </div>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

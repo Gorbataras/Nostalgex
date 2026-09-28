@@ -1,0 +1,1752 @@
+/* ==========================================================================
+   Nostalgex homepage (index.html) — stylesheet
+   Warm neo-brutalist / retro-pop, dark by default. Real brand assets carry
+   the page: sunset gradient accents from the logo (pink / cyan / yellow),
+   hairline panel rules, offset hard-shadow buttons, hand-drawn doodles.
+
+   Scope: index.html (marketing) and web-tuner.html (the connect page). The
+   remaining pages (plex-tuner, privacy, support, 404) still use site.css —
+   do not merge the two.
+
+   Three regions of this page are machine-generated and must be styled here
+   rather than hand-written in the HTML (see the "Generated markup" section
+   at the bottom):
+     - channel ticker      <- scripts/render-lineup.mjs    (STRIP markers)
+     - bundle lineup       <- scripts/render-lineup.mjs    (LINEUP markers)
+     - changelog modal     <- scripts/render-changelog.mjs (CHANGELOG markers)
+   ========================================================================== */
+
+/* ---------- Tokens ----------
+   Light is the base theme on :root. Dark is a full override under
+   [data-theme="dark"] — the <head> boot script stamps the attribute
+   before first paint, so flipping the site default is one line there. */
+:root {
+  color-scheme: light;
+
+  /* brand, sampled from the real logo */
+  --pink: #f838ac;
+  --cyan: #2bc7f5;
+  --yellow: #ffd91c;
+  --orange: #ff8a3d;
+
+  /* page */
+  --paper: #faf4e8;
+  --paper-deep: #f3ead9;
+  --ink: #141414;
+  --ink-soft: #4c4a45;
+  --ink-faint: #86827a;
+  --hairline: rgba(20, 20, 20, 0.22);
+  --navy: #11142b;           /* matches the app UI background */
+  --navy-ink: #eae9f2;
+  --navy-dim: #a9a8bd;
+
+  /* fixed dark ink for text sitting ON brand color (yellow marks,
+     stickers, the sunset closer) — same in both themes */
+  --on-accent: #141414;
+
+  /* connect-page states */
+  --alert: #c62b3d;
+  --ok: #1a8f4c;
+
+  /* doodles + hand-drawn accents follow ink by default */
+  --doodle: var(--ink);
+
+  /* atmosphere + hard shadows */
+  --nav-shadow: rgba(20, 20, 20, 0.08);
+  --hero-glow-a: rgba(248, 56, 172, 0.16);
+  --hero-glow-b: rgba(255, 217, 28, 0.18);
+  --feature-hover: #fffdf7;
+  --shot-shadow-hard: rgba(20, 20, 20, 0.9);   /* tilted-shot slab shadow */
+  --shot-flat-shadow: rgba(0, 0, 0, 0.55);
+
+  --grad-sunset: linear-gradient(100deg, var(--pink) 5%, var(--orange) 48%, var(--yellow) 95%);
+
+  /* sunset closer gets its own tunables so dark can deepen it */
+  --final-grad: var(--grad-sunset);
+  --final-note: rgba(20, 20, 20, 0.78);
+  --final-btn-ink-shadow: rgba(255, 255, 255, 0.9);
+  --final-btn-paper-shadow: #141414;
+
+  /* type */
+  --font-display: "Bricolage Grotesque", "Arial Black", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* rhythm */
+  --container: 1200px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ---------- Dark theme (NITE) ----------
+   Same poster system, flipped: cream paper becomes deep ink/near-navy,
+   ink lines/doodles/frame become cream, brand colors pop harder. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* page */
+  --paper: #0e1018;
+  --paper-deep: #161a2a;
+  --ink: #f7f1e3;
+  --ink-soft: #c9c4b6;
+  --ink-faint: #99958b;
+  --hairline: rgba(247, 241, 227, 0.22);
+  --navy: #1b2044;           /* guide block sits lighter + bluer than the page */
+  --navy-ink: #eae9f2;
+  --navy-dim: #b1b0c8;
+
+  /* atmosphere + hard shadows */
+  --nav-shadow: rgba(0, 0, 0, 0.4);
+  --hero-glow-a: rgba(248, 56, 172, 0.17);
+  --hero-glow-b: rgba(43, 199, 245, 0.12);     /* yellow glow goes muddy on near-black; cyan reads */
+  --feature-hover: #141828;
+  --shot-shadow-hard: rgba(247, 241, 227, 0.92); /* cream slab shadow pops on dark ground */
+  --shot-flat-shadow: rgba(0, 0, 0, 0.6);
+
+  /* connect-page states, lifted for contrast on the dark card */
+  --alert: #ff7a8a;
+  --ok: #4fd58a;
+
+  /* sunset closer: deeper, richer stops so it still reads as a poster
+     block against the dark page instead of a floodlight */
+  --final-grad: linear-gradient(100deg, #d31f92 5%, #e56f24 48%, #e9bd0f 95%);
+  --final-note: rgba(16, 14, 10, 0.8);
+  --final-btn-ink-shadow: rgba(15, 13, 10, 0.9);
+  --final-btn-paper-shadow: rgba(247, 241, 227, 0.95);
+}
+
+/* ---------- Reset / base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.6;
+  border: 2px solid var(--ink);   /* thin dark frame around the page */
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+img, svg { display: block; max-width: 100%; height: auto; }
+
+h1, h2, h3 { margin: 0; line-height: 1.02; letter-spacing: -0.015em; font-weight: 800; }
+p { margin: 0; }
+a { color: inherit; }
+
+:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+::selection { background: var(--yellow); color: var(--on-accent); }
+
+.container {
+  width: min(var(--container), 100% - 48px);
+  margin-inline: auto;
+}
+.container-narrow { max-width: 780px; }
+
+.section { padding: 110px 0; }
+
+/* ---------- Kickers / headline accents ---------- */
+
+.section-head { max-width: 700px; margin-bottom: 64px; }
+.section-head h2, .guide-copy h2, .surf-copy h2 {
+  font-size: clamp(32px, 4.2vw, 50px);
+}
+
+/* gradient-filled word */
+.grad-word {
+  position: relative;
+  display: inline-block;
+  background: var(--grad-sunset);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* solid-underlined phrase */
+.underline-pink {
+  background-image: linear-gradient(var(--pink), var(--pink));
+  background-repeat: no-repeat;
+  background-size: 100% 6px;
+  background-position: 0 96%;
+}
+
+/* highlighted phrase on navy */
+.mark-yellow {
+  background: var(--yellow);
+  color: var(--on-accent);
+  padding: 0 10px 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+/* ---------- Doodles ---------- */
+.doodle { color: var(--doodle); pointer-events: none; }
+
+.doodle-burst {
+  position: absolute;
+  top: -0.55em;
+  right: -0.85em;
+  width: 0.72em;
+  height: auto;
+  transform: rotate(8deg);
+}
+
+.doodle-arrow {
+  width: 92px;
+  position: absolute;
+  top: -58px;
+  right: 4%;
+  transform: rotate(6deg);
+}
+
+/* ---------- Buttons (offset hard shadow) ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+
+.btn-lg { padding: 15px 24px; }
+.btn-sm { padding: 8px 15px; font-size: 12.5px; }
+
+.btn-ink {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 5px 5px 0 var(--cyan);
+}
+.btn-paper {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--pink);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.btn-ink.btn-sm { box-shadow: 3px 3px 0 var(--cyan); }
+
+.btn:hover { transform: translate(-2px, -2px); }
+.btn-ink:hover { box-shadow: 7px 7px 0 var(--cyan); }
+.btn-paper:hover { box-shadow: 7px 7px 0 var(--pink); }
+.btn-outline:hover { box-shadow: 5px 5px 0 var(--ink); }
+.btn-ink.btn-sm:hover { box-shadow: 5px 5px 0 var(--cyan); }
+
+.btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+/* ---------- Nav ---------- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--paper);
+  border-bottom: 1px solid var(--hairline);
+}
+.nav.is-scrolled { box-shadow: 0 2px 0 var(--nav-shadow); }
+
+.nav-inner {
+  width: min(var(--container), 100% - 48px);
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 74px;
+}
+
+.brand { display: flex; align-items: center; text-decoration: none; }
+.brand-logo { width: auto; height: 42px; }
+
+/* v2 inline wordmark: N + O-as-screen + STALGEX, follows the theme ink */
+.brand-word {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 27px;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+.brand-word .brand-o {
+  height: 20px;
+  width: 22.7px;
+  margin: 0 1px 0 0.5px;
+  color: var(--ink);   /* screen frame + scanlines pick up theme ink */
+}
+
+.nav-links { display: flex; gap: 28px; }
+.nav-links a {
+  font-family: var(--font-mono);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: color 160ms var(--ease);
+}
+.nav-links a:hover { color: var(--ink); }
+
+.nav-actions { display: flex; gap: 14px; align-items: center; }
+
+/* ---------- Theme toggle (single icon: sun at night, moon by day) ---------- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  margin-left: 4px;
+  padding: 0;
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--rule);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 160ms var(--ease), border-color 160ms var(--ease), transform 160ms var(--ease);
+}
+.theme-toggle:hover { color: var(--yellow); border-color: currentColor; transform: rotate(-12deg); }
+.theme-toggle:active { transform: scale(0.94); }
+
+.theme-toggle .tt-icon { width: 16px; height: 16px; display: block; }
+/* Dark is the default: offer the sun. In day mode, offer the moon. */
+.theme-toggle .tt-moon { display: none; }
+[data-theme="light"] .theme-toggle .tt-sun { display: none; }
+[data-theme="light"] .theme-toggle .tt-moon { display: block; }
+[data-theme="light"] .theme-toggle:hover { color: var(--pink); }
+
+/* ---------- CTA card ----------
+   The house CTA treatment: ink frame, paper ground, hard colored slab behind it.
+   Reused for coffee, privacy, and email signup. Set the slab with a modifier. */
+.cta-card {
+  position: relative;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 10px 10px 0 var(--cta-slab, var(--yellow));
+  padding: 48px 52px;
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+.cta-card--yellow { --cta-slab: var(--yellow); }
+.cta-card--pink   { --cta-slab: var(--pink); }
+.cta-card--cyan   { --cta-slab: var(--cyan); }
+
+.cta-card h2 { font-size: clamp(28px, 3.4vw, 40px); line-height: 1.03; margin-bottom: 14px; }
+.cta-card > p { color: var(--ink-soft); font-weight: 500; max-width: 62ch; }
+
+/* Interactive variant: the whole card lifts, so the CTA reads as one target. */
+.cta-card--live:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 14px 14px 0 var(--cta-slab, var(--yellow));
+}
+
+/* Copy left, action right. Stacks below 820px. */
+.cta-card--split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+}
+.cta-card--split .cta-copy { flex: 1 1 auto; }
+.cta-card--split .cta-copy h2 { margin-bottom: 12px; }
+.cta-card--split .cta-copy p { margin: 0; max-width: 52ch; }
+.cta-card--split .cta-action { flex: 0 0 auto; }
+
+/* Rotated sticker that hangs off the top-right corner of a card. */
+.cta-sticker {
+  position: absolute;
+  top: -16px;
+  right: 28px;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 8px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--yellow);
+  color: var(--on-accent);
+  transform: rotate(-3deg);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.section-coffee { padding: 40px 0 72px; }
+
+@media (max-width: 820px) {
+  .cta-card--split { flex-direction: column; align-items: flex-start; gap: 28px; }
+  .cta-card--split .cta-action { width: 100%; }
+  .cta-card--split .cta-action .btn { width: 100%; justify-content: center; }
+}
+@media (max-width: 700px) {
+  .cta-card { padding: 36px 26px; box-shadow: 7px 7px 0 var(--cta-slab, var(--yellow)); }
+  .cta-card--live:hover { transform: none; box-shadow: 7px 7px 0 var(--cta-slab, var(--yellow)); }
+  .cta-sticker { right: 16px; }
+  .section-coffee { padding: 28px 0 56px; }
+}
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--hairline);
+  background:
+    radial-gradient(ellipse 90% 70% at 85% -10%, var(--hero-glow-a), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 15% 110%, var(--hero-glow-b), transparent 60%),
+    var(--paper);
+}
+
+.hero-grid {
+  width: min(var(--container), 100% - 48px);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 0;
+}
+
+.hero-copy {
+  padding: 96px 56px 96px 0;
+  border-right: 1px solid var(--hairline);  /* vertical hero rule */
+}
+
+.hero h1 {
+  font-size: clamp(46px, 5.6vw, 78px);
+  letter-spacing: -0.025em;
+}
+.h1-line { display: block; }
+
+.hero-sub {
+  margin-top: 26px;
+  font-size: 18.5px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+
+.cta-block { position: relative; margin-top: 60px; }
+
+.cta-row { display: flex; flex-wrap: wrap; gap: 16px; }
+.cta-center { justify-content: center; }
+
+.hero-note {
+  margin-top: 22px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.hero-shot { padding: 96px 0 96px 56px; min-width: 0; }
+
+/* ---------- Screenshot frames ---------- */
+.shot {
+  position: relative;
+  margin: 0;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  overflow: visible;
+  background: var(--navy);
+  padding: 8px;                 /* slim TV bezel */
+}
+.shot img { border-radius: 6px; }
+
+.shot-tilt-r {
+  transform: rotate(2.2deg);
+  box-shadow: 12px 14px 0 var(--shot-shadow-hard);
+}
+.shot-tilt-l {
+  transform: rotate(-1.8deg);
+  box-shadow: -12px 14px 0 var(--cyan);
+}
+.shot-flat {
+  transform: none;
+  box-shadow: 10px 12px 0 var(--shot-flat-shadow);
+  border-color: rgba(234, 233, 242, 0.35);
+}
+
+.shot-caption {
+  margin-top: 30px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+/* stickers pinned to screenshots */
+.sticker {
+  position: absolute;
+  z-index: 2;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  padding: 7px 13px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--on-accent);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.sticker-ch {
+  top: -16px;
+  left: -14px;
+  transform: rotate(-7deg);
+}
+.sticker-pink {
+  background: var(--pink);
+  color: #fff;
+  top: -16px;
+  right: -12px;
+  transform: rotate(5deg);
+}
+
+/* ---------- How it works ---------- */
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--hairline);
+}
+
+.step {
+  padding: 44px 36px 10px 0;
+  border-right: 1px solid var(--hairline);
+}
+.step + .step { padding-left: 36px; }
+.step:last-child { border-right: 0; padding-right: 0; }
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pink);
+  display: block;
+  margin-bottom: 34px;
+}
+.step h3 { font-size: 22px; margin-bottom: 14px; }
+.step p { color: var(--ink-soft); font-size: 15.5px; font-weight: 500; }
+
+/* ---------- Guide (navy color block) ---------- */
+.section-navy {
+  background: var(--navy);
+  color: var(--navy-ink);
+}
+.section-navy h2 { color: #fff; }
+
+.guide-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 72px;
+  align-items: center;
+}
+.guide-copy p { color: var(--navy-dim); margin-top: 18px; max-width: 52ch; font-weight: 500; }
+
+.check-list {
+  list-style: none;
+  margin: 30px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.check-list li {
+  position: relative;
+  padding-left: 32px;
+  color: var(--navy-ink);
+  font-size: 15.5px;
+  font-weight: 500;
+}
+.check-list li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 8px;
+  height: 5px;
+  border-left: 3px solid var(--yellow);
+  border-bottom: 3px solid var(--yellow);
+  transform: rotate(-45deg);
+}
+
+/* ---------- Surfing ---------- */
+.surf-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 80px;
+  align-items: center;
+}
+.surf-copy p { color: var(--ink-soft); margin-top: 18px; max-width: 48ch; font-weight: 500; }
+
+/* ---------- Features ---------- */
+.section-features {
+  background: var(--paper-deep);
+  border-block: 1px solid var(--hairline);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--hairline);
+  border-left: 1px solid var(--hairline);
+}
+
+.feature {
+  padding: 36px 32px 40px;
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+  transition: background 200ms var(--ease);
+}
+.feature:hover { background: var(--feature-hover); }
+
+.feature h3 { font-size: 19px; margin-bottom: 12px; }
+.feature h3::before {
+  content: "\25A0";
+  display: block;
+  font-size: 10px;
+  margin-bottom: 16px;
+}
+.feature:nth-child(3n + 1) h3::before { color: var(--pink); }
+.feature:nth-child(3n + 2) h3::before { color: var(--cyan); }
+.feature:nth-child(3n) h3::before { color: var(--orange); }
+.feature p { color: var(--ink-soft); font-size: 15px; font-weight: 500; }
+
+/* ---------- Privacy ---------- */
+/* ---------- Privacy ----------
+   Deliberately NOT a .cta-card: the frame is reserved for things you act on.
+   This is a statement, so it gets type and a hairline, no box. */
+.section-privacy {
+  padding-block: 96px;
+  border-top: 1px solid var(--hairline);
+}
+
+.privacy-block {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 48px;
+  align-items: start;
+}
+.privacy-block h2 {
+  font-size: clamp(32px, 4.4vw, 54px);
+  line-height: 1.0;
+  margin: 0;
+}
+.privacy-points p {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 500;
+  max-width: 60ch;
+}
+.privacy-list {
+  list-style: none;
+  margin: 26px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.privacy-list li {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  padding: 13px 0 13px 26px;
+  border-top: 1px solid var(--hairline);
+  position: relative;
+}
+.privacy-list li:last-child { border-bottom: 1px solid var(--hairline); }
+.privacy-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 9px;
+  height: 9px;
+  margin-top: -4px;
+  border-radius: 2px;
+  background: var(--yellow);
+}
+
+@media (max-width: 860px) {
+  .section-privacy { padding-block: 64px; }
+  .privacy-block { grid-template-columns: 1fr; gap: 26px; }
+}
+
+/* ---------- FAQ ---------- */
+.faq-list { display: flex; flex-direction: column; }
+
+.faq-list details { border-bottom: 1px solid var(--hairline); }
+.faq-list details:first-child { border-top: 1px solid var(--hairline); }
+
+.faq-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 4px;
+  font-weight: 600;
+  font-size: 17.5px;
+  cursor: pointer;
+  list-style: none;
+  transition: color 160ms var(--ease);
+}
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary:hover { color: var(--pink); }
+
+.faq-marker { position: relative; width: 15px; height: 15px; flex-shrink: 0; }
+.faq-marker::before, .faq-marker::after {
+  content: "";
+  position: absolute;
+  background: var(--ink);
+  transition: transform 220ms var(--ease), background 220ms var(--ease);
+}
+.faq-marker::before { inset: 6.5px 0; }
+.faq-marker::after { inset: 0 6.5px; }
+.faq-list details[open] .faq-marker::after { transform: rotate(90deg) scaleY(0); }
+.faq-list details[open] .faq-marker::before,
+.faq-list details[open] .faq-marker::after { background: var(--pink); }
+
+.faq-list details p {
+  padding: 0 4px 26px;
+  color: var(--ink-soft);
+  max-width: 64ch;
+  font-weight: 500;
+}
+
+/* ---------- Final CTA (sunset poster) ---------- */
+.section-final {
+  background: var(--final-grad);
+  border-top: 2px solid var(--ink);
+  padding: 120px 0;
+}
+
+.final-inner { text-align: center; }
+
+.final-logo {
+  width: min(280px, 60vw);
+  margin: 0 auto 40px;
+}
+
+.final-inner h2 {
+  font-size: clamp(56px, 9vw, 128px);
+  letter-spacing: -0.03em;
+  color: var(--on-accent);
+}
+.final-inner > p {
+  margin-top: 22px;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--final-note);
+}
+.final-inner .cta-row { margin-top: 44px; }
+.section-final .btn-ink { box-shadow: 5px 5px 0 var(--final-btn-ink-shadow); }
+.section-final .btn-ink:hover { box-shadow: 7px 7px 0 var(--final-btn-ink-shadow); }
+.section-final .btn-paper { box-shadow: 5px 5px 0 var(--final-btn-paper-shadow); }
+.section-final .btn-paper:hover { box-shadow: 7px 7px 0 var(--final-btn-paper-shadow); }
+
+/* ---------- Footer ---------- */
+.footer {
+  border-top: 2px solid var(--ink);
+  background: var(--paper);
+  padding: 52px 0 56px;
+}
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 36px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.footer-logo { width: auto; height: 28px; }
+.footer-logo-nite { display: none; }
+[data-theme="dark"] .footer-logo-day { display: none; }
+[data-theme="dark"] .footer-logo-nite { display: block; }
+.footer-brand p {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  color: var(--ink-faint);
+  font-size: 12.5px;
+}
+.footer-links { display: flex; gap: 26px; flex-wrap: wrap; }
+.footer-links a {
+  font-family: var(--font-mono);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  transition: color 160ms var(--ease);
+}
+.footer-links a:hover { color: var(--pink); }
+.footer-note {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+/* ---------- Utilities ---------- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* nav / footer buttons that read as text links (open the changelog dialog) */
+.nav-link-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 160ms var(--ease);
+}
+.nav-link-btn:hover { color: var(--ink); }
+.footer-link-btn:hover { color: var(--pink); }
+
+/* ---------- Lineup (bundles card) ---------- */
+.lineup-sub {
+  margin-top: 18px;
+  color: var(--ink-soft);
+  font-weight: 500;
+  max-width: 52ch;
+}
+
+.lineup-card {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: 8px 8px 0 var(--cyan);
+  overflow: hidden;
+}
+
+.lineup-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 26px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Bundle rows themselves are generated — see "Generated markup" below. */
+
+.lineup-note {
+  margin-top: 24px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+/* ---------- Email signup ---------- */
+.signup-card > p { max-width: 52ch; }
+.signup-card .subscribe-form { margin-top: 28px; }
+
+.subscribe-form { display: flex; flex-wrap: wrap; gap: 14px; }
+.subscribe-input {
+  flex: 1;
+  min-width: 200px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  padding: 13px 16px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.subscribe-input::placeholder { color: var(--ink-faint); }
+.subscribe-btn { justify-content: center; padding: 13px 22px; }
+.footer-signup .subscribe-btn { padding: 8px 15px; font-size: 12.5px; }
+
+.subscribe-msg {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 14px;
+  min-height: 1em;
+}
+.subscribe-msg.is-error { color: var(--pink); }
+
+.signup-coffee {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.signup-coffee a { color: var(--ink-soft); }
+.signup-coffee a:hover { color: var(--pink); }
+
+.footer-signup { max-width: 360px; }
+.footer-signup-label {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  margin-bottom: 12px;
+}
+.footer-signup .subscribe-input { font-size: 12.5px; padding: 8px 12px; min-width: 160px; }
+.footer-signup .subscribe-msg { margin-top: 10px; font-size: 12px; }
+
+/* ---------- Changelog dialog ---------- */
+.changelog {
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0;
+  width: min(660px, calc(100vw - 40px));
+  max-height: min(78vh, 760px);
+  box-shadow: 10px 12px 0 var(--shot-shadow-hard);
+}
+.changelog[open] { display: flex; flex-direction: column; }
+.changelog::backdrop { background: rgba(10, 10, 16, 0.6); }
+
+.changelog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 28px;
+  border-bottom: 2px solid var(--ink);
+  flex-shrink: 0;
+}
+.changelog-head h2 { font-size: 26px; }
+
+.changelog-body { overflow-y: auto; padding: 6px 28px 32px; }
+/* Release entries inside the modal are generated — see "Generated markup" below. */
+
+/* ==========================================================================
+   Generated markup
+   --------------------------------------------------------------------------
+   Everything below styles HTML emitted by the build scripts. The class names
+   are the scripts' — do not rename them here, and do not hand-edit the markup
+   between the marker comments in index.html. Change the generator or the
+   source JSON, re-run it, and the page picks it up.
+
+   scripts/render-lineup.mjs     -> .channel-card (ticker), .lineup__* (bundles)
+   scripts/render-changelog.mjs  -> .changelog__* (modal entries)
+   ========================================================================== */
+
+/* ---------- Bundle rows (LINEUP region) ----------
+   Flat .lineup__group blocks; app.js adds role/aria + .is-open and the
+   [hidden] on the grid, turning each one into a collapsible bundle. */
+.lineup-card .lineup__group { border-top: 1px solid var(--hairline); }
+.lineup-card-head + .lineup__group { border-top: 0; }
+
+.lineup__group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  padding: 20px 26px;
+  cursor: pointer;
+  transition: color 160ms var(--ease);
+}
+.lineup__group-head:hover .lineup__group-name { color: var(--pink); }
+
+.lineup__group-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  transition: color 160ms var(--ease);
+}
+.lineup__group-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  border: 2px solid var(--hairline);
+  border-radius: 999px;
+  padding: 2px 10px 1px;
+  white-space: nowrap;
+}
+.lineup__group.is-open .faq-marker::after { transform: rotate(90deg) scaleY(0); }
+.lineup__group.is-open .faq-marker::before,
+.lineup__group.is-open .faq-marker::after { background: var(--pink); }
+
+.lineup__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 10px 26px;
+  padding: 2px 26px 28px;
+}
+/* display:grid would defeat the [hidden] app.js sets on a collapsed bundle. */
+.lineup__grid[hidden] { display: none; }
+
+.lineup__item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding-left: 10px;
+  border-left-width: 3px;
+  border-left-style: solid;      /* per-channel color from the generator */
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.lineup__num { min-width: 34px; }   /* inline-colored by the generator */
+.lineup__name { color: var(--ink-soft); }
+
+/* ---------- Lineup interstitials (inside the LINEUP region) ---------- */
+.lineup__interstitial {
+  border-top: 1px solid var(--hairline);
+  background: var(--paper-deep);
+  padding: 30px 26px;
+}
+.lineup__interstitial-eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  padding: 7px 11px;
+  margin-bottom: 18px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--yellow);
+  color: var(--on-accent);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.lineup__interstitial--support .lineup__interstitial-eyebrow { background: var(--cyan); }
+
+.lineup__interstitial-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+.lineup__interstitial-copy { flex: 1 1 auto; min-width: 0; }
+.lineup__interstitial-heading {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+.lineup__interstitial-sub {
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+  max-width: 52ch;
+}
+.lineup__interstitial-form-wrap { flex: 0 1 380px; min-width: 260px; }
+
+.lineup__interstitial-cta {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 24px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 5px 5px 0 var(--cyan);
+  white-space: nowrap;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.lineup__interstitial-cta:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--cyan); }
+.lineup__interstitial-cta:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+/* The generator's newsletter form — same treatment as the page's own signup. */
+.newsletter-form { display: flex; flex-wrap: wrap; gap: 12px; }
+.newsletter-form input[type="email"] {
+  flex: 1;
+  min-width: 180px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  padding: 12px 14px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.newsletter-form input[type="email"]::placeholder { color: var(--ink-faint); }
+.newsletter-form button[type="submit"] {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  padding: 12px 20px;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 var(--pink);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.newsletter-form button[type="submit"]:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--pink); }
+.newsletter-form button[type="submit"]:disabled { opacity: 0.6; cursor: default; transform: none; }
+
+.newsletter-msg {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 12px;
+  min-height: 1em;
+}
+.newsletter-msg.is-error { color: var(--pink); }
+
+@media (max-width: 820px) {
+  .lineup__interstitial-body { flex-direction: column; align-items: flex-start; gap: 22px; }
+  .lineup__interstitial-form-wrap { flex: 1 1 auto; width: 100%; }
+  .lineup__interstitial-cta { width: 100%; justify-content: center; }
+}
+
+/* ---------- Changelog entries (CHANGELOG region) ---------- */
+.changelog__entry { border-top: 1px solid var(--hairline); padding-top: 26px; margin-top: 26px; }
+.changelog__entry:first-of-type { border-top: 0; margin-top: 0; padding-top: 22px; }
+
+.changelog__meta { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.changelog__version {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  background: var(--yellow);
+  color: var(--on-accent);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  padding: 3px 11px 2px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.changelog__entry--latest .changelog__version { background: var(--pink); color: #fff; }
+.changelog__date {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+}
+.changelog__entry h3 { font-size: 19px; margin-bottom: 12px; }
+.changelog__entry ul {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 500;
+}
+.changelog__entry li { margin-bottom: 8px; }
+.changelog__entry li::marker { color: var(--pink); }
+
+/* ---------- Reveal on scroll ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 650ms var(--ease), transform 650ms var(--ease);
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+.delay-1.is-visible { transition-delay: 110ms; }
+
+/* ==========================================================================
+   CONNECT PAGE (web-tuner.html)
+   One card, one job: sign in to a media server, then hand off to
+   /plex-tuner.html. The .connect-* class names and the #connect-* / #jf-* ids
+   are contracts with the inline auth script on that page — the script toggles
+   [style.display] on #connect-default, #connect-jellyfin-intro and
+   #connect-jellyfin, and toggles .active on .connect-waiting / .connect-success.
+   Rename nothing here without changing the script.
+   ========================================================================== */
+.page-connect { display: flex; flex-direction: column; min-height: 100vh; }
+
+.connect-main {
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 0 96px;
+  background:
+    radial-gradient(ellipse 80% 60% at 80% -10%, var(--hero-glow-a), transparent 60%),
+    radial-gradient(ellipse 70% 60% at 12% 108%, var(--hero-glow-b), transparent 60%),
+    var(--paper);
+}
+
+.connect-wrap {
+  width: min(560px, 100% - 48px);
+  margin-inline: auto;
+  text-align: center;
+}
+
+.connect-title { font-size: clamp(34px, 5.4vw, 48px); }
+.connect-lede {
+  margin: 16px auto 40px;
+  max-width: 44ch;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+/* The house CTA card, tightened up and centered around the auth states. */
+.connect-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 40px 36px;
+  text-align: center;
+}
+
+/* The script flips these between display:none and display:block, so they must
+   fill the card or the full-width buttons inside them collapse to text width. */
+#connect-default,
+#connect-jellyfin-intro { width: 100%; }
+
+/* Buttons: same offset hard-shadow language as .btn, but the auth script owns
+   these class names, so they carry their own rules rather than reusing .btn. */
+.connect-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 16px 22px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  background: var(--ink);
+  color: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 5px 5px 0 var(--cyan);
+  cursor: pointer;
+  transition: transform 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+.connect-btn:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 var(--cyan); }
+.connect-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--ink); }
+
+/* Quick Connect sits beside Sign in, so it reads as the lesser of the two. */
+.connect-btn--secondary {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 5px 5px 0 var(--pink);
+}
+.connect-btn--secondary:hover { box-shadow: 7px 7px 0 var(--pink); }
+
+/* Jellyfin trigger: a text link, not a second big button. */
+.connect-link-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-color: var(--pink);
+  cursor: pointer;
+  transition: color 160ms var(--ease);
+}
+.connect-link-btn:hover { color: var(--pink); }
+
+/* Back / Cancel. */
+.connect-text-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: color 160ms var(--ease);
+}
+.connect-text-link:hover { color: var(--ink); }
+
+.connect-fine-print {
+  margin-top: 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink-faint);
+}
+.connect-fine-print--left { margin-top: 8px; text-align: left; }
+
+.connect-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.connect-divider::before,
+.connect-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+
+/* ---- Auth states ---- */
+.connect-error {
+  display: none;                       /* script sets display:block */
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--alert);
+  border: 2px solid currentColor;
+  border-radius: 8px;
+}
+
+.connect-waiting,
+.connect-success {
+  display: none;                       /* script adds .active */
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+.connect-waiting.active,
+.connect-success.active { display: flex; }
+
+.connect-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+.connect-link { font-family: var(--font-mono); font-size: 15px; font-weight: 700; }
+.connect-link a { color: var(--pink); text-underline-offset: 4px; }
+
+.connect-pin-code {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;                 /* re-centers the trailing letter-space */
+  padding: 12px 18px;
+  color: var(--ink);
+  background: var(--paper-deep);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+
+.connect-or { font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint); }
+
+/* qrcodejs paints black-on-white, so the white plate and the ink frame are
+   fixed rather than themed — the code has to stay scannable in NITE mode. */
+.connect-qr {
+  display: inline-block;
+  padding: 12px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  line-height: 0;
+}
+.connect-qr img, .connect-qr canvas { display: block; }
+
+.connect-polling { font-family: var(--font-mono); font-size: 12px; color: var(--ink-soft); }
+.connect-polling::after {
+  content: "";
+  animation: connect-dots 1.5s steps(4, end) infinite;
+}
+@keyframes connect-dots {
+  0%   { content: ""; }
+  25%  { content: "."; }
+  50%  { content: ".."; }
+  75%  { content: "..."; }
+}
+
+.connect-success-text {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ok);
+}
+.connect-redirect { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-faint); }
+
+/* ---- Jellyfin form ---- */
+.connect-form {
+  display: none;                       /* script sets display:block */
+  width: 100%;
+  text-align: left;
+}
+.connect-field { margin-bottom: 16px; }
+.connect-field .connect-label { display: block; margin-bottom: 6px; }
+
+.connect-input {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper-deep);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.connect-input::placeholder { color: var(--ink-faint); }
+.connect-input:focus-visible { outline: 3px solid var(--pink); outline-offset: 2px; }
+
+#jf-quick-btn { margin-top: 10px; }
+#jf-back-btn { display: block; margin: 12px auto 0; }
+
+.connect-privacy {
+  margin-top: 32px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+}
+
+/* This page only has two nav actions, so the home link survives the narrow
+   breakpoint where index.html drops its outline button. */
+.page-connect .nav-actions .btn-outline { display: inline-flex; }
+
+@media (max-width: 480px) {
+  .connect-main { padding: 48px 0 64px; }
+  .connect-wrap { width: calc(100% - 40px); }
+  .connect-card { padding: 32px 22px; gap: 18px; }
+  .connect-pin-code { font-size: 22px; letter-spacing: 0.16em; text-indent: 0.16em; }
+  .page-connect .nav-actions .btn-sm { padding: 8px 10px; font-size: 11.5px; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1280px) {
+  /* nav gets tight with links + three actions; footer still carries the coffee link */
+}
+
+@media (max-width: 1024px) {
+  .section { padding: 88px 0; }
+
+  .hero-grid { grid-template-columns: 1fr; }
+  .hero-copy {
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+    padding: 80px 0 64px;
+  }
+  .hero-shot { padding: 72px 0 80px; }
+
+  .guide-grid, .surf-grid { grid-template-columns: 1fr; gap: 56px; }
+  .surf-grid figure { order: 2; }
+
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .steps { grid-template-columns: 1fr; }
+  .step {
+    border-right: 0;
+    border-bottom: 1px solid var(--hairline);
+    padding: 36px 0 36px;
+  }
+  .step + .step { padding-left: 0; }
+  .step:last-child { border-bottom: 0; }
+  .step-num { margin-bottom: 18px; }
+}
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .brand-logo { height: 36px; }
+  .brand-word { font-size: 23px; }
+  .brand-word .brand-o { height: 17px; width: 19.3px; }
+  .doodle-arrow { display: none; }
+  .cta-block { margin-top: 40px; }
+}
+
+@media (max-width: 480px) {
+  body { font-size: 16px; border-width: 0; }
+  .container, .nav-inner, .hero-grid { width: calc(100% - 40px); }
+  .section { padding: 68px 0; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .btn-lg { width: 100%; justify-content: center; }
+  .nav-actions .btn-outline { display: none; }
+  /* nav fits a true 375px: tighter brand, gaps, and button padding */
+  .nav-inner { gap: 12px; }
+  .nav-actions { gap: 8px; }
+  .brand-word { font-size: 20px; }
+  .brand-word .brand-o { height: 15px; width: 17px; }
+  .nav-actions .btn-sm { padding: 8px 10px; font-size: 11.5px; }
+  .theme-toggle { width: 30px; height: 30px; }
+  .privacy-card, .signup-card { padding: 32px 26px; }
+  .subscribe-btn { width: 100%; }
+  .footer-signup .subscribe-btn { width: auto; }
+  .lineup-card-head { padding: 12px 18px; }
+  .lineup__group-head { padding: 18px; }
+  .lineup__grid { padding: 2px 18px 24px; }
+  .lineup__interstitial { padding: 26px 18px; }
+  .changelog-head { padding: 16px 20px; }
+  .changelog-body { padding: 4px 20px 26px; }
+  .shot-tilt-r, .shot-tilt-l { transform: rotate(0deg); }
+  .shot-tilt-r { box-shadow: 6px 8px 0 var(--shot-shadow-hard); }
+  .shot-tilt-l { box-shadow: -6px 8px 0 var(--cyan); }
+  .sticker-ch { left: -6px; }
+  .sticker-pink { right: -6px; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
+
+/* Signup as a split card: copy left, form right, filling the row. */
+.signup-card.cta-card--split .cta-action { flex: 0 1 420px; min-width: 320px; }
+.signup-card.cta-card--split .subscribe-form { margin-top: 0; }
+.signup-card .subscribe-msg { margin-top: 12px; }
+.signup-card .signup-coffee { margin-top: 14px; }
+
+@media (max-width: 820px) {
+  .signup-card.cta-card--split .cta-action { flex: 1 1 auto; min-width: 0; width: 100%; }
+  .signup-card.cta-card--split .subscribe-btn { width: auto; }
+}
+
+/* ============================================================
+   DOCS  (support page)
+   The support page used to carry its own parallel stylesheet and
+   its own nav, so it drifted a full redesign behind the marketing
+   site. It now runs on these tokens instead: everything below is
+   built from the same variables as the rest of the site, so day
+   and night modes and any future palette change apply for free.
+   ============================================================ */
+
+.doc-hero { padding-top: 132px; padding-bottom: 24px; }
+.doc-hero h1 { margin: 0 0 12px; }
+.doc-hero p { color: var(--ink-soft); max-width: 640px; margin: 0; }
+
+.doc-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+  padding-bottom: 96px;
+}
+
+/* Sticky contents rail, clear of the fixed nav. */
+.doc-toc {
+  position: sticky;
+  top: 108px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-left: 1px solid var(--hairline);
+  padding-left: 16px;
+}
+.doc-toc a {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-decoration: none;
+  padding: 7px 0;
+  transition: color 0.15s ease;
+}
+.doc-toc a:hover { color: var(--pink); }
+
+.doc-body { min-width: 0; }
+
+.doc-section { scroll-margin-top: 108px; padding-bottom: 56px; }
+.doc-section + .doc-section { border-top: 1px solid var(--hairline); padding-top: 48px; }
+.doc-section h2 { font-size: clamp(26px, 3.2vw, 34px); margin: 0 0 18px; letter-spacing: -0.01em; }
+.doc-section h3 {
+  font-size: 18px;
+  margin: 30px 0 10px;
+  letter-spacing: -0.005em;
+}
+.doc-section p { color: var(--ink-soft); margin: 0 0 14px; max-width: 68ch; }
+.doc-section ul, .doc-section ol { color: var(--ink-soft); margin: 0 0 16px; padding-left: 20px; max-width: 68ch; }
+.doc-section li { margin-bottom: 9px; }
+.doc-section li::marker { color: var(--ink-faint); }
+.doc-section strong { color: var(--ink); font-weight: 600; }
+.doc-section a { color: var(--pink); text-decoration: none; border-bottom: 1px solid currentColor; }
+.doc-section a:hover { color: var(--ink); }
+
+/* Code blocks: the CORS recipes are meant to be copied, so they read as
+   terminal output rather than prose. */
+.doc-section pre {
+  background: var(--navy);
+  color: var(--navy-ink);
+  border-radius: 10px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 0 0 18px;
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.doc-section pre code { color: inherit; background: none; padding: 0; }
+.doc-section code {
+  font-family: "Space Mono", ui-monospace, monospace;
+  font-size: 0.9em;
+  background: var(--paper-deep);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* Callout for the one thing on the page people most need to notice. */
+.doc-note {
+  border-left: 3px solid var(--yellow);
+  background: var(--paper-deep);
+  border-radius: 0 10px 10px 0;
+  padding: 14px 18px;
+  margin: 0 0 18px;
+}
+.doc-note p:last-child { margin-bottom: 0; }
+
+.doc-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .doc-layout { grid-template-columns: 1fr; gap: 28px; }
+  .doc-toc {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    border-left: 0;
+    border-bottom: 1px solid var(--hairline);
+    padding: 0 0 16px;
+  }
+  .doc-hero { padding-top: 108px; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SERVER BRAND MARKS  (Plex / Jellyfin / Emby)
+
+   Used on the per-server landing pages to show which media servers
+   Nostalgex connects to. The icon paths come from Simple Icons and are
+   CC0; the marks themselves are trademarks of their respective owners
+   and appear here only to state compatibility, never to imply any
+   endorsement. The footer carries the disclaimer.
+   ══════════════════════════════════════════════════════════════════ */
+
+.server-mark {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+/* Hero line: small mark sitting with the "works with" note. */
+.hero-note.server-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+/* Three-up compatibility row. Borrows the .feature grid treatment so it
+   reads as part of the same system rather than a bolted-on badge strip. */
+.server-strip {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--hairline);
+  border-left: 1px solid var(--hairline);
+}
+
+.server-chip {
+  border-right: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--paper);
+}
+
+/* The inner element is a link on the other two servers and a plain div on
+   the page you are already reading, so style the child generically. */
+.server-chip > * {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 26px 28px;
+  color: inherit;
+  text-decoration: none;
+  transition: background 200ms var(--ease);
+}
+
+.server-chip a:hover,
+.server-chip a:focus-visible {
+  background: var(--feature-hover);
+}
+
+.server-chip .server-mark {
+  width: 30px;
+  height: 30px;
+}
+
+.server-chip-name {
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.server-chip-note {
+  display: block;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.server-chip.is-current {
+  background: var(--feature-hover);
+}
+
+@media (max-width: 720px) {
+  .server-strip { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,610 @@
+/**
+ * Shared channel pool filter — same rules as Nostalgex tvOS
+ * (Nostalgex/Nostalgex/App/AppState+Channels.swift → `filterItems`) and channels.json.
+ * Used by plex-tuner.html (browser) and devtools (Node).
+ * Canonical JS copy — edit this file only; keep AppState+Channels.swift in parity.
+ *
+ * ENRICHMENT DATA (important):
+ * tvOS reads TMDB/OMDb enrichment off `MediaEnrichment` (keywords, networks,
+ * productionCompanies, imdbRating, imdbVotes, rtScore, metacriticScore, awards).
+ * On the web an item may carry the same values either flat on the item or under
+ * `item.enrichment` — `enrichedValue()` reads both. When the host has NO
+ * enrichment pipeline (the browser tuner today), enrichment-gated rules behave
+ * exactly as they do on tvOS with a missing enrichment record:
+ *   - additive rules (keywords, networks, productionCompanies) simply don't match
+ *   - keywordsExclude is SOFT — unenriched items pass
+ *   - OMDb gates (imdbRatingMin/imdbVotesMin/rtScoreMin/metacriticMin/wonOscar)
+ *     are HARD — unenriched items are REJECTED (mirrors AppState+Channels.swift
+ *     "OMDb rating gates" block)
+ * That last one means CH141 FOREIGN FILMS and CH143 CULT CLASSICS come back empty
+ * on any host without OMDb data. That is the tvOS behaviour; do not "fix" it by
+ * letting unrated items through — wire enrichment into the host instead.
+ */
+
+const HORROR = new Set(["horror"]);
+const REALITY = new Set(["reality", "game show", "game-show", "reality-tv"]);
+const ANIMATION = new Set(["animation", "animated", "cartoon"]);
+// "history" is deliberately NOT here (or in WAR). Plex tags dramas like
+// Apollo 13, Dallas Buyers Club and 12 Years a Slave as History, and no
+// channel includes History, so locking it barred those films from every
+// channel, including ones the manifest explicitly claimed them for.
+// Mirrors AppState+Channels.swift.
+const DOCUMENTARY = new Set(["documentary", "docuseries"]);
+const SPORT = new Set(["sport", "sports", "sports film"]);
+const MUSIC = new Set(["music", "music video", "musical"]);
+const WAR = new Set(["war", "war & politics"]);
+const WESTERN = new Set(["western"]);
+const TALKSHOW = new Set(["talk show", "talk", "news"]);
+const ADULT_RATINGS = new Set(["R", "NC-17", "TV-MA", "18", "18+", "X", "NR"]);
+
+function includeList(rules) {
+  return rules?.genres?.include || [];
+}
+
+function channelIncludesGenre(rules, genreSet) {
+  return includeList(rules).some((g) => genreSet.has(g.toLowerCase()));
+}
+
+function titleContainsWord(haystack, needle) {
+  const n = needle.toLowerCase();
+  if (!n) return false;
+  const escaped = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`\\b${escaped}\\b`).test(haystack);
+}
+
+function stripYearSuffix(s) {
+  return s.toLowerCase().replace(/ \(\d{4}\)$/, "");
+}
+
+function parseYear(item) {
+  const y = item.year;
+  if (y == null || y === "") return null;
+  const n = typeof y === "number" ? y : parseInt(String(y), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Mirrors Swift `itemReleaseYear`: Plex `year`, else the year of `originallyAvailableAt`. */
+function releaseYear(item) {
+  const y = parseYear(item);
+  if (y != null) return y;
+  const raw = item.originallyAvailableAt;
+  if (typeof raw === "string") {
+    const m = raw.match(/^(\d{4})-\d{2}-\d{2}/);
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
+
+function passesYearRange(item, rules) {
+  if (!rules?.yearRange) return true;
+  const year = releaseYear(item);
+  if (year == null) return true;
+  if (rules.yearRange.min != null && year < rules.yearRange.min) return false;
+  if (rules.yearRange.max != null && year > rules.yearRange.max) return false;
+  return true;
+}
+
+function manifestClaimsChannel(item, channelID, manifest) {
+  if (!manifest?.items || !item.tmdbID) return false;
+  const mediaType = item.type === "episode" ? "tv" : "movie";
+  const entry = manifest.items[`${mediaType}:${item.tmdbID}`];
+  return Boolean(entry?.channels?.includes(channelID));
+}
+
+/**
+ * Mirrors Swift `ExclusiveRule.matches` — editorial title, title substring, genre.
+ * Both sides match on the year-stripped title as well as the raw one, so a Plex
+ * title carrying a " (YYYY)" suffix is caught either way (Channel.swift:204).
+ */
+function exclusiveRuleMatches(titleLower, itemGenres, rule) {
+  if ((rule.editorialTitles || []).some((t) => titleLower === t.toLowerCase())) return true;
+  if ((rule.titleContains || []).some((t) => titleLower.includes(t.toLowerCase()))) return true;
+  const g = rule.genres || [];
+  if (g.length && itemGenres.some((ig) => g.some((rg) => ig.includes(rg.toLowerCase())))) return true;
+  return false;
+}
+
+/** Plex GUIDs: `tmdb://456` or agent URLs containing `tmdb://456`. */
+function parseTmdbIdFromPlex(raw, isEpisode = false) {
+  const candidates = [];
+  if (Array.isArray(raw.Guid)) candidates.push(...raw.Guid.map((g) => g.id));
+  if (raw.guid) candidates.push(raw.guid);
+  if (isEpisode && raw.grandparentGuid) candidates.push(raw.grandparentGuid);
+  if (isEpisode && raw.parentGuid) candidates.push(raw.parentGuid);
+  for (const id of candidates) {
+    const m = String(id).match(/tmdb:\/\/(\d+)/);
+    if (m) return Number(m[1]);
+  }
+  return null;
+}
+
+function channelRequiresAnimationGenre(rules) {
+  return includeList(rules || {}).some((g) =>
+    [...ANIMATION].some((a) => g.toLowerCase().includes(a)),
+  );
+}
+
+function itemHasAnimationGenre(itemGenres) {
+  return itemGenres.some(
+    (g) => ANIMATION.has(g) || [...ANIMATION].some((a) => g.includes(a)),
+  );
+}
+
+/**
+ * Read an enrichment field that tvOS reads off `MediaEnrichment`. Accepts the
+ * value flat on the item or nested under `item.enrichment` (devtools snapshots
+ * use the flat shape). Returns null when absent — callers must then behave the
+ * same way Swift does with a nil enrichment record.
+ */
+function enrichedValue(item, key) {
+  const e = item.enrichment;
+  if (e && e[key] != null) return e[key];
+  if (item[key] != null) return item[key];
+  return null;
+}
+
+function enrichedList(item, key) {
+  const v = enrichedValue(item, key);
+  return Array.isArray(v) ? v.map((x) => String(x).toLowerCase()) : [];
+}
+
+/**
+ * @param {object} item — normalized pool item (title, genres[], type, tmdbID, …)
+ * @param {{ id: number, rules?: object, category?: string }} channel
+ * @param {{ manifest?: object, nowSec?: number }} [opts]
+ * @returns {false | { pass: true, via: 'rules' | 'manifest' | 'editorial' }}
+ */
+function itemPasses(item, channel, opts = {}) {
+  const r = channel.rules || {};
+  const category = channel.category || null;
+  const manifest = opts.manifest || null;
+  const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
+  const currentYear = new Date().getFullYear();
+  // Mirrors AppState+Channels.swift `filterTitleHaystack`: artist FIRST, then
+  // title, joined with a space, lowercased, then the trailing " (YYYY)" stripped.
+  const titleLower = stripYearSuffix(
+    [item.artist || "", item.title || ""].filter(Boolean).join(" "),
+  );
+  const itemGenres = (item.genres || []).map((g) => String(g).toLowerCase());
+
+  const matchesTitleRule = (() => {
+    if (!Array.isArray(r.titleContains) || !r.titleContains.length) return true;
+    return r.titleContains.some((t) => titleContainsWord(titleLower, t));
+  })();
+
+  const itemSource = item.librarySource || "movie";
+  if (r.source) {
+    if (itemSource !== r.source) return false;
+  } else if (itemSource === "musicVideo") {
+    return false;
+  }
+
+  const isKids = category === "kids";
+  const hasFamilyGenre = includeList(r).some((g) => g.toLowerCase() === "family");
+  const isFamilySafe = isKids || hasFamilyGenre;
+  if (isFamilySafe && item.contentRating && ADULT_RATINGS.has(item.contentRating)) {
+    return false;
+  }
+
+  const hasGenreInclude = includeList(r).length > 0;
+  const hasStudioRule = Array.isArray(r.studios) && r.studios.length > 0;
+  const isStudioChannel = hasStudioRule && !hasGenreInclude;
+
+  const hasTitleCurated = Array.isArray(r.titleContains) && r.titleContains.length > 0;
+  const allowsAnimation =
+    isStudioChannel || channelIncludesGenre(r, ANIMATION) || isKids || hasTitleCurated;
+  const allowsHorror = isStudioChannel || channelIncludesGenre(r, HORROR);
+  const allowsReality = isStudioChannel || channelIncludesGenre(r, REALITY);
+  const allowsDocumentary = isStudioChannel || channelIncludesGenre(r, DOCUMENTARY);
+
+  const allowsWar = isStudioChannel || channelIncludesGenre(r, WAR);
+  const allowsWestern = isStudioChannel || channelIncludesGenre(r, WESTERN);
+  const allowsTalkShow = isStudioChannel || channelIncludesGenre(r, TALKSHOW);
+
+  if (itemGenres.some((g) => HORROR.has(g)) && !allowsHorror) return false;
+  if (itemGenres.some((g) => REALITY.has(g)) && !allowsReality) return false;
+  if (itemGenres.some((g) => ANIMATION.has(g)) && !allowsAnimation) return false;
+  if (itemGenres.some((g) => DOCUMENTARY.has(g)) && !allowsDocumentary) return false;
+  // Sport genre is not globally blocked — sports movies (Rudy, The Sixth Man, Space Jam)
+  // can appear on any channel their other genres qualify them for.
+  // Music genre lock removed to match tvOS (AppState.swift): the source filter
+  // already keeps music videos out of channels that don't opt in via
+  // `source: musicVideo`, and music feature films (8 Mile, La La Land,
+  // Bohemian Rhapsody) need to flow through movie channels.
+  if (itemGenres.some((g) => WAR.has(g)) && !allowsWar) return false;
+  if (itemGenres.some((g) => WESTERN.has(g)) && !allowsWestern) return false;
+  if (itemGenres.some((g) => TALKSHOW.has(g)) && !allowsTalkShow) return false;
+
+  const isExplicitReality = channelIncludesGenre(r, REALITY);
+  if (isExplicitReality && !itemGenres.some((g) => REALITY.has(g))) return false;
+
+  if (Array.isArray(r.editorialOverrides) && r.editorialOverrides.length) {
+    if (r.editorialOverrides.some((t) => titleLower === t.toLowerCase())) {
+      return { pass: true, via: "editorial" };
+    }
+  }
+
+  // Manifest-level exclusivity. The manifest builder may flag an item as
+  // exclusive to a single channel (e.g. stand-up specials lock to STAND-UP via
+  // the "stand-up comedy" TMDB keyword) — those items must not appear anywhere
+  // else, even when the channel's own rules would otherwise match.
+  if (manifest?.items && item.tmdbID) {
+    const mediaType = item.type === "episode" ? "tv" : "movie";
+    const entry = manifest.items[`${mediaType}:${item.tmdbID}`];
+    if (entry && entry.exclusive != null && entry.exclusive !== channel.id) {
+      return false;
+    }
+  }
+
+  if (manifest && manifestClaimsChannel(item, channel.id, manifest)) {
+    if (r.type && item.type !== r.type) return false;
+    if (!passesYearRange(item, r)) return false;
+    if (Array.isArray(r.titleContains) && r.titleContains.length && !matchesTitleRule) {
+      return false;
+    }
+    // genres.exclude still applies to a manifest claim. The manifest is built by
+    // expanding TMDB "similar" titles out from a handful of exemplars, which
+    // drifts: SCI-FI (excludes Animation/Family/Kids) was being handed Aladdin,
+    // The Return of Jafar and TMNT purely because they were "similar" to
+    // something. A channel's own exclusions are an editorial statement about
+    // what must never appear on it, so they outrank a similarity guess.
+    // Includes stay bypassed on purpose, since widening membership past
+    // genres.include is the whole point of the manifest.
+    const manifestExcludes = r.genres?.exclude || [];
+    if (manifestExcludes.length) {
+      const blocked = manifestExcludes.some((e) =>
+        itemGenres.some((g) => g.includes(e.toLowerCase())),
+      );
+      if (blocked) return false;
+    }
+    return { pass: true, via: "manifest" };
+  }
+
+  // manifestOnly: membership comes solely from the manifest. If we reach here the
+  // item wasn't claimed for this channel, so reject — no genre/title fallback
+  // (e.g. STAND-UP must not pull every Comedy; ANIME relies on TMDB anime claims).
+  if (r.manifestOnly) return false;
+
+  if (Array.isArray(r.titleExcludes) && r.titleExcludes.length) {
+    if (r.titleExcludes.some((t) => titleContainsWord(titleLower, t))) return false;
+  }
+
+  // Channel exclusivity (mirrors AppState): block items owned by another channel.
+  const exclusiveRules = opts.exclusiveRules || [];
+  for (const rule of exclusiveRules) {
+    const ids = rule.channelIDs || (rule.channelID != null ? [rule.channelID] : []);
+    if (ids.includes(channel.id)) continue;
+    if (exclusiveRuleMatches(titleLower, itemGenres, rule)) return false;
+    if (rule.manifestExclusive && manifest && ids.some((id) => manifestClaimsChannel(item, id, manifest))) {
+      return false;
+    }
+  }
+
+  if (r.type && item.type !== r.type) return false;
+
+  if (!passesYearRange(item, r)) return false;
+
+  if (Array.isArray(r.contentRatings) && r.contentRatings.length) {
+    const rating = item.contentRating || "";
+    if (rating === "" && r.allowUnrated) {
+      /* pass */
+    } else if (!r.contentRatings.includes(rating)) {
+      return false;
+    }
+  }
+
+  // No `contentRatingMax` here on purpose. It used to be implemented on this side
+  // only, with no counterpart in Swift and no channel using it — so the first
+  // channel to adopt it would have filtered on web and not on Apple TV. Use
+  // `contentRatings` (an explicit allow-list, honoured by both) instead, or add a
+  // max-rating rule to BOTH surfaces at once.
+
+  if (r.durationRange) {
+    const min = r.durationRange.min ?? r.durationRange.minMinutes;
+    const max = r.durationRange.max ?? r.durationRange.maxMinutes;
+    if (min != null && item.duration < min) return false;
+    if (max != null && item.duration > max) return false;
+  }
+
+  const itemYear = parseYear(item) ?? 0;
+  const isNewRelease = itemYear >= currentYear - 1;
+  if (r.watchedOnly && (item.viewCount || 0) < 1 && !isNewRelease) return false;
+  if (r.unwatchedOnly && ((item.viewCount || 0) > 0 || isNewRelease)) return false;
+  if (r.rewatched && (item.viewCount || 0) < 3) return false;
+
+  const titleContains = matchesTitleRule;
+
+  const genreInclude = r.genres?.include || [];
+  const genreRequireAll = r.genres?.requireAll || [];
+  const genreExclude = r.genres?.exclude || [];
+  const itemTmdbKeywords = Array.isArray(item.tmdbKeywords)
+    ? item.tmdbKeywords.map((k) => String(k).toLowerCase())
+    : enrichedList(item, "keywords");
+
+  if (genreExclude.length) {
+    const blocked = genreExclude.some((e) =>
+      itemGenres.some((g) => g.includes(e.toLowerCase())),
+    );
+    if (blocked) return false;
+  }
+
+  // Soft exclude: unenriched items pass (mirrors AppState+Channels.swift
+  // "TMDB keyword exclude"). Keyword comparison is EXACT equality in Swift
+  // (`itemKW.contains($0)` on an array of lowercased keywords), not substring.
+  if (r.keywordsExclude?.length && itemTmdbKeywords.length) {
+    const blocked = r.keywordsExclude.some((kw) =>
+      itemTmdbKeywords.includes(kw.toLowerCase()),
+    );
+    if (blocked) return false;
+  }
+
+  // ── Enrichment gates ──────────────────────────────────────────────────────
+  // These were previously written BELOW the content-rule block, which returns
+  // early — so on every channel that has a genre/title/studio/keyword rule they
+  // never ran. That silently disabled ratingMin on 13 channels (ALL TIME GREATS,
+  // CERTIFIED GOLD, the decade channels, …) and releasedWithinMonths on CH49
+  // FRESH. They are pure gates, so running them here matches Swift, where the
+  // content-match block falls through instead of returning.
+
+  // OMDb gates — mirror AppState+Channels.swift "OMDb rating gates".
+  // HARD gates: a missing OMDb value REJECTS the item, exactly as Swift's
+  // `guard let r = enrichment?.imdbRating` does. Operator is >= in both.
+  if (typeof r.imdbRatingMin === "number") {
+    const v = enrichedValue(item, "imdbRating");
+    if (typeof v !== "number" || v < r.imdbRatingMin) return false;
+  }
+  if (typeof r.imdbVotesMin === "number") {
+    const v = enrichedValue(item, "imdbVotes");
+    if (typeof v !== "number" || v < r.imdbVotesMin) return false;
+  }
+  if (typeof r.rtScoreMin === "number") {
+    const v = enrichedValue(item, "rottenTomatoesScore") ?? enrichedValue(item, "rtScore");
+    if (typeof v !== "number" || v < r.rtScoreMin) return false;
+  }
+  if (typeof r.metacriticMin === "number") {
+    const v = enrichedValue(item, "metacriticScore") ?? enrichedValue(item, "metacritic");
+    if (typeof v !== "number" || v < r.metacriticMin) return false;
+  }
+  if (r.wonOscar) {
+    const awards = enrichedValue(item, "awards");
+    if (typeof awards !== "string") return false;
+    const a = awards.toLowerCase();
+    if (!(a.includes("won") && a.includes("oscar"))) return false;
+  }
+
+  // addedWithinDays — Swift compares `item.addedAt < cutoff`, so an item with no
+  // addedAt (0) is rejected. Mirrored, including the `days > 0` guard.
+  if (typeof r.addedWithinDays === "number" && r.addedWithinDays > 0) {
+    const cutoff = nowSec - r.addedWithinDays * 86400;
+    if ((item.addedAt || 0) < cutoff) return false;
+  }
+
+  // releasedWithinMonths — Swift prefers Plex `originallyAvailableAt` for true
+  // month precision and falls back to a year approximation of
+  // `yearsBack = (months + 11) / 12 - 1` (integer division).
+  if (typeof r.releasedWithinMonths === "number" && r.releasedWithinMonths > 0) {
+    const months = r.releasedWithinMonths;
+    const raw = item.originallyAvailableAt;
+    const m = typeof raw === "string" ? raw.match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+    if (m) {
+      const released = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      const cutoff = new Date();
+      cutoff.setMonth(cutoff.getMonth() - months);
+      if (released < cutoff) return false;
+    } else {
+      const year = parseYear(item);
+      if (year != null) {
+        const yearsBack = Math.floor((months + 11) / 12) - 1;
+        if (year < currentYear - yearsBack) return false;
+      }
+    }
+  }
+
+  // ratingMin — Plex star rating (item.rating) OR user rating clears the bar.
+  if (typeof r.ratingMin === "number") {
+    if ((item.rating || 0) < r.ratingMin && (item.userRating || 0) < r.ratingMin) return false;
+  }
+
+  let matchesGenre = false;
+  if (genreInclude.length) {
+    matchesGenre = itemGenres.some((g) =>
+      genreInclude.some((m) => g.includes(m.toLowerCase())),
+    );
+  }
+  if (genreRequireAll.length) {
+    const allHit = genreRequireAll.every((m) =>
+      itemGenres.some((g) => g.includes(m.toLowerCase())),
+    );
+    if (!allHit) return false;
+  }
+
+  // Swift `matchesStudio`: Plex studio first, then falls back to TMDB
+  // productionCompanies and networks.
+  let matchesStudio = false;
+  if (hasStudioRule) {
+    const lowerStudios = r.studios.map((s) => s.toLowerCase());
+    const itemStudio = item.studio ? String(item.studio).toLowerCase() : "";
+    matchesStudio =
+      (itemStudio && lowerStudios.some((s) => itemStudio.includes(s))) ||
+      enrichedList(item, "productionCompanies").some((pc) =>
+        lowerStudios.some((s) => pc.includes(s)),
+      ) ||
+      enrichedList(item, "networks").some((n) => lowerStudios.some((s) => n.includes(s)));
+  }
+
+  const hasProdCoRule =
+    Array.isArray(r.productionCompanies) && r.productionCompanies.length > 0;
+  // Swift matches against `enrichment.productionCompanies`; Plex `studio` is the
+  // partial stand-in when no enrichment record exists.
+  const itemCompanies = enrichedList(item, "productionCompanies");
+  const prodCoHaystack = item.studio
+    ? [...itemCompanies, String(item.studio).toLowerCase()]
+    : itemCompanies;
+  let matchesProdCo = false;
+  if (hasProdCoRule && prodCoHaystack.length) {
+    matchesProdCo = r.productionCompanies.some((c) =>
+      prodCoHaystack.some((pc) => pc.includes(c.toLowerCase())),
+    );
+  }
+
+  const hasTitleRule = Array.isArray(r.titleContains) && r.titleContains.length > 0;
+  const hasKeywordRule = Array.isArray(r.keywords) && r.keywords.length > 0;
+  const hasNetworkRule = Array.isArray(r.networks) && r.networks.length > 0;
+  const isTitleCuratedChannel =
+    hasTitleRule && !hasKeywordRule && !hasNetworkRule && !hasProdCoRule && !hasStudioRule;
+
+  if (isTitleCuratedChannel) {
+    // Title list is the allowlist (e.g. ADULT CARTOONS). Plex often tags these as
+    // Comedy only — do not also require Animation/Animated in genres.include.
+    if (!titleContains) return false;
+    return { pass: true, via: "rules" };
+  }
+
+  // Evaluate TMDB keywords if the channel has a keyword rule and the item has enriched data
+  // Keyword matching is ADDITIVE — it broadens membership, it never gates it.
+  // Swift compares keywords by EXACT equality on the lowercased keyword list.
+  // keywordsRequireAnyGenre is a substring test in Swift
+  // (`itemGenres.contains { $0.contains(gateGenre) }`), not exact equality.
+  let matchesKeyword = false;
+  if (hasKeywordRule && itemTmdbKeywords.length) {
+    const kwHit = r.keywords.some((kw) => itemTmdbKeywords.includes(kw.toLowerCase()));
+    if (kwHit) {
+      const kwGate = r.keywordsRequireAnyGenre;
+      matchesKeyword =
+        !kwGate?.length ||
+        kwGate.some((g) => itemGenres.some((ig) => ig.includes(g.toLowerCase())));
+    }
+  }
+
+  // networks — TMDB network list, substring match (item network CONTAINS rule).
+  const itemNetworks = enrichedList(item, "networks");
+  let matchesNetwork = false;
+  if (hasNetworkRule && itemNetworks.length) {
+    matchesNetwork = r.networks.some((n) =>
+      itemNetworks.some((inw) => inw.includes(n.toLowerCase())),
+    );
+  }
+
+  const hasAnyContentRule =
+    hasTitleRule ||
+    hasStudioRule ||
+    hasGenreInclude ||
+    hasProdCoRule ||
+    hasKeywordRule ||
+    hasNetworkRule;
+  if (hasAnyContentRule) {
+    if (hasTitleRule && titleContains) return { pass: true, via: "title" };
+    if (matchesKeyword) return { pass: true, via: "keyword" };
+    if (matchesNetwork) return { pass: true, via: "network" };
+    if (matchesProdCo) return { pass: true, via: "prodco" };
+    if (hasStudioRule && hasGenreInclude) {
+      if (!matchesStudio || !matchesGenre) return false;
+    } else if (hasStudioRule) {
+      if (!matchesStudio) return false;
+    } else if (hasGenreInclude) {
+      if (!matchesGenre) return false;
+      // keywordGatedGenres: broad genres also require a keyword match to prevent unrelated
+      // content (rock films on MUSICALS, adult dramas on TEEN DRAMA) from passing on genre alone.
+      if (r.keywordGatedGenres?.length) {
+        // Exact genre match, not substring — otherwise gating "Music" also gates
+        // "Musical", wrongly excluding genre-tagged musicals that have no keywords.
+        const isGated = r.keywordGatedGenres.some((g) =>
+          itemGenres.some((ig) => ig.toLowerCase() === g.toLowerCase())
+        );
+        if (isGated && !matchesKeyword) return false;
+      }
+    } else {
+      return false;
+    }
+    return { pass: true, via: "rules" };
+  }
+
+  return { pass: true, via: "rules" };
+}
+
+function normalizePassResult(result) {
+  if (result === false) return null;
+  if (result === true || result?.pass) return result?.via ? result : { pass: true, via: "rules" };
+  return null;
+}
+
+/**
+ * Filter library items for a channel (returns enriched rows).
+ */
+function filterPool(allItems, channel, opts = {}) {
+  const manifest = opts.manifest ?? null;
+  const nowSec = opts.nowSec ?? Math.floor(Date.now() / 1000);
+  const exclusiveRules = opts.exclusiveRules ?? [];
+  const requiresAnimation = channelRequiresAnimationGenre(channel.rules || {});
+  const seenShows = new Map();
+  const items = [];
+
+  for (const it of allItems) {
+    const raw = itemPasses(it, channel, { manifest, nowSec, exclusiveRules });
+    const hit = normalizePassResult(raw);
+    if (!hit) continue;
+
+    const itemGenres = (it.genres || []).map((g) => String(g).toLowerCase());
+    const animated = itemHasAnimationGenre(itemGenres);
+    const row = {
+      ...it,
+      poolVia: hit.via,
+      hasAnimationGenre: animated,
+      suspectNonAnimation: requiresAnimation && !animated,
+    };
+    items.push(row);
+
+    if (!seenShows.has(it.title)) {
+      seenShows.set(it.title, {
+        title: it.title,
+        year: parseYear(it),
+        hasAnimationGenre: animated,
+        suspectNonAnimation: requiresAnimation && !animated,
+        episodeCount: 1,
+      });
+    } else {
+      const slot = seenShows.get(it.title);
+      slot.episodeCount++;
+      if (animated) {
+        slot.hasAnimationGenre = true;
+        slot.suspectNonAnimation = false;
+      }
+    }
+  }
+
+  return {
+    items,
+    shows: [...seenShows.values()].sort((a, b) => String(a.title).localeCompare(String(b.title))),
+    requiresAnimation,
+  };
+}
+
+const api = {
+  itemPasses,
+  filterPool,
+  parseTmdbIdFromPlex,
+  passesYearRange,
+  releaseYear,
+  enrichedValue,
+  titleContainsWord,
+  channelRequiresAnimationGenre,
+  itemHasAnimationGenre,
+  GENRE_LOCKS: {
+    horror: HORROR,
+    reality: REALITY,
+    animation: ANIMATION,
+    documentary: DOCUMENTARY,
+    sport: SPORT,
+    music: MUSIC,
+    war: WAR,
+    western: WESTERN,
+    talkShow: TALKSHOW,
+  },
+};
+
+if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+  module.exports = api;
+}
+if (typeof globalThis !== "undefined") {
+  globalThis.NostalgexChannelFilter = api;
+}

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /plex-tuner
+
+Sitemap: https://www.nostalgex.app/sitemap.xml

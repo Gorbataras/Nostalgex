@@ -1,0 +1,1694 @@
+{
+  "globalLocks": [
+    {
+      "channelID": 58,
+      "match": {
+        "keyword": "stand-up comedy"
+      },
+      "note": "Stand-up specials (Marcello: American Boy, etc.) lock to STAND-UP only — they leak into ROM COMS / FEEL GOOD otherwise because TMDB tags them only as Comedy."
+    },
+    {
+      "channelID": 58,
+      "match": {
+        "keyword": "stand up comedy"
+      }
+    },
+    {
+      "channelID": 58,
+      "match": {
+        "keyword": "stand-up special"
+      }
+    }
+  ],
+  "channels": [
+    {
+      "id": 5,
+      "name": "90S SITCOMS",
+      "mediaType": "tv",
+      "exemplars": [
+        "Seinfeld",
+        "Friends",
+        "Frasier",
+        "Home Improvement",
+        "Family Matters",
+        "Full House",
+        "Boy Meets World",
+        "Saved by the Bell",
+        "The Fresh Prince of Bel-Air",
+        "Mad About You",
+        "Everybody Loves Raymond",
+        "King of Queens",
+        "3rd Rock from the Sun",
+        "NewsRadio",
+        "Just Shoot Me!",
+        "Spin City",
+        "Suddenly Susan",
+        "Wings",
+        "Cybill",
+        "Ellen"
+      ]
+    },
+    {
+      "id": 23,
+      "name": "DIZ JUNIOR",
+      "mediaType": "tv",
+      "exemplars": [
+        "Bluey",
+        "Mickey Mouse Clubhouse",
+        "Doc McStuffins",
+        "Sofia the First",
+        "Puppy Dog Pals",
+        "Vampirina",
+        "PJ Masks",
+        "Fancy Nancy",
+        "Mira Royal Detective",
+        "Muppet Babies",
+        "Alice's Wonderland Bakery",
+        "Eureka!",
+        "Firebuds",
+        "SuperKitties",
+        "Marvel's Spidey and His Amazing Friends",
+        "Minnie's Bow-Toons",
+        "Handy Manny",
+        "Special Agent Oso",
+        "Little Einsteins"
+      ]
+    },
+    {
+      "id": 29,
+      "name": "TWEEN TV",
+      "mediaType": "tv",
+      "exemplars": [
+        "Hannah Montana",
+        "iCarly",
+        "Wizards of Waverly Place",
+        "Lizzie McGuire",
+        "That's So Raven",
+        "Drake & Josh",
+        "Zoey 101",
+        "Victorious",
+        "Sam & Cat",
+        "The Suite Life of Zack and Cody",
+        "Good Luck Charlie",
+        "Jessie",
+        "Austin & Ally",
+        "Liv and Maddie",
+        "Kim Possible",
+        "Even Stevens",
+        "Phil of the Future",
+        "Henry Danger",
+        "Big Time Rush",
+        "Boy Meets World"
+      ]
+    },
+    {
+      "id": 30,
+      "name": "TEEN DRAMA",
+      "mediaType": "tv",
+      "exemplars": [
+        "Gossip Girl",
+        "The O.C.",
+        "One Tree Hill",
+        "Dawson's Creek",
+        "Beverly Hills, 90210",
+        "Pretty Little Liars",
+        "Gilmore Girls",
+        "Felicity",
+        "Friday Night Lights",
+        "Riverdale",
+        "Veronica Mars",
+        "Smallville",
+        "The Vampire Diaries",
+        "Roswell",
+        "My So-Called Life",
+        "Buffy the Vampire Slayer",
+        "Glee",
+        "Outer Banks",
+        "Euphoria",
+        "Skins"
+      ]
+    },
+    {
+      "id": 33,
+      "name": "FAMILY TV",
+      "mediaType": "tv",
+      "exemplars": [
+        "Modern Family",
+        "Full House",
+        "Fuller House",
+        "Boy Meets World",
+        "Girl Meets World",
+        "Home Improvement",
+        "Family Ties",
+        "Step by Step",
+        "Family Matters",
+        "Growing Pains",
+        "The Cosby Show",
+        "7th Heaven",
+        "Everybody Loves Raymond",
+        "The Middle",
+        "Black-ish",
+        "Fresh Off the Boat",
+        "Speechless",
+        "Schooled",
+        "The Goldbergs",
+        "Reba"
+      ]
+    },
+    {
+      "id": 50,
+      "name": "SITCOMS",
+      "mediaType": "tv",
+      "exemplars": [
+        "Seinfeld",
+        "Friends",
+        "Cheers",
+        "Frasier",
+        "The Big Bang Theory",
+        "How I Met Your Mother",
+        "The Office",
+        "Parks and Recreation",
+        "30 Rock",
+        "Brooklyn Nine-Nine",
+        "Community",
+        "Arrested Development",
+        "It's Always Sunny in Philadelphia",
+        "Scrubs",
+        "Modern Family",
+        "Curb Your Enthusiasm",
+        "The Good Place",
+        "Superstore",
+        "Veep",
+        "New Girl"
+      ]
+    },
+    {
+      "id": 53,
+      "name": "FEEL GOOD TV",
+      "mediaType": "tv",
+      "exemplars": [
+        "Ted Lasso",
+        "Shrinking",
+        "Schitt's Creek",
+        "Parks and Recreation",
+        "The Good Place",
+        "New Girl",
+        "Brooklyn Nine-Nine",
+        "Superstore",
+        "Abbott Elementary",
+        "Ghosts",
+        "Gilmore Girls",
+        "Modern Family",
+        "How I Met Your Mother",
+        "Only Murders in the Building",
+        "Hacks",
+        "Derry Girls",
+        "Unbreakable Kimmy Schmidt",
+        "Pushing Daisies",
+        "Friends",
+        "Northern Exposure",
+        "Younger",
+        "Jane the Virgin",
+        "Community",
+        "Psych",
+        "Chuck"
+      ]
+    },
+    {
+      "id": 59,
+      "name": "MAN CAVE",
+      "mediaType": "tv",
+      "exemplars": [
+        "The Sopranos",
+        "The Wire",
+        "Breaking Bad",
+        "Better Call Saul",
+        "Boardwalk Empire",
+        "Peaky Blinders",
+        "Yellowstone",
+        "True Detective",
+        "Sons of Anarchy",
+        "Justified",
+        "Suits",
+        "Billions",
+        "Entourage",
+        "Letterkenny",
+        "Trailer Park Boys",
+        "Eastbound & Down",
+        "Hard Knocks",
+        "Succession",
+        "Ozark",
+        "Vikings"
+      ]
+    },
+    {
+      "id": 63,
+      "name": "ADULT CARTOONS",
+      "mediaType": "tv",
+      "exemplars": [
+        "The Simpsons",
+        "South Park",
+        "King of the Hill",
+        "Family Guy",
+        "Futurama",
+        "American Dad!",
+        "Bob's Burgers",
+        "Rick and Morty",
+        "BoJack Horseman",
+        "Big Mouth",
+        "Archer",
+        "Beavis and Butt-Head",
+        "Aqua Teen Hunger Force",
+        "Robot Chicken",
+        "Metalocalypse",
+        "Solar Opposites",
+        "Inside Job",
+        "Harley Quinn",
+        "Invincible",
+        "The Boondocks"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "GIRLS NIGHT",
+      "mediaType": "movie",
+      "exemplars": [
+        "Pretty Woman",
+        "Dirty Dancing",
+        "Ghost",
+        "When Harry Met Sally",
+        "Sleepless in Seattle",
+        "You've Got Mail",
+        "While You Were Sleeping",
+        "My Best Friend's Wedding",
+        "Notting Hill",
+        "Steel Magnolias",
+        "Beaches",
+        "Thelma & Louise",
+        "Fried Green Tomatoes",
+        "How to Lose a Guy in 10 Days",
+        "Pretty in Pink",
+        "Sixteen Candles",
+        "The Sound of Music",
+        "Grease",
+        "Dirty Dancing: Havana Nights",
+        "The First Wives Club"
+      ]
+    },
+    {
+      "id": 52,
+      "name": "ROM COMS",
+      "mediaType": "movie",
+      "exemplars": [
+        "When Harry Met Sally",
+        "Sleepless in Seattle",
+        "You've Got Mail",
+        "Notting Hill",
+        "Bridget Jones's Diary",
+        "Love Actually",
+        "Knocked Up",
+        "The Proposal",
+        "How to Lose a Guy in 10 Days",
+        "10 Things I Hate About You",
+        "Crazy, Stupid, Love.",
+        "Friends with Benefits",
+        "No Strings Attached",
+        "Hitch",
+        "27 Dresses",
+        "My Best Friend's Wedding",
+        "Pretty Woman",
+        "While You Were Sleeping",
+        "Forgetting Sarah Marshall",
+        "Trainwreck"
+      ]
+    },
+    {
+      "id": 71,
+      "name": "DISASTER MOVIES",
+      "mediaType": "movie",
+      "exemplars": [
+        "Twister",
+        "Armageddon",
+        "Deep Impact",
+        "The Day After Tomorrow",
+        "2012",
+        "San Andreas",
+        "Greenland",
+        "Geostorm",
+        "Volcano",
+        "Dante's Peak",
+        "Pompeii",
+        "Independence Day",
+        "Knowing",
+        "The Core",
+        "Titanic",
+        "Poseidon",
+        "Earthquake",
+        "The Towering Inferno",
+        "Sully",
+        "World War Z",
+        "Contagion",
+        "Outbreak"
+      ]
+    },
+    {
+      "id": 65,
+      "name": "SUPERHERO MOVIES",
+      "mediaType": "movie",
+      "exemplars": [
+        "Iron Man",
+        "The Avengers",
+        "Captain America: The First Avenger",
+        "Thor",
+        "Guardians of the Galaxy",
+        "Black Panther",
+        "Spider-Man",
+        "Spider-Man: No Way Home",
+        "Ant-Man",
+        "Doctor Strange",
+        "Deadpool",
+        "Logan",
+        "X-Men",
+        "The Dark Knight",
+        "Batman Begins",
+        "Wonder Woman",
+        "Aquaman",
+        "Man of Steel",
+        "Justice League",
+        "Suicide Squad",
+        "Shazam",
+        "Venom",
+        "Captain Marvel",
+        "Eternals",
+        "Black Widow"
+      ]
+    },
+    {
+      "id": 68,
+      "name": "CERTIFIED GOLD",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Shawshank Redemption",
+        "The Godfather",
+        "The Godfather Part II",
+        "Schindler's List",
+        "12 Angry Men",
+        "The Dark Knight",
+        "Pulp Fiction",
+        "Forrest Gump",
+        "Inception",
+        "Fight Club",
+        "Goodfellas",
+        "Parasite",
+        "City of God",
+        "Spirited Away",
+        "Interstellar",
+        "The Matrix",
+        "Seven Samurai",
+        "Saving Private Ryan",
+        "The Silence of the Lambs",
+        "Se7en"
+      ]
+    },
+    {
+      "id": 69,
+      "name": "OSCAR WINNERS",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Godfather",
+        "Schindler's List",
+        "Parasite",
+        "Moonlight",
+        "Casablanca",
+        "On the Waterfront",
+        "Titanic",
+        "Forrest Gump",
+        "The Silence of the Lambs",
+        "American Beauty",
+        "Gladiator",
+        "Chicago",
+        "Million Dollar Baby",
+        "The Departed",
+        "No Country for Old Men",
+        "Slumdog Millionaire",
+        "The King's Speech",
+        "The Artist",
+        "Argo",
+        "12 Years a Slave",
+        "Birdman",
+        "Spotlight",
+        "The Shape of Water",
+        "Green Book",
+        "Nomadland",
+        "CODA",
+        "Everything Everywhere All at Once",
+        "Oppenheimer"
+      ]
+    },
+    {
+      "id": 130,
+      "name": "HOLIDAZE",
+      "mediaType": "movie",
+      "exemplars": [
+        "Home Alone",
+        "Home Alone 2",
+        "Elf",
+        "Die Hard",
+        "It's a Wonderful Life",
+        "Love Actually",
+        "The Holiday",
+        "A Christmas Story",
+        "The Polar Express",
+        "The Santa Clause",
+        "How the Grinch Stole Christmas",
+        "National Lampoon's Christmas Vacation",
+        "Miracle on 34th Street",
+        "White Christmas",
+        "Scrooged",
+        "Gremlins",
+        "The Muppet Christmas Carol",
+        "The Christmas Chronicles",
+        "Last Christmas",
+        "Violent Night",
+        "Krampus",
+        "The Family Stone",
+        "Four Christmases",
+        "Jingle All the Way",
+        "Bad Santa"
+      ]
+    },
+    {
+      "id": 131,
+      "name": "SCREAM KIDS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Hocus Pocus",
+        "Casper",
+        "The Nightmare Before Christmas",
+        "Coraline",
+        "Monster House",
+        "ParaNorman",
+        "Hotel Transylvania",
+        "Frankenweenie",
+        "Corpse Bride",
+        "The Addams Family",
+        "Goosebumps",
+        "Monsters, Inc.",
+        "Ghostbusters",
+        "The Witches",
+        "Halloweentown",
+        "Beetlejuice",
+        "The Haunted Mansion",
+        "Wendell & Wild",
+        "The House with a Clock in Its Walls",
+        "Igor"
+      ]
+    },
+    {
+      "id": 132,
+      "name": "SCREAM ADULTS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Halloween",
+        "The Exorcist",
+        "The Shining",
+        "A Nightmare on Elm Street",
+        "Friday the 13th",
+        "The Texas Chain Saw Massacre",
+        "Psycho",
+        "Carrie",
+        "Poltergeist",
+        "Scream",
+        "It",
+        "The Conjuring",
+        "Insidious",
+        "Sinister",
+        "Hereditary",
+        "Midsommar",
+        "Get Out",
+        "The Babadook",
+        "Evil Dead",
+        "Candyman",
+        "The Ring",
+        "The Grudge",
+        "Hellraiser",
+        "Child's Play",
+        "A Quiet Place",
+        "The Blair Witch Project",
+        "Saw",
+        "Paranormal Activity",
+        "The Purge",
+        "Annabelle"
+      ]
+    },
+    {
+      "id": 100,
+      "name": "STAR WARS",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        10,
+        373558
+      ]
+    },
+    {
+      "id": 101,
+      "name": "MARVEL",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        86311,
+        131295,
+        131296,
+        131292,
+        284433,
+        422834,
+        618529,
+        633766,
+        531241,
+        295,
+        556,
+        748,
+        453993,
+        448150
+      ]
+    },
+    {
+      "id": 102,
+      "name": "HARRY POTTER",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        1241,
+        435259
+      ]
+    },
+    {
+      "id": 103,
+      "name": "JURASSIC PARK",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        328
+      ]
+    },
+    {
+      "id": 104,
+      "name": "LORD OF THE RINGS",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        119,
+        121938
+      ]
+    },
+    {
+      "id": 105,
+      "name": "MISSION IMPOSSIBLE",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        87359
+      ]
+    },
+    {
+      "id": 106,
+      "name": "JASON BOURNE",
+      "mediaType": "movie",
+      "exemplars": [],
+      "tmdbCollections": [
+        31562
+      ]
+    },
+    {
+      "id": 10,
+      "name": "TEEN MOVIES",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Breakfast Club",
+        "Ferris Bueller's Day Off",
+        "Sixteen Candles",
+        "Pretty in Pink",
+        "Say Anything...",
+        "Dazed and Confused",
+        "Clueless",
+        "Can't Hardly Wait",
+        "10 Things I Hate About You",
+        "The Goonies",
+        "Stand By Me",
+        "Dead Poets Society",
+        "Fast Times at Ridgemont High",
+        "Some Kind of Wonderful",
+        "Weird Science",
+        "Empire Records",
+        "She's All That",
+        "American Pie",
+        "Varsity Blues",
+        "Adventures in Babysitting"
+      ]
+    },
+    {
+      "id": 40,
+      "name": "TRUE CRIME",
+      "mediaType": "tv",
+      "exemplars": [
+        "Making a Murderer",
+        "The Jinx",
+        "Tiger King",
+        "The Staircase",
+        "Wild Wild Country",
+        "Don't F**k with Cats",
+        "The Keepers",
+        "Evil Genius",
+        "I'll Be Gone in the Dark",
+        "Conversations with a Killer: The Ted Bundy Tapes",
+        "Night Stalker: The Hunt for a Serial Killer",
+        "The Confession Tapes",
+        "American Murder: The Family Next Door",
+        "Forensic Files",
+        "Unsolved Mysteries",
+        "Murder Among the Mormons",
+        "Crime Scene: The Vanishing at the Cecil Hotel",
+        "The Innocent Man",
+        "Killer Inside: The Mind of Aaron Hernandez",
+        "Catching Killers"
+      ]
+    },
+    {
+      "id": 41,
+      "name": "CRIME FLICKS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Goodfellas",
+        "The Godfather",
+        "Casino",
+        "Scarface",
+        "Pulp Fiction",
+        "Heat",
+        "The Departed",
+        "Reservoir Dogs",
+        "Donnie Brasco",
+        "American Gangster",
+        "Carlito's Way",
+        "The Untouchables",
+        "A Bronx Tale",
+        "Snatch",
+        "Lock, Stock and Two Smoking Barrels",
+        "The Town",
+        "Road to Perdition",
+        "Once Upon a Time in America",
+        "Training Day",
+        "No Country for Old Men"
+      ]
+    },
+    {
+      "id": 42,
+      "name": "THRILLERS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Se7en",
+        "The Silence of the Lambs",
+        "Zodiac",
+        "Prisoners",
+        "Gone Girl",
+        "Shutter Island",
+        "The Fugitive",
+        "North by Northwest",
+        "The Sixth Sense",
+        "Memento",
+        "Nightcrawler",
+        "The Girl with the Dragon Tattoo",
+        "Wind River",
+        "Sicario",
+        "The Bourne Identity",
+        "Panic Room",
+        "Misery",
+        "Cape Fear",
+        "Insomnia",
+        "Enemy of the State"
+      ]
+    },
+    {
+      "id": 43,
+      "name": "MYSTERY",
+      "mediaType": "movie",
+      "exemplars": [
+        "Knives Out",
+        "Glass Onion: A Knives Out Mystery",
+        "Murder on the Orient Express",
+        "Clue",
+        "Gosford Park",
+        "The Usual Suspects",
+        "Chinatown",
+        "L.A. Confidential",
+        "The Maltese Falcon",
+        "Rear Window",
+        "Vertigo",
+        "The Name of the Rose",
+        "Mystic River",
+        "The Prestige",
+        "Identity",
+        "Murder by Death",
+        "Death on the Nile",
+        "Sleuth",
+        "Gone Baby Gone",
+        "The Nice Guys"
+      ]
+    },
+    {
+      "id": 44,
+      "name": "CRIME TV",
+      "mediaType": "tv",
+      "exemplars": [
+        "Law & Order",
+        "Law & Order: Special Victims Unit",
+        "CSI: Crime Scene Investigation",
+        "NCIS",
+        "Criminal Minds",
+        "Bones",
+        "Castle",
+        "Monk",
+        "Sherlock",
+        "Luther",
+        "Broadchurch",
+        "The Killing",
+        "Bosch",
+        "Mindhunter",
+        "Dexter",
+        "Cold Case",
+        "Numb3rs",
+        "The Mentalist",
+        "Hannibal",
+        "Elementary"
+      ]
+    },
+    {
+      "id": 56,
+      "name": "DOCS",
+      "mediaType": "movie",
+      "requireGenres": [
+        "Documentary"
+      ],
+      "autoSweepCollections": false,
+      "exemplars": [
+        "March of the Penguins",
+        "Won't You Be My Neighbor?",
+        "Jiro Dreams of Sushi",
+        "The Social Dilemma",
+        "Blackfish",
+        "An Inconvenient Truth",
+        "Searching for Sugar Man",
+        "Man on Wire",
+        "Grizzly Man",
+        "Apollo 11",
+        "My Octopus Teacher",
+        "Citizenfour",
+        "Amy",
+        "20 Feet from Stardom",
+        "Bowling for Columbine",
+        "The Cove",
+        "Food, Inc.",
+        "Super Size Me"
+      ]
+    },
+    {
+      "id": 58,
+      "name": "STAND-UP",
+      "mediaType": "movie",
+      "exemplars": [
+        "Eddie Murphy: Delirious",
+        "Eddie Murphy: Raw",
+        "Richard Pryor: Live on the Sunset Strip",
+        "Dave Chappelle: Sticks & Stones",
+        "Kevin Hart: Laugh at My Pain",
+        "Chris Rock: Bring the Pain",
+        "Bo Burnham: Inside",
+        "Hannah Gadsby: Nanette",
+        "John Mulaney: Kid Gorgeous at Radio City",
+        "Ali Wong: Baby Cobra",
+        "Patton Oswalt: Annihilation",
+        "Bill Burr: Paper Tiger",
+        "Robin Williams: Live on Broadway",
+        "George Carlin: Jammin' in New York",
+        "Mike Birbiglia: Thank God for Jokes",
+        "Trevor Noah: Afraid of the Dark",
+        "Gabriel Iglesias: I'm Not Fat... I'm Fluffy",
+        "Jim Gaffigan: Mr. Universe",
+        "Tom Segura: Ball Hog",
+        "Iliza Shlesinger: Confirmed Kills"
+      ]
+    },
+    {
+      "id": 73,
+      "name": "SCI-FI",
+      "mediaType": "movie",
+      "exemplars": [
+        "Blade Runner",
+        "The Matrix",
+        "Alien",
+        "Aliens",
+        "The Terminator",
+        "Terminator 2: Judgment Day",
+        "Star Trek II: The Wrath of Khan",
+        "Back to the Future",
+        "E.T. the Extra-Terrestrial",
+        "Close Encounters of the Third Kind",
+        "RoboCop",
+        "Total Recall",
+        "The Fifth Element",
+        "12 Monkeys",
+        "Gattaca",
+        "Minority Report",
+        "District 9",
+        "Arrival",
+        "Ex Machina",
+        "Predator",
+        "The Thing",
+        "Dune"
+      ]
+    },
+    {
+      "id": 74,
+      "name": "FANTASY",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Princess Bride",
+        "Willow",
+        "Labyrinth",
+        "The NeverEnding Story",
+        "Conan the Barbarian",
+        "Excalibur",
+        "Legend",
+        "The Dark Crystal",
+        "Pan's Labyrinth",
+        "Stardust",
+        "Highlander",
+        "Dragonheart",
+        "Ladyhawke",
+        "Time Bandits",
+        "The Chronicles of Narnia: The Lion, the Witch and the Wardrobe",
+        "Big Fish",
+        "The Golden Compass",
+        "Krull",
+        "Hook",
+        "Willow"
+      ]
+    },
+    {
+      "id": 75,
+      "name": "WESTERNS",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Good, the Bad and the Ugly",
+        "Once Upon a Time in the West",
+        "Unforgiven",
+        "Tombstone",
+        "The Magnificent Seven",
+        "Butch Cassidy and the Sundance Kid",
+        "True Grit",
+        "Django Unchained",
+        "3:10 to Yuma",
+        "The Wild Bunch",
+        "High Noon",
+        "The Searchers",
+        "Dances with Wolves",
+        "Open Range",
+        "Silverado",
+        "Young Guns",
+        "The Outlaw Josey Wales",
+        "Pale Rider",
+        "A Fistful of Dollars",
+        "Hostiles"
+      ]
+    },
+    {
+      "id": 60,
+      "name": "ANIME",
+      "mediaType": "tv",
+      "requireGenres": [
+        "Animation"
+      ],
+      "autoSweepCollections": false,
+      "exemplars": [
+        "Cowboy Bebop",
+        "Neon Genesis Evangelion",
+        "Attack on Titan",
+        "Death Note",
+        "Fullmetal Alchemist: Brotherhood",
+        "Steins;Gate",
+        "Vinland Saga",
+        "Demon Slayer: Kimetsu no Yaiba",
+        "Jujutsu Kaisen",
+        "Berserk",
+        "Hunter x Hunter",
+        "Code Geass",
+        "Monster",
+        "Samurai Champloo",
+        "Ghost in the Shell: Stand Alone Complex",
+        "Trigun",
+        "Hellsing",
+        "Black Lagoon",
+        "Psycho-Pass",
+        "One-Punch Man"
+      ],
+      "requireOriginalLanguage": [
+        "ja"
+      ]
+    },
+    {
+      "id": 61,
+      "name": "MUSICALS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Singin' in the Rain",
+        "The Sound of Music",
+        "West Side Story",
+        "Grease",
+        "The Greatest Showman",
+        "La La Land",
+        "Chicago",
+        "Moulin Rouge!",
+        "Mamma Mia!",
+        "Les Misérables",
+        "Hairspray",
+        "Mary Poppins",
+        "Rocketman",
+        "The Rocky Horror Picture Show",
+        "Little Shop of Horrors",
+        "Dreamgirls",
+        "A Star Is Born",
+        "Annie",
+        "Sweeney Todd: The Demon Barber of Fleet Street",
+        "Cabaret"
+      ]
+    },
+    {
+      "id": 11,
+      "name": "RETRO TOONS",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Lion King",
+        "Aladdin",
+        "The Little Mermaid",
+        "Beauty and the Beast",
+        "The Land Before Time",
+        "An American Tail",
+        "All Dogs Go to Heaven",
+        "The Secret of NIMH",
+        "The Great Mouse Detective",
+        "The Rescuers Down Under",
+        "A Goofy Movie",
+        "Pocahontas",
+        "The Hunchback of Notre Dame",
+        "Hercules",
+        "Mulan",
+        "Tarzan",
+        "Toy Story",
+        "A Bug's Life",
+        "The Iron Giant",
+        "Anastasia"
+      ]
+    },
+    {
+      "id": 13,
+      "name": "LAST ACTION HEROES",
+      "mediaType": "movie",
+      "exemplars": [
+        "Die Hard",
+        "Die Hard 2",
+        "Die Hard with a Vengeance",
+        "Lethal Weapon",
+        "Lethal Weapon 2",
+        "Bad Boys",
+        "Point Break",
+        "Speed",
+        "Commando",
+        "Rambo: First Blood Part II",
+        "Hard Boiled",
+        "Face/Off",
+        "Con Air",
+        "The Rock",
+        "True Lies",
+        "Demolition Man",
+        "Tango & Cash",
+        "Cliffhanger",
+        "Under Siege",
+        "The Last Boy Scout"
+      ]
+    },
+    {
+      "id": 60,
+      "name": "ANIME (films)",
+      "mediaType": "movie",
+      "requireGenres": [
+        "Animation"
+      ],
+      "autoSweepCollections": false,
+      "exemplars": [
+        "Spirited Away",
+        "Princess Mononoke",
+        "My Neighbor Totoro",
+        "Akira",
+        "Ghost in the Shell",
+        "Your Name.",
+        "Perfect Blue",
+        "A Silent Voice",
+        "Weathering with You",
+        "Pokémon: The First Movie",
+        "Dragon Ball Z: Broly – The Legendary Super Saiyan",
+        "Demon Slayer: Kimetsu no Yaiba – The Movie: Mugen Train",
+        "Jujutsu Kaisen 0",
+        "One Piece Film: Red",
+        "Howl's Moving Castle",
+        "Ponyo",
+        "Grave of the Fireflies",
+        "The Boy and the Heron",
+        "Ninja Scroll",
+        "Paprika"
+      ],
+      "requireOriginalLanguage": [
+        "ja"
+      ]
+    },
+    {
+      "id": 14,
+      "name": "BUDDIES",
+      "mediaType": "movie",
+      "exemplars": [
+        "Lethal Weapon",
+        "48 Hrs.",
+        "Midnight Run",
+        "Beverly Hills Cop",
+        "Rush Hour",
+        "Bad Boys",
+        "Tango & Cash",
+        "Turner & Hooch",
+        "Men in Black",
+        "Trading Places",
+        "Twins",
+        "Planes, Trains and Automobiles",
+        "The Blues Brothers",
+        "Wayne's World",
+        "Dumb and Dumber",
+        "Shanghai Noon",
+        "Rush Hour 2",
+        "Bad Boys II",
+        "Starsky & Hutch",
+        "Stakeout"
+      ],
+      "requireGenres": [
+        "Action",
+        "Comedy"
+      ]
+    },
+    {
+      "id": 200,
+      "name": "DRAMA TV",
+      "mediaType": "tv",
+      "exemplars": [
+        "The Sopranos",
+        "The Wire",
+        "Breaking Bad",
+        "Mad Men",
+        "The West Wing",
+        "Six Feet Under",
+        "Deadwood",
+        "ER",
+        "NYPD Blue",
+        "Homicide: Life on the Street",
+        "The Shield",
+        "Friday Night Lights",
+        "Boardwalk Empire",
+        "Rome",
+        "The Americans",
+        "Better Call Saul",
+        "Succession",
+        "Mr. Robot",
+        "Halt and Catch Fire",
+        "Oz"
+      ],
+      "requireGenres": [
+        "Drama"
+      ]
+    },
+    {
+      "id": 64,
+      "name": "DATE NIGHT",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Notebook",
+        "Titanic",
+        "Casablanca",
+        "Before Sunrise",
+        "Pride & Prejudice",
+        "Notting Hill",
+        "Ghost",
+        "Dirty Dancing",
+        "The Bridges of Madison County",
+        "Brokeback Mountain",
+        "Atonement",
+        "La La Land",
+        "Eternal Sunshine of the Spotless Mind",
+        "Sleepless in Seattle",
+        "When Harry Met Sally...",
+        "Love Actually",
+        "Moulin Rouge!",
+        "Call Me by Your Name",
+        "The Fault in Our Stars",
+        "A Star Is Born"
+      ],
+      "requireGenres": [
+        "Romance"
+      ]
+    },
+    {
+      "id": 201,
+      "name": "BIOPICS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Ray",
+        "Walk the Line",
+        "The Social Network",
+        "Bohemian Rhapsody",
+        "Lincoln",
+        "Gandhi",
+        "Raging Bull",
+        "The Theory of Everything",
+        "A Beautiful Mind",
+        "Erin Brockovich",
+        "Catch Me If You Can",
+        "Malcolm X",
+        "The Imitation Game",
+        "Rocketman",
+        "Ford v Ferrari",
+        "Steve Jobs",
+        "Milk",
+        "Coal Miner's Daughter",
+        "The Aviator",
+        "Judas and the Black Messiah"
+      ],
+      "requireGenres": [
+        "Drama",
+        "History",
+        "Music"
+      ]
+    },
+    {
+      "id": 72,
+      "name": "RUSH",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Bourne Identity",
+        "John Wick",
+        "Mad Max: Fury Road",
+        "Casino Royale",
+        "The Raid",
+        "Taken",
+        "Mission: Impossible - Fallout",
+        "Baby Driver",
+        "Drive",
+        "Kill Bill: Vol. 1",
+        "Crank",
+        "The Dark Knight",
+        "Sicario",
+        "Atomic Blonde",
+        "Extraction",
+        "Nobody",
+        "The Equalizer",
+        "Edge of Tomorrow",
+        "Salt",
+        "District 13"
+      ],
+      "requireGenres": [
+        "Action",
+        "Thriller"
+      ]
+    },
+    {
+      "id": 76,
+      "name": "FRONT LINE",
+      "mediaType": "movie",
+      "exemplars": [
+        "Saving Private Ryan",
+        "Apocalypse Now",
+        "Platoon",
+        "Full Metal Jacket",
+        "Dunkirk",
+        "1917",
+        "Black Hawk Down",
+        "The Thin Red Line",
+        "Das Boot",
+        "Letters from Iwo Jima",
+        "Hacksaw Ridge",
+        "Fury",
+        "We Were Soldiers",
+        "A Bridge Too Far",
+        "Tora! Tora! Tora!",
+        "Gettysburg",
+        "All Quiet on the Western Front",
+        "The Bridge on the River Kwai",
+        "Glory",
+        "Come and See"
+      ],
+      "requireGenres": [
+        "War"
+      ]
+    },
+    {
+      "id": 212,
+      "name": "FOREIGN FILMS",
+      "mediaType": "movie",
+      "exemplars": [
+        "Parasite",
+        "Amélie",
+        "Crouching Tiger, Hidden Dragon",
+        "Pan's Labyrinth",
+        "City of God",
+        "Cinema Paradiso",
+        "Seven Samurai",
+        "Rashomon",
+        "La Dolce Vita",
+        "The Lives of Others",
+        "Oldboy",
+        "Y Tu Mamá También",
+        "Roma",
+        "Run Lola Run",
+        "Let the Right One In",
+        "A Separation",
+        "The Handmaiden",
+        "Bicycle Thieves",
+        "Talk to Her",
+        "Life Is Beautiful"
+      ],
+      "requireOriginalLanguage": [
+        "ja",
+        "ko",
+        "zh",
+        "cn",
+        "es",
+        "fr",
+        "it",
+        "de",
+        "pt",
+        "ru",
+        "hi",
+        "sv",
+        "da",
+        "no",
+        "fi",
+        "nl",
+        "pl",
+        "cs",
+        "hu",
+        "ro",
+        "el",
+        "tr",
+        "fa",
+        "ar",
+        "he",
+        "th",
+        "vi",
+        "id",
+        "ta",
+        "te",
+        "ml",
+        "kn",
+        "bn",
+        "mr",
+        "uk",
+        "sr",
+        "hr",
+        "bs",
+        "sl",
+        "bg",
+        "sk",
+        "et",
+        "lv",
+        "lt",
+        "is",
+        "ca",
+        "eu",
+        "gl",
+        "af",
+        "sw",
+        "am",
+        "ne",
+        "si",
+        "km",
+        "mn",
+        "ka",
+        "hy",
+        "az",
+        "kk",
+        "uz",
+        "ur",
+        "pa",
+        "my",
+        "lo",
+        "tl"
+      ]
+    },
+    {
+      "id": 213,
+      "name": "MIDNIGHT",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Rocky Horror Picture Show",
+        "Eraserhead",
+        "El Topo",
+        "Pink Flamingos",
+        "Death Proof",
+        "Planet Terror",
+        "The Toxic Avenger",
+        "Street Trash",
+        "Basket Case",
+        "Repo Man",
+        "Liquid Sky",
+        "The Warriors",
+        "Escape from New York",
+        "Big Trouble in Little China",
+        "House",
+        "Tetsuo: The Iron Man",
+        "Female Trouble",
+        "Class of Nuke 'Em High",
+        "Ichi the Killer",
+        "Bad Taste"
+      ],
+      "requireGenres": [
+        "Horror",
+        "Fantasy",
+        "Science Fiction",
+        "Comedy"
+      ]
+    },
+    {
+      "id": 214,
+      "name": "CULT CLASSICS",
+      "mediaType": "movie",
+      "exemplars": [
+        "The Big Lebowski",
+        "Fight Club",
+        "Donnie Darko",
+        "Office Space",
+        "The Princess Bride",
+        "Blade Runner",
+        "This Is Spinal Tap",
+        "Clerks",
+        "Repo Man",
+        "Harold and Maude",
+        "A Clockwork Orange",
+        "Napoleon Dynamite",
+        "Dazed and Confused",
+        "Withnail & I",
+        "Brazil",
+        "Heathers",
+        "They Live",
+        "Big Trouble in Little China",
+        "Army of Darkness",
+        "The Warriors"
+      ],
+      "requireGenres": [
+        "Comedy",
+        "Science Fiction",
+        "Fantasy",
+        "Horror",
+        "Crime"
+      ]
+    }
+  ],
+  "handCurated": [
+    {
+      "channelID": 211,
+      "label": "criterion",
+      "mediaType": "movie",
+      "note": "Explicit editorial picks for CRITERION. Applied on every run, including a bare one, so this channel can no longer be silently wiped or drift. tmdbID is authoritative: the runtime matches on id, not name (38 of these ids were wrong before 2026-09-05 and CRITERION was serving 2 Fast 2 Furious, Super Mario Bros. and Bambi). Verify any new id against TMDB before adding.",
+      "titles": [
+        {
+          "title": "Rashomon",
+          "year": 1950,
+          "tmdbID": 548
+        },
+        {
+          "title": "Ikiru",
+          "year": 1952,
+          "tmdbID": 3782
+        },
+        {
+          "title": "Tokyo Story",
+          "year": 1953,
+          "tmdbID": 18148
+        },
+        {
+          "title": "Yojimbo",
+          "year": 1961,
+          "tmdbID": 11878
+        },
+        {
+          "title": "Breathless",
+          "year": 1960,
+          "tmdbID": 269
+        },
+        {
+          "title": "The 400 Blows",
+          "year": 1959,
+          "tmdbID": 147
+        },
+        {
+          "title": "Shoot the Piano Player",
+          "year": 1960,
+          "tmdbID": 1818
+        },
+        {
+          "title": "Contempt",
+          "year": 1963,
+          "tmdbID": 266
+        },
+        {
+          "title": "Alphaville",
+          "year": 1965,
+          "tmdbID": 8072
+        },
+        {
+          "title": "Le Samouraï",
+          "year": 1967,
+          "tmdbID": 5511
+        },
+        {
+          "title": "Army of Shadows",
+          "year": 1969,
+          "tmdbID": 15383
+        },
+        {
+          "title": "Z",
+          "year": 1969,
+          "tmdbID": 2721
+        },
+        {
+          "title": "La Dolce Vita",
+          "year": 1960,
+          "tmdbID": 439
+        },
+        {
+          "title": "8½",
+          "year": 1963,
+          "tmdbID": 422
+        },
+        {
+          "title": "La Strada",
+          "year": 1954,
+          "tmdbID": 405
+        },
+        {
+          "title": "Bicycle Thieves",
+          "year": 1948,
+          "tmdbID": 5156
+        },
+        {
+          "title": "Amarcord",
+          "year": 1973,
+          "tmdbID": 7857
+        },
+        {
+          "title": "L'avventura",
+          "year": 1960,
+          "tmdbID": 5165
+        },
+        {
+          "title": "Blow-Up",
+          "year": 1966,
+          "tmdbID": 1052
+        },
+        {
+          "title": "The Passenger",
+          "year": 1975,
+          "tmdbID": 9652
+        },
+        {
+          "title": "The Seventh Seal",
+          "year": 1957,
+          "tmdbID": 490
+        },
+        {
+          "title": "Wild Strawberries",
+          "year": 1957,
+          "tmdbID": 614
+        },
+        {
+          "title": "Persona",
+          "year": 1966,
+          "tmdbID": 797
+        },
+        {
+          "title": "Cries and Whispers",
+          "year": 1972,
+          "tmdbID": 10238
+        },
+        {
+          "title": "Fanny and Alexander",
+          "year": 1982,
+          "tmdbID": 5961
+        },
+        {
+          "title": "Grand Illusion",
+          "year": 1937,
+          "tmdbID": 777
+        },
+        {
+          "title": "Eyes Without a Face",
+          "year": 1960,
+          "tmdbID": 31417
+        },
+        {
+          "title": "Au Hasard Balthazar",
+          "year": 1966,
+          "tmdbID": 20108
+        },
+        {
+          "title": "Pickpocket",
+          "year": 1959,
+          "tmdbID": 690
+        },
+        {
+          "title": "Andrei Rublev",
+          "year": 1966,
+          "tmdbID": 895
+        },
+        {
+          "title": "Stalker",
+          "year": 1979,
+          "tmdbID": 1398
+        },
+        {
+          "title": "Solaris",
+          "year": 1972,
+          "tmdbID": 593
+        },
+        {
+          "title": "Chungking Express",
+          "year": 1994,
+          "tmdbID": 11104
+        },
+        {
+          "title": "Yi Yi",
+          "year": 2000,
+          "tmdbID": 25538
+        },
+        {
+          "title": "Three Colors: Blue",
+          "year": 1993,
+          "tmdbID": 108
+        },
+        {
+          "title": "Three Colors: White",
+          "year": 1994,
+          "tmdbID": 109
+        },
+        {
+          "title": "Three Colors: Red",
+          "year": 1994,
+          "tmdbID": 110
+        },
+        {
+          "title": "The Double Life of Véronique",
+          "year": 1991,
+          "tmdbID": 1600
+        },
+        {
+          "title": "Knife in the Water",
+          "year": 1962,
+          "tmdbID": 11502
+        },
+        {
+          "title": "Eraserhead",
+          "year": 1977,
+          "tmdbID": 985
+        },
+        {
+          "title": "Mulholland Drive",
+          "year": 2001,
+          "tmdbID": 1018
+        },
+        {
+          "title": "Brazil",
+          "year": 1985,
+          "tmdbID": 68
+        },
+        {
+          "title": "Rosemary's Baby",
+          "year": 1968,
+          "tmdbID": 805
+        },
+        {
+          "title": "Miller's Crossing",
+          "year": 1990,
+          "tmdbID": 379
+        },
+        {
+          "title": "Barton Fink",
+          "year": 1991,
+          "tmdbID": 290
+        },
+        {
+          "title": "McCabe & Mrs. Miller",
+          "year": 1971,
+          "tmdbID": 29005
+        },
+        {
+          "title": "The Player",
+          "year": 1992,
+          "tmdbID": 10403
+        },
+        {
+          "title": "Do the Right Thing",
+          "year": 1989,
+          "tmdbID": 925
+        },
+        {
+          "title": "If....",
+          "year": 1968,
+          "tmdbID": 14794
+        },
+        {
+          "title": "Kes",
+          "year": 1969,
+          "tmdbID": 13384
+        },
+        {
+          "title": "Don't Look Now",
+          "year": 1973,
+          "tmdbID": 931
+        },
+        {
+          "title": "The Man Who Fell to Earth",
+          "year": 1976,
+          "tmdbID": 991
+        },
+        {
+          "title": "M",
+          "year": 1931,
+          "tmdbID": 832
+        }
+      ]
+    }
+  ]
+}

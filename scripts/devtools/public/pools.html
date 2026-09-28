@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Channel pools — Nostalgex devtools</title>
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+  .sidebar { background: var(--surface); border: 1px solid var(--border); padding: 18px; }
+  .sidebar h3 { font-size: 11px; color: var(--text-faint); letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
+  .sidebar .rule { font-size: 13px; color: var(--text-dim); padding: 4px 0; border-bottom: 1px dashed var(--border); }
+  .sidebar .rule:last-child { border-bottom: none; }
+  .sidebar .rule .k { color: var(--text-faint); }
+  .sidebar .rule .v { color: var(--text); }
+  .sidebar + .sidebar { margin-top: 24px; }
+  .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); padding: 16px; }
+  .stat .label { color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat .value { color: var(--cyan); font-size: 22px; }
+  .stat .sub { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+  .chip { background: var(--surface); border: 1px solid var(--border); padding: 4px 10px; font-size: 12px; color: var(--text-dim); }
+  .chip .n { color: var(--cyan); margin-left: 6px; }
+  .channel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .channel-head .name { font-size: 22px; color: var(--cyan); letter-spacing: 1.5px; }
+  .channel-head .num { color: var(--text-faint); font-size: 14px; margin-right: 12px; }
+  tr.row-suspect td { background: rgba(255, 68, 68, 0.08); }
+  tr.row-suspect td:first-child { color: var(--red); }
+  .badge { font-size: 10px; letter-spacing: 1px; padding: 2px 6px; border: 1px solid var(--border); color: var(--text-faint); }
+  .badge.manifest { border-color: rgba(155, 89, 182, 0.5); color: #c39bd3; }
+  .badge.rules { border-color: rgba(0, 196, 255, 0.35); color: var(--cyan); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">NOSTALGEX · DEVTOOLS</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/schedule.html">Schedule</a>
+      <a href="/pools.html" class="active">Pools</a>
+      <a href="/memberships.html">Memberships</a>
+      <a href="/audit.html">Audit</a>
+      <a href="/coverage.html">Coverage</a>
+    </nav>
+  </header>
+
+  <div id="snapshot-bar"></div>
+
+  <div class="page-head">
+    <h1>CHANNEL POOLS</h1>
+    <p>Inspect which titles each channel is allowed to play, plus the rules that produced the pool. Use this to debug rule mistakes — e.g. "why isn't The Goonies on 80s Movies?"</p>
+  </div>
+
+  <div id="warn" class="warn-banner" style="display:none"></div>
+
+  <div class="controls">
+    <select id="channel" class="select" style="min-width: 340px"><option value="">Loading channels…</option></select>
+    <input id="q" class="search" placeholder="FILTER POOL BY TITLE…">
+  </div>
+
+  <div id="content"></div>
+</div>
+
+<script src="/snapshot-bar.js"></script>
+<script>
+const chSel = document.getElementById("channel");
+const qInput = document.getElementById("q");
+const contentEl = document.getElementById("content");
+const warnEl = document.getElementById("warn");
+
+let lastPool = null;
+let allChannels = [];
+
+const RULE_LABELS = {
+  type: "Type",
+  yearRange: "Year",
+  contentRating: "Allowed ratings",
+  contentRatingMax: "Max rating",
+  durationRange: "Runtime (min)",
+  genres: "Required genres",
+  excludeGenres: "Excluded genres",
+  watchedOnly: "Watched only",
+  unwatchedOnly: "Unwatched only",
+  rewatched: "Rewatched 4+",
+  titleContains: "Title contains",
+  titleExcludes: "Title excludes",
+  editorialOverrides: "Editorial overrides",
+  addedWithinDays: "Added within (days)",
+  keywords: "Keywords (TMDB)",
+  excludeKeywords: "Excluded keywords (TMDB)",
+  networks: "Networks (TMDB)",
+  excludeNetworks: "Excluded networks (TMDB)",
+  prodCos: "Production companies (TMDB)",
+  excludeProdCos: "Excluded production companies (TMDB)",
+  ratingMin: "Min rating (OMDb)",
+  collections: "Plex collections",
+};
+
+const UNSUPPORTED = new Set(["keywords", "excludeKeywords", "networks", "excludeNetworks", "keywordsRequireAnyGenre", "keywordsExclude", "ratingMin"]);
+const PARTIAL = new Set(["productionCompanies", "studios"]);
+
+function formatRuleValue(key, val) {
+  if (val == null) return "—";
+  if (typeof val === "boolean") return val ? "yes" : "no";
+  if (Array.isArray(val)) return val.length ? val.slice(0, 8).join(", ") + (val.length > 8 ? `… (+${val.length - 8})` : "") : "—";
+  if (typeof val === "object") {
+    if ("min" in val || "max" in val) return `${val.min ?? "?"}–${val.max ?? "?"}`;
+    if ("minMinutes" in val || "maxMinutes" in val) return `${val.minMinutes ?? "?"}–${val.maxMinutes ?? "?"}`;
+    return JSON.stringify(val);
+  }
+  return String(val);
+}
+
+async function loadChannels() {
+  const r = await fetch("/api/channels");
+  const data = await r.json();
+  if (data.error) { warn(data.error); return; }
+  allChannels = data.channels;
+  chSel.innerHTML = data.channels
+    .map(c => `<option value="${c.id}">CH ${c.number} · ${escapeHtml(c.name)}${c.unsupportedRules.length ? " ⚠" : ""}</option>`)
+    .join("");
+  if (data.channels.length) {
+    chSel.value = data.channels[0].id;
+    loadPool();
+  }
+}
+
+async function loadPool() {
+  const id = chSel.value;
+  if (!id) return;
+  contentEl.innerHTML = `<div class="loading">Computing pool<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+  const r = await fetch(`/api/channel/${id}/pool`);
+  const data = await r.json();
+  if (data.error) { warn(data.error); return; }
+  lastPool = data;
+  render();
+}
+
+function render() {
+  if (!lastPool) return;
+  const d = lastPool;
+  const q = qInput.value.trim().toLowerCase();
+  const items = q ? d.items.filter(it => it.title.toLowerCase().includes(q)) : d.items;
+
+  // Rules sidebar
+  const ruleEntries = Object.entries(d.rules || {})
+    .filter(([k, v]) => v != null && !(Array.isArray(v) && v.length === 0))
+    .map(([k, v]) => {
+      const isUnsup = UNSUPPORTED.has(k);
+      const isPartial = PARTIAL.has(k);
+      const flag = isUnsup ? " <span style='color:var(--yellow)' title='Not evaluated — requires TMDB/OMDb'>⚠</span>"
+        : isPartial ? " <span style='color:var(--cyan)' title='Partial match via Plex studio field only'>~</span>"
+        : "";
+      return `<div class="rule">
+        <div class="k">${escapeHtml(RULE_LABELS[k] || k)}${flag}</div>
+        <div class="v">${escapeHtml(formatRuleValue(k, v))}</div>
+      </div>`;
+    }).join("") || `<div class="rule"><div class="v" style="color:var(--text-faint)">No rules configured.</div></div>`;
+
+  const decadeChips = Object.entries(d.stats.decades).sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([decade, n]) => `<span class="chip">${decade}<span class="n">${n}</span></span>`).join("");
+  const typeChips = Object.entries(d.stats.types)
+    .map(([t, n]) => `<span class="chip">${t}<span class="n">${n}</span></span>`).join("");
+  const genreChips = (d.stats.topGenres || [])
+    .map(([g, n]) => `<span class="chip">${escapeHtml(g)}<span class="n">${n}</span></span>`).join("");
+  const ratingChips = Object.entries(d.stats.ratings || {})
+    .map(([r, n]) => `<span class="chip">${escapeHtml(r)}<span class="n">${n}</span></span>`).join("");
+
+  const unsupBanner = d.unsupportedRules.length
+    ? `<div class="warn-banner">⚠ This channel uses ${d.unsupportedRules.length} rule${d.unsupportedRules.length === 1 ? "" : "s"} this tool can't evaluate without TMDB/OMDb enrichment: <strong>${d.unsupportedRules.join(", ")}</strong>. The real app pool may be larger because these rules add more matches.</div>`
+    : "";
+  const partialBanner = (d.partialRules || []).length
+    ? `<div class="warn-banner" style="color:var(--cyan);border-color:rgba(0,196,255,0.35);background:rgba(0,196,255,0.06)">~ Partially evaluated rules: <strong>${d.partialRules.join(", ")}</strong>. The dev tool matches these against Plex's <span class="code">studio</span> field only; the real app also checks TMDB production companies / networks, so its pool may be larger here too.</div>`
+    : "";
+
+  const suspectBanner = (d.stats.suspectShowCount || 0) > 0
+    ? `<div class="warn-banner">⚠ <strong>${d.stats.suspectShowCount}</strong> show${d.stats.suspectShowCount === 1 ? "" : "s"} in this pool lack an Animation/Animated/Cartoon genre in Plex (${d.stats.suspectEpisodeCount.toLocaleString()} episodes). They should not appear on animation-curated channels — check title rules or stale TMDB manifest claims.</div>`
+    : "";
+
+  const suspectShowRows = (d.suspectShows || []).map(s => `
+    <tr class="row-suspect">
+      <td>${escapeHtml(s.title)}</td>
+      <td class="year">${s.year || ""}</td>
+      <td class="year">${s.episodeCount}</td>
+      <td style="color:var(--red)">no animation genre in Plex</td>
+    </tr>`).join("");
+
+  const itemRows = items.slice(0, 1500).map(it => `
+    <tr class="${it.suspectNonAnimation ? "row-suspect" : ""}">
+      <td>${escapeHtml(it.title)}${it.suspectNonAnimation ? " ⚠" : ""}</td>
+      <td class="year">${it.year || ""}</td>
+      <td>${escapeHtml(it.type)}</td>
+      <td class="year"><span class="badge ${it.poolVia || "rules"}">${escapeHtml(it.poolVia || "rules")}</span></td>
+      <td class="year">${it.duration ? it.duration + "m" : ""}</td>
+      <td class="year">${it.viewCount > 0 ? it.viewCount + "×" : ""}</td>
+      <td>${escapeHtml(it.contentRating || "")}</td>
+      <td style="color:var(--text-dim);font-size:12px">${escapeHtml((it.genres || []).slice(0, 4).join(", "))}</td>
+    </tr>`).join("");
+
+  contentEl.innerHTML = `
+    <div class="channel-head">
+      <div><span class="num">CH ${d.channel.number}</span><span class="name">${escapeHtml(d.channel.name)}</span></div>
+      <div class="meta-row" style="margin:0"><span class="count">${items.length.toLocaleString()}${q ? " of " + d.stats.poolSize.toLocaleString() : ""} items in pool</span></div>
+    </div>
+
+    ${unsupBanner}
+    ${partialBanner}
+    ${suspectBanner}
+
+    <div class="stats">
+      <div class="stat"><div class="label">Pool size</div><div class="value">${d.stats.poolSize.toLocaleString()}</div><div class="sub">${(d.stats.showCount || 0).toLocaleString()} shows · ${d.stats.librarySize.toLocaleString()} in library</div></div>
+      <div class="stat"><div class="label">Loop length</div><div class="value">${d.stats.loopHours.toFixed(1)} h</div><div class="sub">${Math.round(d.stats.loopHours / 24 * 10) / 10} days at 24/7</div></div>
+      <div class="stat"><div class="label">Watched</div><div class="value">${d.stats.viewedCount.toLocaleString()}</div><div class="sub">${d.stats.poolSize ? Math.round(d.stats.viewedCount / d.stats.poolSize * 100) : 0}% of pool</div></div>
+      <div class="stat"><div class="label">Via manifest</div><div class="value">${(d.stats.via?.manifest || 0).toLocaleString()}</div><div class="sub">${(d.stats.via?.rules || 0).toLocaleString()} via rules</div></div>
+      <div class="stat"><div class="label">Non-animation</div><div class="value" style="color:${d.stats.suspectShowCount ? 'var(--red)' : 'var(--cyan)'}">${d.stats.suspectShowCount || 0}</div><div class="sub">shows missing Animation genre</div></div>
+    </div>
+
+    <div class="layout">
+      <div>
+        <div class="sidebar">
+          <h3>Rules</h3>
+          ${ruleEntries}
+        </div>
+        <div class="sidebar" style="margin-top:16px">
+          <h3>Decades</h3>
+          <div class="chips" style="margin:0">${decadeChips || '<span style="color:var(--text-faint);font-size:12px">none</span>'}</div>
+        </div>
+        <div class="sidebar" style="margin-top:16px">
+          <h3>Types</h3>
+          <div class="chips" style="margin:0">${typeChips || '<span style="color:var(--text-faint);font-size:12px">none</span>'}</div>
+        </div>
+        <div class="sidebar" style="margin-top:16px">
+          <h3>Top genres</h3>
+          <div class="chips" style="margin:0">${genreChips || '<span style="color:var(--text-faint);font-size:12px">none</span>'}</div>
+        </div>
+        ${ratingChips ? `<div class="sidebar" style="margin-top:16px"><h3>Content ratings</h3><div class="chips" style="margin:0">${ratingChips}</div></div>` : ""}
+      </div>
+
+      <div class="scroll-wrap" style="max-height:calc(100vh - 280px)">
+        ${(d.suspectShows || []).length ? `
+          <h3 style="font-size:11px;color:var(--red);letter-spacing:2px;margin:0 0 10px">SUSPECT SHOWS (NOT ANIMATION IN PLEX)</h3>
+          <table class="table" style="margin-bottom:24px">
+            <thead><tr><th>Show</th><th class="year">Year</th><th class="year">Eps</th><th>Note</th></tr></thead>
+            <tbody>${suspectShowRows}</tbody>
+          </table>
+        ` : ""}
+        ${items.length ? `
+          <table class="table">
+            <thead><tr>
+              <th>Title</th><th class="year">Year</th><th>Type</th><th class="year">Via</th><th class="year">Runtime</th><th class="year">Views</th><th>Rating</th><th>Genres</th>
+            </tr></thead>
+            <tbody>${itemRows}${items.length > 1500 ? `<tr><td colspan="8" style="color:var(--text-faint);text-align:center;padding:14px">…showing first 1,500 of ${items.length.toLocaleString()}. Filter to narrow.</td></tr>` : ""}</tbody>
+          </table>
+        ` : `<div class="empty">No items in this pool${q ? " match the filter" : ""}.</div>`}
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]); }
+function warn(msg) {
+  warnEl.style.display = "block";
+  warnEl.style.color = "var(--red)";
+  warnEl.style.borderColor = "var(--red)";
+  warnEl.textContent = msg;
+}
+
+chSel.addEventListener("change", loadPool);
+let qd;
+qInput.addEventListener("input", () => { clearTimeout(qd); qd = setTimeout(render, 200); });
+
+loadChannels();
+</script>
+</body>
+</html>

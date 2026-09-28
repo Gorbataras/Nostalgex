@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Channel memberships — Nostalgex devtools</title>
+<link rel="stylesheet" href="/styles.css">
+<style>
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+  .sidebar { background: var(--surface); border: 1px solid var(--border); padding: 18px; }
+  .sidebar h3 { font-size: 11px; color: var(--text-faint); letter-spacing: 2px; margin-bottom: 10px; text-transform: uppercase; }
+  .ch-list { display: flex; flex-direction: column; gap: 2px; max-height: calc(100vh - 280px); overflow-y: auto; }
+  .ch-row { display: flex; justify-content: space-between; padding: 8px 10px; cursor: pointer; border: 1px solid transparent; font-size: 13px; }
+  .ch-row:hover { background: var(--surface-2, rgba(255,255,255,0.04)); border-color: var(--border); }
+  .ch-row.active { background: rgba(0,196,255,0.08); border-color: var(--cyan); color: var(--cyan); }
+  .ch-row .num { color: var(--text-faint); margin-right: 8px; }
+  .ch-row .count { color: var(--text-dim); font-size: 11px; }
+  .ch-row.active .count { color: var(--cyan); }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--surface); border: 1px solid var(--border); padding: 16px; }
+  .stat .label { color: var(--text-faint); font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  .stat .value { color: var(--cyan); font-size: 22px; }
+  .stat .sub { color: var(--text-dim); font-size: 12px; margin-top: 4px; }
+  .kind-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border: 1px solid; letter-spacing: 1px; text-transform: uppercase; }
+  .kind-exemplar { color: var(--cyan); border-color: var(--cyan); }
+  .kind-recommendation { color: var(--green, #6bd968); border-color: var(--green, #6bd968); }
+  .kind-similar { color: var(--yellow); border-color: var(--yellow); }
+  .channel-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+  .channel-head .name { font-size: 22px; color: var(--cyan); letter-spacing: 1.5px; }
+  .channel-head .num { color: var(--text-faint); font-size: 14px; margin-right: 12px; }
+  .lookup-result { background: var(--surface); border: 1px solid var(--border); padding: 18px; margin-bottom: 18px; }
+  .lookup-result .hit { padding: 8px 0; border-bottom: 1px dashed var(--border); display: flex; gap: 12px; align-items: baseline; }
+  .lookup-result .hit:last-child { border-bottom: none; }
+  .lookup-result .hit .overview { color: var(--text-dim); font-size: 12px; flex: 1; }
+  .lookup-result .hit .meta { color: var(--text-faint); font-size: 11px; }
+  .tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 10px 18px; cursor: pointer; color: var(--text-dim); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; border-bottom: 2px solid transparent; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+  .connection-row { padding: 6px 12px; background: var(--surface); border: 1px solid var(--border); margin-bottom: 6px; font-size: 12px; }
+  .connection-row .ch { color: var(--cyan); margin-right: 12px; }
+  .connection-row .exemplars { color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="topbar">
+    <div class="brand">NOSTALGEX · DEVTOOLS</div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/schedule.html">Schedule</a>
+      <a href="/pools.html">Pools</a>
+      <a href="/memberships.html" class="active">Memberships</a>
+      <a href="/audit.html">Audit</a>
+      <a href="/coverage.html">Coverage</a>
+    </nav>
+  </header>
+
+  <div id="snapshot-bar"></div>
+
+  <div class="page-head">
+    <h1>CHANNEL MEMBERSHIPS</h1>
+    <p>Inspect the TMDB membership manifest — which shows are claimed for which channels, by exemplar match or by TMDB's recommendation/similar graph. On title-curated channels (e.g. ADULT CARTOONS), manifest claims still require a <span class="code">titleContains</span> match — same as the tvOS app.</p>
+  </div>
+
+  <div id="warn" class="warn-banner" style="display:none"></div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="channels">By channel</div>
+    <div class="tab" data-tab="lookup">Look up a show</div>
+    <div class="tab" data-tab="conflicts">Conflicts</div>
+  </div>
+
+  <div id="tab-channels">
+    <div class="controls">
+      <input id="qChannel" class="search" placeholder="FILTER CLAIMED ITEMS BY TITLE…">
+    </div>
+    <div class="layout">
+      <div class="sidebar">
+        <h3>Channels</h3>
+        <div id="channelList" class="ch-list"><div class="loading">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div></div>
+      </div>
+      <div id="channelContent"></div>
+    </div>
+  </div>
+
+  <div id="tab-lookup" style="display:none">
+    <div class="controls">
+      <input id="lookupQ" class="search" placeholder="SHOW OR MOVIE TITLE…" style="min-width:340px">
+      <select id="lookupType" class="select">
+        <option value="tv">TV</option>
+        <option value="movie">Movie</option>
+      </select>
+      <button id="lookupBtn" class="btn">LOOK UP</button>
+    </div>
+    <div id="lookupContent"></div>
+  </div>
+
+  <div id="tab-conflicts" style="display:none">
+    <div id="conflictsContent"><div class="loading">Loading<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div></div>
+  </div>
+</div>
+
+<script src="/snapshot-bar.js"></script>
+<script>
+const qChannel = document.getElementById("qChannel");
+const channelListEl = document.getElementById("channelList");
+const channelContentEl = document.getElementById("channelContent");
+const warnEl = document.getElementById("warn");
+
+let summary = null;
+let activeChannelID = null;
+let claimsCache = new Map();
+
+// ---- tabs --------------------------------------------------------------
+document.querySelectorAll(".tab").forEach((t) => {
+  t.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+    t.classList.add("active");
+    ["channels", "lookup", "conflicts"].forEach((id) => {
+      document.getElementById("tab-" + id).style.display = id === t.dataset.tab ? "" : "none";
+    });
+    if (t.dataset.tab === "conflicts") loadConflicts();
+  });
+});
+
+// ---- channels list -----------------------------------------------------
+async function loadSummary() {
+  const r = await fetch("/api/memberships/summary");
+  const data = await r.json();
+  if (data.error) { warn(data.error); return; }
+  summary = data;
+  renderChannelList();
+  if (data.channels.length) loadChannel(data.channels[0].id);
+}
+
+function renderChannelList() {
+  channelListEl.innerHTML = summary.channels.map((c) => `
+    <div class="ch-row${c.id === activeChannelID ? " active" : ""}" data-id="${c.id}">
+      <div><span class="num">CH ${c.number}</span>${escapeHtml(c.name)}</div>
+      <div class="count">${c.claimed}</div>
+    </div>
+  `).join("");
+  channelListEl.querySelectorAll(".ch-row").forEach((row) => {
+    row.addEventListener("click", () => loadChannel(Number(row.dataset.id)));
+  });
+}
+
+async function loadChannel(id) {
+  activeChannelID = id;
+  renderChannelList();
+  channelContentEl.innerHTML = `<div class="loading">Loading claims<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+  let data = claimsCache.get(id);
+  if (!data) {
+    const r = await fetch(`/api/memberships/channel/${id}`);
+    data = await r.json();
+    claimsCache.set(id, data);
+  }
+  renderChannel(data);
+}
+
+function renderChannel(data) {
+  const meta = summary.channels.find((c) => c.id === data.channelID);
+  const q = qChannel.value.trim().toLowerCase();
+  const items = q ? data.items.filter((it) => it.name.toLowerCase().includes(q)) : data.items;
+
+  const breakdown = meta?.breakdown || { exemplar: 0, recommendation: 0, similar: 0 };
+
+  const rows = items.map((it) => `
+    <tr>
+      <td>${escapeHtml(it.name)}</td>
+      <td><span class="kind-pill kind-${it.kind}">${it.kind}</span></td>
+      <td style="color:var(--text-dim);font-size:12px">${escapeHtml(it.source)}</td>
+      <td class="year">${it.mediaType}</td>
+      <td class="year"><a href="https://www.themoviedb.org/${it.mediaType}/${it.tmdbID}" target="_blank" style="color:var(--text-faint)">${it.tmdbID}</a></td>
+      <td style="color:var(--text-faint);font-size:11px">${it.otherChannels.length ? "also: " + it.otherChannels.join(",") : ""}</td>
+    </tr>
+  `).join("");
+
+  channelContentEl.innerHTML = `
+    <div class="channel-head">
+      <div><span class="num">CH ${meta?.number ?? data.channelID}</span><span class="name">${escapeHtml(meta?.name ?? "")}</span></div>
+      <div class="meta-row" style="margin:0"><span class="count">${items.length.toLocaleString()}${q ? " of " + data.count : ""} claimed</span></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Total claimed</div><div class="value">${data.count}</div></div>
+      <div class="stat"><div class="label">Exemplars</div><div class="value">${breakdown.exemplar}</div><div class="sub">curated</div></div>
+      <div class="stat"><div class="label">Recommendations</div><div class="value" style="color:var(--green,#6bd968)">${breakdown.recommendation}</div><div class="sub">TMDB rec graph</div></div>
+      <div class="stat"><div class="label">Similar</div><div class="value" style="color:var(--yellow)">${breakdown.similar}</div><div class="sub">TMDB similar</div></div>
+    </div>
+
+    ${items.length ? `
+      <div class="scroll-wrap" style="max-height:calc(100vh - 380px)">
+        <table class="table">
+          <thead><tr><th>Title</th><th>Kind</th><th>Source</th><th class="year">Type</th><th class="year">TMDB</th><th>Other channels</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    ` : `<div class="empty">No claims for this channel.${q ? " (filter active)" : ""}</div>`}
+  `;
+}
+
+qChannel.addEventListener("input", () => {
+  if (!activeChannelID) return;
+  const data = claimsCache.get(activeChannelID);
+  if (data) renderChannel(data);
+});
+
+// ---- lookup ------------------------------------------------------------
+const lookupQ = document.getElementById("lookupQ");
+const lookupType = document.getElementById("lookupType");
+const lookupBtn = document.getElementById("lookupBtn");
+const lookupContent = document.getElementById("lookupContent");
+
+async function runLookup() {
+  const q = lookupQ.value.trim();
+  if (!q) return;
+  lookupContent.innerHTML = `<div class="loading">Searching TMDB<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+  const r = await fetch(`/api/memberships/lookup?q=${encodeURIComponent(q)}&mediaType=${lookupType.value}`);
+  const data = await r.json();
+  if (data.error) { lookupContent.innerHTML = `<div class="warn-banner">${escapeHtml(data.error)}</div>`; return; }
+  renderLookup(data);
+}
+
+function renderLookup(data) {
+  if (!data.hits.length) {
+    lookupContent.innerHTML = `<div class="empty">No TMDB results for "${escapeHtml(data.query)}".</div>`;
+    return;
+  }
+  const primary = data.hits[0];
+  const claimBlock = primary.claim
+    ? `<div class="lookup-result" style="border-color:var(--cyan)">
+         <h3 style="color:var(--cyan);font-size:13px;letter-spacing:1.5px;margin-bottom:8px">✓ CLAIMED IN MANIFEST</h3>
+         <div style="font-size:14px">Channels: ${primary.claim.channels.join(", ")}</div>
+         <div style="color:var(--text-dim);font-size:12px;margin-top:4px">Source: ${escapeHtml(primary.claim.source || "")}</div>
+       </div>`
+    : `<div class="lookup-result" style="border-color:var(--yellow)">
+         <h3 style="color:var(--yellow);font-size:13px;letter-spacing:1.5px;margin-bottom:8px">✗ NOT IN MANIFEST</h3>
+         <div style="color:var(--text-dim);font-size:13px">Falls through to rule-based filtering. To add: include in an exemplar list and re-run the keyword tuner.</div>
+       </div>`;
+
+  const hitRows = data.hits.map((h) => `
+    <div class="hit">
+      <div style="min-width:240px;color:${h.claim ? 'var(--cyan)' : 'var(--text)'}">${escapeHtml(h.name)} ${h.year ? `<span style="color:var(--text-faint)">(${h.year})</span>` : ""}</div>
+      <div class="overview">${escapeHtml(h.overview)}</div>
+      <div class="meta">
+        ${h.claim ? `<span class="kind-pill kind-exemplar">CH ${h.claim.channels.join(",")}</span>` : ""}
+        <a href="https://www.themoviedb.org/${data.mediaType}/${h.tmdbID}" target="_blank" style="color:var(--text-faint);margin-left:8px">${h.tmdbID}↗</a>
+        <button class="btn" data-tmdb-id="${h.tmdbID}" style="margin-left:8px;font-size:10px">WHY?</button>
+      </div>
+    </div>
+  `).join("");
+
+  lookupContent.innerHTML = `
+    ${claimBlock}
+    <div class="lookup-result">
+      <h3 style="font-size:11px;letter-spacing:2px;color:var(--text-faint);margin-bottom:10px">TMDB MATCHES</h3>
+      ${hitRows}
+    </div>
+    <div id="whyResult"></div>
+  `;
+
+  lookupContent.querySelectorAll("button[data-tmdb-id]").forEach((btn) => {
+    btn.addEventListener("click", () => loadConnections(Number(btn.dataset.tmdbId)));
+  });
+}
+
+async function loadConnections(tmdbID) {
+  const why = document.getElementById("whyResult");
+  why.innerHTML = `<div class="loading">Walking exemplar graph (slow — ~20s)<span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></div>`;
+  const r = await fetch(`/api/memberships/connections?id=${tmdbID}&mediaType=${lookupType.value}`);
+  const data = await r.json();
+  if (data.error) { why.innerHTML = `<div class="warn-banner">${escapeHtml(data.error)}</div>`; return; }
+
+  const channelsWithConnections = data.results.filter((r) => r.connectionCount > 0);
+  if (!channelsWithConnections.length) {
+    why.innerHTML = `<div class="lookup-result"><h3 style="font-size:11px;letter-spacing:2px;color:var(--text-faint);margin-bottom:10px">EXEMPLAR CONNECTIONS</h3><div class="empty">Not adjacent to any exemplar in TMDB's graph. To claim it for a channel, add it (or a related show) to that channel's exemplars.</div></div>`;
+    return;
+  }
+
+  const rows = channelsWithConnections.map((r) => `
+    <div class="connection-row">
+      <span class="ch">CH ${r.channelID} ${escapeHtml(r.channelName)}</span>
+      <span class="exemplars">${r.connections.map((c) => `${escapeHtml(c.exemplar)} (${c.tags.join("+")})`).join(" · ")}</span>
+    </div>
+  `).join("");
+
+  why.innerHTML = `
+    <div class="lookup-result">
+      <h3 style="font-size:11px;letter-spacing:2px;color:var(--text-faint);margin-bottom:10px">EXEMPLAR CONNECTIONS</h3>
+      ${rows}
+    </div>
+  `;
+}
+
+lookupBtn.addEventListener("click", runLookup);
+lookupQ.addEventListener("keydown", (e) => { if (e.key === "Enter") runLookup(); });
+
+// ---- conflicts ---------------------------------------------------------
+let conflictsLoaded = false;
+async function loadConflicts() {
+  if (conflictsLoaded) return;
+  conflictsLoaded = true;
+  const el = document.getElementById("conflictsContent");
+  const r = await fetch("/api/memberships/conflicts");
+  const data = await r.json();
+  if (data.error) { el.innerHTML = `<div class="warn-banner">${escapeHtml(data.error)}</div>`; return; }
+  if (!data.count) { el.innerHTML = `<div class="empty">No items claimed by multiple channels. 👍</div>`; return; }
+  const rows = data.items.map((it) => `
+    <tr>
+      <td>${escapeHtml(it.name)}</td>
+      <td>${it.channels.map((c) => `CH ${c.id} ${escapeHtml(c.name)}`).join(", ")}</td>
+      <td style="color:var(--text-dim);font-size:12px">${escapeHtml(it.source)}</td>
+      <td class="year">${it.mediaType}</td>
+      <td class="year"><a href="https://www.themoviedb.org/${it.mediaType}/${it.tmdbID}" target="_blank" style="color:var(--text-faint)">${it.tmdbID}↗</a></td>
+    </tr>
+  `).join("");
+  el.innerHTML = `
+    <div style="color:var(--text-dim);margin-bottom:14px">Items claimed by 2+ channels. The app will show these on every claiming channel — review if that's what you want.</div>
+    <table class="table"><thead><tr><th>Title</th><th>Channels</th><th>Source</th><th class="year">Type</th><th class="year">TMDB</th></tr></thead><tbody>${rows}</tbody></table>
+  `;
+}
+
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"})[c]); }
+function warn(msg) { warnEl.style.display = "block"; warnEl.textContent = msg; }
+
+// Show a hint if TMDB key isn't configured (lookup tab will fail)
+fetch("/api/health").then(r => r.json()).then(h => {
+  if (!h.tmdbConfigured) {
+    const banner = document.createElement("div");
+    banner.className = "warn-banner";
+    banner.style.color = "var(--text-dim)";
+    banner.innerHTML = "Look-up tab needs TMDB. Restart server with <span class='code'>TMDB_API_KEY=… node server.mjs</span>. Channel and Conflicts tabs work without it.";
+    document.querySelector(".page-head").after(banner);
+  }
+});
+
+loadSummary();
+</script>
+</body>
+</html>

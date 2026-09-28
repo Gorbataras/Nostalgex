@@ -1,0 +1,7 @@
+// TelemetryDeck setup (optional — app runs fine without analytics)
+//
+// 1. Create an app at https://telemetrydeck.com and copy the App ID.
+// 2. Production (TestFlight / App Store): set TelemetryDeckAppID in Info.plist at repo root.
+//    Local-only override: TELEMETRYDECK_APP_ID in the Xcode Run scheme.
+//
+// Signals appear in the TelemetryDeck dashboard within a few minutes.

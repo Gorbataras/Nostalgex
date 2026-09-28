@@ -1,0 +1,11 @@
+{
+  "name": "nostalgex-devtools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start":      "node --env-file=.env server.mjs",
+    "snapshot":   "node --env-file=.env build-snapshot.mjs",
+    "start:full": "node --env-file=.env build-snapshot.mjs && node --env-file=.env server.mjs"
+  }
+}

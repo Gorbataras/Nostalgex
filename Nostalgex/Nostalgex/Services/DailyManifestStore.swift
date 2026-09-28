@@ -1,0 +1,169 @@
+import CryptoKit
+import Foundation
+
+// MARK: - On-disk daily EPG manifest (one calendar day per channel)
+
+struct StoredManifestBlock: Codable, Equatable {
+    let ratingKey: String
+    let startUnix: Int
+    let endUnix: Int
+}
+
+struct DailyManifestFile: Codable {
+    var schemaVersion: Int
+    let channelId: Int
+    let dayKey: String
+    let credentialFingerprint: String
+    let poolFingerprint: String
+    let blocks: [StoredManifestBlock]
+}
+
+enum DailyManifestStore {
+    private static let schemaVersion = 1
+    private static let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.outputFormatting = [.sortedKeys]
+        return e
+    }()
+    private static let decoder = JSONDecoder()
+
+    static func poolFingerprint(ratingKeys: [String]) -> String {
+        let sorted = ratingKeys.sorted().joined(separator: ",")
+        let digest = SHA256.hash(data: Data(sorted.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    static func localDayKey(for date: Date, calendar: Calendar = .current) -> String {
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        guard let y = c.year, let m = c.month, let d = c.day else { return "1970-01-01" }
+        return String(format: "%04d-%02d-%02d", y, m, d)
+    }
+
+    static func startOfLocalDay(for date: Date, calendar: Calendar = .current) -> Date {
+        calendar.startOfDay(for: date)
+    }
+
+    static func localDayNumber(for date: Date, calendar: Calendar = .current) -> Int {
+        Int(startOfLocalDay(for: date, calendar: calendar).timeIntervalSince1970 / 86400)
+    }
+
+    private static func baseDirectory(credentialFingerprint: String) -> URL? {
+        guard let root = LocalStore.rootDirectory else { return nil }
+        let dir = root
+            .appendingPathComponent("daily_manifests", isDirectory: true)
+            .appendingPathComponent(credentialFingerprint, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        } catch {
+            return nil
+        }
+        return dir
+    }
+
+    private static func fileURL(channelId: Int, dayKey: String, credentialFingerprint: String) -> URL? {
+        baseDirectory(credentialFingerprint: credentialFingerprint)?
+            .appendingPathComponent("\(channelId)_\(dayKey).json")
+    }
+
+    static func load(
+        channelId: Int,
+        dayKey: String,
+        credentialFingerprint: String,
+        expectedPoolFingerprint: String
+    ) -> DailyManifestFile? {
+        guard let url = fileURL(channelId: channelId, dayKey: dayKey, credentialFingerprint: credentialFingerprint),
+              FileManager.default.fileExists(atPath: url.path) else { return nil }
+        do {
+            let data = try Data(contentsOf: url)
+            let manifest = try decoder.decode(DailyManifestFile.self, from: data)
+            guard manifest.schemaVersion == schemaVersion,
+                  manifest.credentialFingerprint == credentialFingerprint,
+                  manifest.poolFingerprint == expectedPoolFingerprint else {
+                return nil
+            }
+            return manifest
+        } catch {
+            print("[Plex90] Manifest: load failed CH\(channelId) \(dayKey): \(error)")
+            return nil
+        }
+    }
+
+    static func save(_ manifest: DailyManifestFile) {
+        guard let url = fileURL(
+            channelId: manifest.channelId,
+            dayKey: manifest.dayKey,
+            credentialFingerprint: manifest.credentialFingerprint
+        ) else { return }
+        do {
+            let data = try encoder.encode(manifest)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            print("[Plex90] Manifest: save failed CH\(manifest.channelId) \(manifest.dayKey): \(error)")
+        }
+    }
+
+    static func airedRatingKeys(channelId: Int, dayKey: String, credentialFingerprint: String) -> Set<String> {
+        guard let dir = baseDirectory(credentialFingerprint: credentialFingerprint) else { return [] }
+        let url = dir.appendingPathComponent("\(channelId)_\(dayKey).json")
+        guard FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url),
+              let manifest = try? decoder.decode(DailyManifestFile.self, from: data) else {
+            return []
+        }
+        return Set(manifest.blocks.map(\.ratingKey))
+    }
+
+    /// The item a channel was airing right before midnight, if that day was ever scheduled.
+    /// `blocks` is written in chronological order (packDay appends as it packs the day), so
+    /// the last element is the last thing that aired. Used to stop a title from playing
+    /// again immediately after midnight -- the same seam-duplicate the wraparound fill
+    /// guards against within a day, one level up at the day boundary.
+    static func lastAiredRatingKey(channelId: Int, dayKey: String, credentialFingerprint: String) -> String? {
+        guard let dir = baseDirectory(credentialFingerprint: credentialFingerprint) else { return nil }
+        let url = dir.appendingPathComponent("\(channelId)_\(dayKey).json")
+        guard FileManager.default.fileExists(atPath: url.path),
+              let data = try? Data(contentsOf: url),
+              let manifest = try? decoder.decode(DailyManifestFile.self, from: data) else {
+            return nil
+        }
+        return manifest.blocks.last?.ratingKey
+    }
+
+    static func clearAll(credentialFingerprint: String? = nil) {
+        guard let root = LocalStore.rootDirectory else { return }
+        let manifests = root.appendingPathComponent("daily_manifests", isDirectory: true)
+        if let fp = credentialFingerprint {
+            try? FileManager.default.removeItem(at: manifests.appendingPathComponent(fp, isDirectory: true))
+        } else {
+            try? FileManager.default.removeItem(at: manifests)
+        }
+        DailyManifestScheduler.invalidateMemo()
+    }
+
+    /// Delete manifest files for any day key other than `keepDayKey`.
+    /// Preserves today's schedule so a library refresh (background or foreground)
+    /// can't blow away an EPG the user is currently watching.
+    ///
+    /// Also drops the scheduler's in-memory memo: this runs right after a library
+    /// rebuild, and a refreshed pool can keep the same shape (and therefore the same
+    /// memo key) while its contents differ.
+    static func purgeDays(keeping keepDayKey: String, credentialFingerprint: String) {
+        DailyManifestScheduler.invalidateMemo()
+        guard let dir = baseDirectory(credentialFingerprint: credentialFingerprint) else { return }
+        let suffix = "_\(keepDayKey).json"
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { return }
+        var removed = 0
+        for url in entries where url.pathExtension == "json" && !url.lastPathComponent.hasSuffix(suffix) {
+            do {
+                try fm.removeItem(at: url)
+                removed += 1
+            } catch {
+                print("[Plex90] Manifest: purge failed for \(url.lastPathComponent): \(error)")
+            }
+        }
+        if removed > 0 {
+            print("[Plex90] Manifest: purged \(removed) stale day file(s), kept \(keepDayKey)")
+        }
+    }
+}

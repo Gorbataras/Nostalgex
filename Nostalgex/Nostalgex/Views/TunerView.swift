@@ -1,0 +1,215 @@
+import SwiftUI
+import AVKit
+import Combine
+
+struct TunerView: View {
+    @Environment(AppState.self) var appState
+    @Binding var navigationPath: NavigationPath
+    @State private var schedules: [Int: ChannelSchedule] = [:]
+    @State private var windowStart: Date = Date()
+    @State private var previewChannelID: Int? = nil
+    // Refresh schedules every 30 seconds (progress bar + entry transitions)
+    let scheduleTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        GeometryReader { geo in
+            let videoHeight = geo.size.height * 0.5143
+            // 4:3 video width based on the top section height
+            let videoWidth = min(geo.size.width, videoHeight * (4.0 / 3.0))
+            let panelWidth = geo.size.width - videoWidth
+
+            VStack(spacing: 0) {
+                // Top section: Nav + Info Panel (left) + Video (right)
+                ZStack(alignment: .topLeading) {
+                    HStack(spacing: 0) {
+                        // Left column: info panel
+                        VStack(spacing: 0) {
+                            // Space for nav bar
+                            Spacer().frame(height: 140)
+
+                            if let channel = previewChannel,
+                               let schedule = schedules[channel.id] {
+                                let isActiveChannel = channel.id == appState.currentChannel?.id
+                                InfoPanelView(
+                                    channel: channel,
+                                    schedule: schedule,
+                                    playingItem: isActiveChannel ? appState.currentItem : nil
+                                )
+                                    .frame(maxHeight: .infinity)
+                                    .animation(.easeInOut(duration: 0.15), value: channel.id)
+                            } else {
+                                Spacer()
+                            }
+                        }
+                        .frame(width: panelWidth)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 0.04, green: 0.04, blue: 0.10),
+                                    Color(red: 0.05, green: 0.05, blue: 0.12)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                        VideoAreaView(
+                            player: appState.player,
+                            playbackState: appState.playbackState,
+                            currentChannel: appState.currentChannel,
+                            currentItem: appState.currentItem,
+                            showChannelBug: false,
+                            retroMode: appState.retroMode
+                        )
+                        .frame(width: videoWidth, height: videoHeight)
+                    }
+
+                    // Nav bar overlaid at top-left, above the info panel
+                    NavBar(onSettings: { navigationPath.append(AppDestination.settings) })
+                        .frame(width: panelWidth, height: 140)
+                }
+                .frame(height: videoHeight)
+
+                // Bottom section: EPG Grid (takes remaining space)
+                ChannelGuideView(
+                    schedules: schedules,
+                    windowStart: windowStart,
+                    onFocusChanged: { id in previewChannelID = id }
+                )
+                .frame(maxHeight: .infinity)
+            }
+        }
+        .background(Color.black)
+        .ignoresSafeArea()
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            buildAllSchedules()
+            // Resume playback if player exists but isn't playing (e.g., returning from Settings)
+            if let player = appState.player,
+               player.timeControlStatus != .playing,
+               appState.currentItem != nil {
+                player.play()
+            }
+        }
+        .onChange(of: appState.channels.count) { _, _ in
+            buildAllSchedules()
+        }
+        .onReceive(scheduleTimer) { _ in
+            buildAllSchedules()
+        }
+        .onChange(of: appState.isFullScreen) { _, isFullScreen in
+            // When fullscreen cover is presented, this view can stop receiving the 30s timer.
+            // Rebuild immediately on return so the guide header + grid window stay aligned.
+            if !isFullScreen {
+                buildAllSchedules()
+            }
+        }
+        .onChange(of: appState.currentItem) { _, _ in
+            buildAllSchedules()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Recalculate schedule — clock has advanced, different content should be playing
+            buildAllSchedules()
+            if let channel = appState.currentChannel {
+                let schedule = schedules[channel.id]
+                appState.selectChannel(channel, precomputedSchedule: schedule)
+            }
+        }
+        .onPlayPauseCommand {
+            if appState.currentChannel != nil {
+                appState.isFullScreen = true
+            }
+        }
+    }
+
+    /// Channel to show in the info panel: focused channel in EPG, or current if none focused
+    private var previewChannel: Channel? {
+        if let id = previewChannelID {
+            return appState.channels.first { $0.id == id }
+        }
+        return appState.currentChannel
+    }
+
+    // MARK: - Schedule management
+
+    private func buildAllSchedules() {
+        let now = Date()
+        windowStart = ChannelScheduleBuilder.windowStart(at: now)
+
+        var newSchedules: [Int: ChannelSchedule] = [:]
+        for channel in appState.channels {
+            if let schedule = ChannelScheduleBuilder.buildSchedule(
+                for: channel,
+                at: now,
+                credentialFingerprint: appState.scheduleCredentialFingerprint
+            ) {
+                newSchedules[channel.id] = schedule
+            }
+        }
+        ChannelScheduleBuilder.resolveConflicts(&newSchedules)
+        schedules = newSchedules
+    }
+}
+
+// MARK: - Navigation bar
+
+private struct NavBar: View {
+    var onSettings: (() -> Void)? = nil
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            // Logo
+            Image("NostalgexLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 80)
+                .padding(.leading, 40)
+
+            Spacer()
+
+            // Menu items
+            HStack(spacing: 32) {
+                NavItem(label: "SETTINGS", action: onSettings)
+                    .accessibilityIdentifier("tunerSettingsButton")
+            }
+            .padding(.trailing, 40)
+        }
+        .padding(.top, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .focusSection()
+    }
+}
+
+private struct NavItem: View {
+    let label: String
+    var isActive: Bool = false
+    var action: (() -> Void)? = nil
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Button {
+            action?()
+        } label: {
+            Text(label)
+                .font(.custom("DMMono-Medium", size: 24))
+                .foregroundStyle(
+                    isFocused ? Color(hex: "#FFE500") : .white.opacity(0.5)
+                )
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+        }
+        .buttonStyle(NoHighlightButtonStyle())
+        .focused($isFocused)
+        .onPlayPauseCommand { action?() }
+        .animation(.easeInOut(duration: 0.15), value: isFocused)
+    }
+}
+
+// MARK: - Button style that suppresses tvOS default white focus highlight
+
+struct NoHighlightButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.7 : 1.0)
+    }
+}

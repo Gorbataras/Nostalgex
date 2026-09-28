@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nostalgex - Channel Not Found</title>
+<link rel="icon" type="image/png" href="./logo/favicon.png">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #080810;
+    color: #ccc;
+    font-family: -apple-system, system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+  }
+  /* Static / scanline overlay */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.02) 0px,
+      rgba(255,255,255,0.02) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .container {
+    text-align: center;
+    padding: 24px;
+    position: relative;
+    z-index: 3;
+  }
+  .ch-label {
+    color: #FF2DB4;
+    font-family: 'Courier New', monospace;
+    font-size: 18px;
+    letter-spacing: 4px;
+    margin-bottom: 24px;
+  }
+  .code {
+    font-family: 'Courier New', monospace;
+    font-size: 120px;
+    font-weight: bold;
+    color: #00C4FF;
+    line-height: 1;
+    letter-spacing: -4px;
+    text-shadow:
+      2px 0 #FF00FF,
+      -2px 0 #00FFFF;
+    animation: glitch 3s infinite;
+  }
+  @keyframes glitch {
+    0%, 95%, 100% { text-shadow: 2px 0 #FF00FF, -2px 0 #00FFFF; transform: translate(0); }
+    96% { text-shadow: 4px 0 #FF00FF, -4px 0 #00FFFF; transform: translate(-2px); }
+    97% { text-shadow: -3px 0 #FF00FF, 3px 0 #00FFFF; transform: translate(2px); }
+    98% { text-shadow: 1px 0 #FF00FF, -1px 0 #00FFFF; transform: translate(-1px); }
+  }
+  h1 {
+    color: #fff;
+    font-size: 28px;
+    font-weight: 600;
+    margin-top: 32px;
+    letter-spacing: 1px;
+  }
+  p {
+    color: #888;
+    font-size: 16px;
+    margin-top: 16px;
+    margin-bottom: 32px;
+  }
+  .back {
+    display: inline-block;
+    color: #00C4FF;
+    text-decoration: none;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 12px 28px;
+    border: 1px solid #00C4FF;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  .back:hover {
+    background: #00C4FF;
+    color: #080810;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="ch-label">CH —— SIGNAL LOST</div>
+  <div class="code">404</div>
+  <h1>Channel Not Found</h1>
+  <p>That page got lost between channels.</p>
+  <a href="/" class="back">← BACK TO NOSTALGEX</a>
+</div>
+</body>
+</html>

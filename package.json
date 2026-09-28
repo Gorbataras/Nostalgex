@@ -1,0 +1,24 @@
+{
+  "name": "nostalgex",
+  "version": "1.0.0",
+  "description": "Nostalgex \u2014 marketing site, web tuner, and shared channel-rule/schedule engine for the Plex/Jellyfin/Emby retro TV guide",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "changelog:render": "node scripts/render-changelog.mjs",
+    "channels:doc": "node scripts/render-channels-doc.mjs",
+    "channels:doc:check": "node scripts/render-channels-doc.mjs --check",
+    "test:filter": "node scripts/nostalgex-filter-smoke.mjs",
+    "test:schedule": "node scripts/nostalgex-schedule-order-smoke.mjs",
+    "test": "npm run test:filter && npm run test:schedule && npm run channels:doc:check",
+    "build": "npm run changelog:render && vite build",
+    "preview": "vite preview",
+    "snapshot": "node --env-file-if-exists=.env scripts/devtools/build-snapshot.mjs",
+    "devtools": "node --env-file-if-exists=.env scripts/devtools/server.mjs",
+    "devtools:full": "npm run snapshot && npm run devtools"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}
