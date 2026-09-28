@@ -74,10 +74,9 @@ For channels Nostalgex builds from your own collections, `channelType` is `colle
 
 **Update emails**
 
-- An update-emails QR code was shown, with where (`settings` or `post_playback`) and the backend. Not sent in demo mode
-- The one-time update-emails card closed, with how (`button`, `back`, or `timeout`)
+- The update-emails QR code in Settings was shown, with the backend. Not sent in demo mode
 
-The QR codes are plain links to the signup form on nostalgex.app. You type your email on your phone, not on the Apple TV, and the app never sees it. There is no event for scanning, and nothing links these events to an email address.
+The QR code is a plain link to the signup form on nostalgex.app. You type your email on your phone, not on the Apple TV, and the app never sees it. There is no event for scanning, and nothing links these events to an email address.
 
 ## The app: what it never sends
 

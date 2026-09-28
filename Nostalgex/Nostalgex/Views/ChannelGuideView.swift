@@ -118,13 +118,6 @@ struct ChannelGuideView: View {
                                 }
                             }
                         }
-                        .onChange(of: appState.signupPromptVisible) { _, isVisible in
-                            // The update-emails card borrowed focus; hand it back to the
-                            // live channel row when it closes.
-                            if !isVisible, let id = appState.currentChannel?.id ?? focusedChannelID {
-                                focusedChannelID = id
-                            }
-                        }
                         .onChange(of: appState.currentChannel?.id) { _, newID in
                             // Keep the guide anchored to the live channel when it changes via a
                             // path that doesn't toggle fullscreen (mini-strip popup, swipe, move).

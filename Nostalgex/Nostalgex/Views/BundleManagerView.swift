@@ -74,7 +74,7 @@ struct SettingsPageView: View {
                                 .accessibilityLabel("Support: scan QR code to visit buymeacoffee.com slash chadmueller")
 
                                 HStack(alignment: .center, spacing: 24) {
-                                    QRCodeView(url: SignupPrompt.url(for: .settings))
+                                    QRCodeView(url: "https://www.nostalgex.app/?utm_source=appletv&utm_medium=app&utm_campaign=qr_signup&utm_content=settings#signup")
                                         .frame(width: 120, height: 120)
                                         .padding(10)
                                         .background(Color.white)
@@ -325,7 +325,7 @@ struct SettingsPageView: View {
             // in the first section, so it's on screen whenever this page is.
             if !signupQRShownReported && !appState.isDemoMode {
                 signupQRShownReported = true
-                Analytics.track(.signupQRShown(placement: .settings, backend: appState.analyticsBackend))
+                Analytics.track(.signupQRShown(backend: appState.analyticsBackend))
             }
         }
         .task {

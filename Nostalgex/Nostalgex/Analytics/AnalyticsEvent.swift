@@ -89,30 +89,6 @@ enum AnalyticsLaunchKind: String, Sendable {
     case returning
 }
 
-/// Where an update-emails QR code was on screen. The scan itself happens on a phone,
-/// so conversion is measured on the website via the matching `utm_content` value.
-enum AnalyticsSignupPlacement: String, Sendable {
-    case settings
-    case postPlayback
-
-    var wireValue: String {
-        switch self {
-        case .postPlayback: return "post_playback"
-        default: return rawValue
-        }
-    }
-}
-
-/// How the one-time post-playback signup prompt went away.
-enum AnalyticsSignupDismissMethod: String, Sendable {
-    /// The GOT IT button.
-    case button
-    /// Menu / Back on the remote.
-    case back
-    /// Nobody touched it and it hid itself.
-    case timeout
-}
-
 // MARK: - Event catalog
 
 /// Every signal the app can send. Closed enum on purpose so the wrapper is the only
@@ -234,13 +210,9 @@ enum AnalyticsEvent: Sendable {
 
     // MARK: Update emails
 
-    /// An update-emails QR code was shown. Settings fires once per visit to the
-    /// settings page; the post-playback prompt fires once per install. Never sent
-    /// in demo mode.
-    case signupQRShown(placement: AnalyticsSignupPlacement, backend: AnalyticsBackend)
-
-    /// The one-time post-playback signup prompt closed.
-    case signupPromptDismissed(method: AnalyticsSignupDismissMethod)
+    /// The update-emails QR in Settings was on screen. Once per Settings visit, never
+    /// in demo mode. The scan happens on a phone, so signups are counted on the website.
+    case signupQRShown(backend: AnalyticsBackend)
 
     // MARK: Session length
 
@@ -284,7 +256,6 @@ enum AnalyticsEvent: Sendable {
         case .settingChanged: return "setting.changed"
         case .rateTapped: return "rate.tapped"
         case .signupQRShown: return "signup.qr.shown"
-        case .signupPromptDismissed: return "signup.prompt.dismissed"
         case .sessionEnded: return "app.session.ended"
         }
     }
@@ -415,11 +386,8 @@ enum AnalyticsEvent: Sendable {
         case .rateTapped:
             return [:]
 
-        case .signupQRShown(let placement, let backend):
-            return ["placement": placement.wireValue, "backend": backend.rawValue]
-
-        case .signupPromptDismissed(let method):
-            return ["method": method.rawValue]
+        case .signupQRShown(let backend):
+            return ["placement": "settings", "backend": backend.rawValue]
 
         case .sessionEnded:
             // activeSeconds rides as `floatValue`, matching playback.stopped.

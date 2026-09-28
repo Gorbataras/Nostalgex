@@ -509,3 +509,13 @@ final class AnalyticsWrapperTests: XCTestCase {
         XCTAssertEqual(spy.calls[1].parameters["demo"], "true")
     }
 }
+
+// The Settings update-emails QR: one fixed-vocabulary signal, nothing else.
+final class SignupQRSignalTests: XCTestCase {
+    func testSettingsQRSignalWireContract() {
+        let event = AnalyticsEvent.signupQRShown(backend: .jellyfin)
+        XCTAssertEqual(event.name, "signup.qr.shown")
+        XCTAssertEqual(event.parameters, ["placement": "settings", "backend": "jellyfin"])
+        XCTAssertNil(event.floatValue)
+    }
+}

@@ -95,9 +95,9 @@ check("utm not an object", signupProperties({ utm: "appletv" }), {});
   const calls = stubResend([{ status: 200, body: { object: "contact", id: "c1" } }]);
   const r = await call({
     email: " fan@example.com ",
-    source: "appletv_qr_post_playback",
+    source: "appletv_qr_settings",
     page: "/",
-    utm: { source: "appletv", medium: "app", campaign: "qr_signup", content: "post_playback" },
+    utm: { source: "appletv", medium: "app", campaign: "qr_signup", content: "settings" },
   });
   check("create ok", r.status, 200);
   check("create one call", calls.length, 1);
@@ -107,12 +107,12 @@ check("utm not an object", signupProperties({ utm: "appletv" }), {});
     unsubscribed: false,
     segments: [{ id: "seg_test" }],
     properties: {
-      signup_source: "appletv_qr_post_playback",
+      signup_source: "appletv_qr_settings",
       signup_page: "/",
       utm_source: "appletv",
       utm_medium: "app",
       utm_campaign: "qr_signup",
-      utm_content: "post_playback",
+      utm_content: "settings",
     },
   });
 }
