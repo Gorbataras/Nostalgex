@@ -6,9 +6,6 @@ Retro cable TV experience powered by your own media server. Nostalgex is a clien
 
 ## Apps
 
-### Public site (`index.html`)
-Marketing page and the path into the tuner and the App Store. Served at `/` on Vercel.
-
 ### Web tuner (`web-tuner.html` + `plex-tuner.html`)
 Browser app. `web-tuner.html` (routed as `/web-tuner`) is the connect screen; after sign-in it navigates to `plex-tuner.html`, which is the tuner itself: channel guide, surfing, playback.
 
@@ -29,6 +26,9 @@ Native Apple TV app, free on the App Store, open source. Same channel logic and 
   - `Services/MediaBackend.swift` -- the backend protocol the three servers implement
   - `Services/PlexAPIService.swift`, `Services/JellyfinAPIService.swift`, `Services/EmbyAPIService.swift` -- server clients
   - `Views/` -- TunerView, PlayerView, ChannelGuideView, etc.
+ 
+### Public site (`index.html`)
+Marketing page and the path into the tuner and the App Store. Served at `/` on Vercel.
 
 ## Shared Config
 
@@ -116,13 +116,3 @@ The Nostalgex name, icon and the nostalgex.app site are not part of the MIT gran
 
 Web app deploys to Vercel automatically on push to `main`.
 
-### Email signup (landing page)
-
-Same pattern as the SonosHaus site: `POST /api/subscribe` creates a [Resend](https://resend.com) contact with optional `segmentIds`; HTTP 409 (duplicate) is treated as success. (If you also maintain SonosHaus in another repo, mirror env vars there. Paths in other repos are not valid from this standalone repo.)
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `RESEND_API_KEY` | Yes | Resend API key (`re_...`) |
-| `RESEND_SEGMENT_ID` | No | If set, sent as `segmentIds: [id]` on create (match SonosHaus env) |
-
-If the server is misconfigured, the API returns an error message (same as SonosHaus). Local `vite` dev has no `/api` route; test on a Vercel preview or production deploy.
