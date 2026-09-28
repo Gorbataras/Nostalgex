@@ -39,15 +39,16 @@
   </ul>
 
   <h2>The app: what it sends</h2>
-  <p>Nostalgex sends anonymous usage events to <a href="https://telemetrydeck.com" rel="noopener">TelemetryDeck</a>, a privacy-focused analytics service. This is the complete list of events the app can send. There are seven, and there are no others:</p>
+  <p>Nostalgex sends anonymous usage events to <a href="https://telemetrydeck.com" rel="noopener">TelemetryDeck</a>, a privacy-focused analytics service. This is the complete list of what the app can send. Every value is a number or a word from a fixed list built into the app. Nothing you typed and nothing from your library is ever one of them. The full technical list, event by event, is in the <a href="https://github.com/chadMueller/Nostalgex/blob/main/Nostalgex/PRIVACY_POLICY.md" rel="noopener">privacy policy on GitHub</a>.</p>
   <ul>
-    <li>A server connection was started</li>
-    <li>A server connection finished, with the number of servers found</li>
-    <li>A server connection failed, with a short reason code (for example <code>no_reachable_server</code> or <code>jellyfin_auth_failed</code>)</li>
-    <li>A library finished loading, with the number of channels, the number of items, and whether it happened in the background</li>
-    <li>A library failed to load, with a short error reason</li>
-    <li>A channel was tuned, with the channel number</li>
-    <li>Playback started, with the channel number</li>
+    <li>The app opened for the first time or again, and how long it stayed open</li>
+    <li>A server connection was started, finished, cancelled, timed out or failed, and which kind of server (Plex, Jellyfin or Emby). A failure carries a short reason code from a fixed list (like <code>no_reachable_server</code> or <code>jellyfin_unreachable</code>). The server address never leaves the Apple TV</li>
+    <li>A saved sign-in could not be read back or written, with a short numeric status code</li>
+    <li>A library load started, finished, failed, stalled or came back empty, with counts (channels, items, milliseconds) and a short error code</li>
+    <li>A channel was tuned, with the channel number, how you got there (guide, next, previous) and the channel's identity from the app's own built-in lineup (for example <code>REWATCHABLES MOVIES</code>). Channels built from your own collections send only a category, never the collection's name</li>
+    <li>Playback started, stopped, fell back to server conversion, or hit an error, with the channel details above, whether it played directly or was converted, how many seconds were watched, and a short error code</li>
+    <li>A setting was changed, with the setting and its new value (like subtitles on or off)</li>
+    <li>The Rate button was pressed, and the update-emails QR code in Settings was shown</li>
   </ul>
 
   <h2>The app: what it never sends</h2>
@@ -65,6 +66,7 @@
 
   <h2>This website</h2>
   <p>Three pages on nostalgex.app load two analytics scripts, <a href="https://data-haus.vercel.app" rel="noopener">Data Haus</a> (our own) and statsngraphs: the home page, the connect page, and the support page. They count page visits, referrers, and basic device and country information. They do not use advertising cookies and do not build a profile of you across other sites.</p>
+  <p>If you sign up for update emails, your email address goes to Resend, the service that sends them. Along with it we store which signup form or QR code you used (for example the home page, the connect page, or the Apple TV app's settings screen), the page you signed up on, and any campaign tags that were on the link you followed. Nothing else about your visit is stored with it, and it is never joined to app analytics. Every email has an unsubscribe link.</p>
   <p>The web tuner itself loads neither. Once you are connected and watching, no analytics script is running on the page, so nothing about your library or what you play is measured. This page you are reading now does not load them either. All of this is separate from the app, and nothing from the app is joined to anything from the website.</p>
 
   <h2>What the app stores on your device</h2>

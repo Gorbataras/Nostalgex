@@ -66,7 +66,7 @@ struct ChannelGuideView: View {
                                         if appState.currentChannel?.id == channel.id {
                                             appState.isFullScreen = true
                                         } else {
-                                            appState.selectChannel(channel, precomputedSchedule: schedules[channel.id])
+                                            appState.tuneChannelFromUser(channel, method: .guide, precomputedSchedule: schedules[channel.id])
                                         }
                                     } label: {
                                         EPGRow(
@@ -92,7 +92,7 @@ struct ChannelGuideView: View {
                                         if appState.currentChannel?.id == channel.id {
                                             appState.isFullScreen = true
                                         } else {
-                                            appState.selectChannel(channel, precomputedSchedule: schedules[channel.id])
+                                            appState.tuneChannelFromUser(channel, method: .guide, precomputedSchedule: schedules[channel.id])
                                         }
                                     }
                                 }

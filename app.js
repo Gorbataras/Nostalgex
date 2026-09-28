@@ -150,9 +150,48 @@
      drops into the bundle list (.newsletter-form). This is the only subscribe
      handler on this page — scripts/newsletter.js is NOT loaded here. */
   var SUBSCRIBE_URL = "/api/subscribe";
+  var UTM_KEY = "nostalgex_signup_utm";
+  var TOKEN_RE = /^[a-z0-9_]{1,40}$/;
 
-  function pageSource() {
-    return window.location.pathname.replace(/\.html$/, "") || "/";
+  function cleanToken(value) {
+    var v = String(value || "").trim().toLowerCase();
+    return TOKEN_RE.test(v) ? v : "";
+  }
+
+  /* Normalized path of this page: "/", "/web-tuner", "/support"... */
+  function pagePath() {
+    return (window.location.pathname.replace(/\.html$/, "").replace(/\/index$/, "") || "/").toLowerCase();
+  }
+
+  /* UTMs from the landing URL, kept for the tab so they survive in-page
+     navigation. Only whitelisted tokens are kept; anything else is ignored. */
+  var landingUtm = (function () {
+    var params = new URLSearchParams(window.location.search);
+    var found = {};
+    var any = false;
+    ["source", "medium", "campaign", "content"].forEach(function (key) {
+      var v = cleanToken(params.get("utm_" + key));
+      if (v) { found[key] = v; any = true; }
+    });
+    try {
+      if (any) sessionStorage.setItem(UTM_KEY, JSON.stringify(found));
+      else found = JSON.parse(sessionStorage.getItem(UTM_KEY) || "null") || {};
+    } catch (e) {}
+    return found;
+  })();
+
+  /* Which form or QR a signup came from. Apple TV QR codes win (that's the
+     attribution we can't get any other way); otherwise the form says where it is. */
+  function signupSource(form) {
+    if (landingUtm.source === "appletv" && landingUtm.campaign === "qr_signup" && landingUtm.content) {
+      var qr = cleanToken("appletv_qr_" + landingUtm.content);
+      if (qr) return qr;
+    }
+    var declared = cleanToken(form.getAttribute("data-signup-source"));
+    if (declared) return declared;
+    if (form.classList.contains("newsletter-form")) return "lineup";
+    var slug = pagePath() === "/" ? "home" : pagePath().replace(/^\//, "").replace(/[^a-z0-9]+/g, "_");
+    return cleanToken((form.closest(".footer-signup") ? "footer_" : "form_") + slug) || "unknown";
   }
 
   document.querySelectorAll(".js-subscribe-form, .newsletter-form").forEach(function (form) {
@@ -175,17 +214,25 @@
         input.focus();
         return;
       }
+      var source = signupSource(form);
       button.disabled = true;
       say("Sending...");
       fetch(SUBSCRIBE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email, source: pageSource() })
+        body: JSON.stringify({ email: email, source: source, page: pagePath(), utm: landingUtm })
       })
         .then(function (res) {
           if (!res.ok) throw new Error("bad status " + res.status);
           say("You're in. Talk soon.");
           form.reset();
+          /* StatsNGraphs custom event: a real subscribe, not just a button click.
+             Only the fixed source token goes along. */
+          try {
+            if (window.sng && typeof window.sng.track === "function") {
+              window.sng.track("signup_success", { source: source });
+            }
+          } catch (e) {}
         })
         .catch(function () {
           say("That didn't go through. Give it another shot in a minute.", true);

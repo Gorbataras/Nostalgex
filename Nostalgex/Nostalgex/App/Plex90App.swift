@@ -47,6 +47,7 @@ struct RootView: View {
         .task {
             if forceSettings { return }
             if reproAppReviewFlow { return }
+            emitLaunchAnalyticsIfNeeded()
             if uiTestInstantAuth {
                 appState.startPINAuth()
                 return
@@ -70,6 +71,30 @@ struct RootView: View {
                 appState.startDailyRefresh()
             }
         }
+    }
+
+    /// UserDefaults key that flips from missing → `true` on the first launch of an
+    /// install, so subsequent launches can be reported as `.returning`. Persists for
+    /// the lifetime of the app container: deleting the app resets it, which is the
+    /// correct behaviour (install → connect success is what needs to be joined).
+    private static let firstLaunchRecordedKey = "nostalgex_first_launch_recorded"
+
+    /// Fires exactly one `app.launch` per app process, distinguishing the first launch
+    /// on this install from every subsequent launch. Runs once per RootView appearance
+    /// via a static flag so a hot-restart of the `.task` (SwiftUI reruns tasks when
+    /// the view id changes) does not send duplicates.
+    private static var launchReported = false
+    private func emitLaunchAnalyticsIfNeeded() {
+        guard !Self.launchReported else { return }
+        Self.launchReported = true
+        let defaults = UserDefaults.standard
+        let kind: AnalyticsLaunchKind = defaults.bool(forKey: Self.firstLaunchRecordedKey)
+            ? .returning
+            : .first
+        if kind == .first {
+            defaults.set(true, forKey: Self.firstLaunchRecordedKey)
+        }
+        Analytics.track(.launch(kind: kind))
     }
 }
 

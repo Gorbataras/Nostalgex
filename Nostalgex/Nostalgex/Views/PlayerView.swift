@@ -142,7 +142,7 @@ struct PlayerView: View {
                         channels: appState.channels,
                         currentChannelID: appState.currentChannel?.id,
                         onSelect: { channel in
-                            appState.selectChannel(channel)
+                            appState.tuneChannelFromUser(channel, method: .miniStrip)
                             hideMiniGuide()
                             flashOSD()
                         },
@@ -188,7 +188,9 @@ struct PlayerView: View {
             flashOSD()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Recalculate schedule — clock has advanced, different content should be playing
+            // Recalculate schedule — clock has advanced, different content should be playing.
+            // Stays on `selectChannel` (automatic path): this isn't a user tune, and firing
+            // channel.tuned here would count every foreground return as a channel change.
             if let channel = appState.currentChannel {
                 appState.selectChannel(channel)
             }

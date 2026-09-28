@@ -70,6 +70,16 @@ struct JellyfinAPIService: MediaBackend {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
+    /// `decode` for sign-in calls: a 2xx web page becomes `.receivedMarkupInsteadOfJSON`
+    /// so a wrong path or proxy page isn't reported as a generic failure.
+    private static func decodeSignIn<T: Decodable>(_ type: T.Type, data: Data, response: URLResponse?) throws -> T {
+        if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+           SignInRequest.looksLikeMarkup(data) {
+            throw PlexAPIService.APIError.receivedMarkupInsteadOfJSON(statusCode: http.statusCode)
+        }
+        return try decode(type, data: data, response: response)
+    }
+
     // MARK: - Connection test
 
     func testConnection() async throws -> String {
@@ -555,6 +565,7 @@ struct JellyfinAPIService: MediaBackend {
             throw PlexAPIService.APIError.invalidResponse
         }
         var req = URLRequest(url: url)
+        req.timeoutInterval = SignInRequest.timeout
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -562,7 +573,7 @@ struct JellyfinAPIService: MediaBackend {
         req.httpBody = try JSONEncoder().encode(["Username": username, "Pw": password])
 
         let (data, response) = try await session.data(for: req)
-        let result = try decode(AuthenticationResult.self, data: data, response: response)
+        let result = try decodeSignIn(AuthenticationResult.self, data: data, response: response)
         guard let token = result.AccessToken, let uid = result.User?.Id else {
             throw PlexAPIService.APIError.unauthorized
         }
@@ -580,10 +591,11 @@ struct JellyfinAPIService: MediaBackend {
             throw PlexAPIService.APIError.invalidResponse
         }
         var req = URLRequest(url: url)
+        req.timeoutInterval = SignInRequest.timeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue(authorizationHeader(deviceID: PlexAPIService.clientID, token: ""), forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: req)
-        let decoded = try decode(QuickConnectResult.self, data: data, response: response)
+        let decoded = try decodeSignIn(QuickConnectResult.self, data: data, response: response)
         guard let code = decoded.Code, let secret = decoded.Secret else {
             throw PlexAPIService.APIError.invalidResponse
         }
@@ -598,10 +610,11 @@ struct JellyfinAPIService: MediaBackend {
         components.queryItems = [.init(name: "Secret", value: secret)]
         guard let url = components.url else { throw PlexAPIService.APIError.invalidResponse }
         var req = URLRequest(url: url)
+        req.timeoutInterval = SignInRequest.timeout
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue(authorizationHeader(deviceID: PlexAPIService.clientID, token: ""), forHTTPHeaderField: "Authorization")
         let (data, response) = try await session.data(for: req)
-        return (try decode(QuickConnectResult.self, data: data, response: response).Authenticated) ?? false
+        return (try decodeSignIn(QuickConnectResult.self, data: data, response: response).Authenticated) ?? false
     }
 
     /// Exchanges an approved Quick Connect secret for an access token.
@@ -610,13 +623,14 @@ struct JellyfinAPIService: MediaBackend {
             throw PlexAPIService.APIError.invalidResponse
         }
         var req = URLRequest(url: url)
+        req.timeoutInterval = SignInRequest.timeout
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue(authorizationHeader(deviceID: PlexAPIService.clientID, token: ""), forHTTPHeaderField: "Authorization")
         req.httpBody = try JSONEncoder().encode(["Secret": secret])
         let (data, response) = try await session.data(for: req)
-        let result = try decode(AuthenticationResult.self, data: data, response: response)
+        let result = try decodeSignIn(AuthenticationResult.self, data: data, response: response)
         guard let token = result.AccessToken, let uid = result.User?.Id else {
             throw PlexAPIService.APIError.unauthorized
         }
