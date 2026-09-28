@@ -337,6 +337,7 @@ extension AppState {
         justAuthenticated = false
 
         isDemoMode = true
+        resetSignupPrompt()
         // Every subsequent signal on this device is tagged demo=true so the dashboard
         // can filter demo-mode exploration out of the real usage stats.
         Analytics.setDemoMode(true)
@@ -650,6 +651,7 @@ extension AppState {
         justAuthenticated = false
         lastFailureDiagnostic = nil
         isDemoMode = false
+        resetSignupPrompt()
         // Real backend from here on out; keep the analytics context in sync.
         Analytics.setDemoMode(false)
     }

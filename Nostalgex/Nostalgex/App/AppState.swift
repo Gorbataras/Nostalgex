@@ -548,6 +548,18 @@ class AppState {
     @ObservationIgnored var sleepTimer: Timer?
     @ObservationIgnored var sleepGraceTimer: Timer?
 
+    // MARK: - Update-emails prompt (see AppState+Signup.swift)
+
+    /// Flips true `SignupPrompt.eligibilityDelay` after the first successful playback of
+    /// the process. The guide watches it and presents the card at the next natural break.
+    var signupPromptEligible: Bool = false
+
+    /// The one-time post-playback card is on screen in the guide.
+    var signupPromptVisible: Bool = false
+
+    @ObservationIgnored var signupEligibilityTimer: Timer?
+    @ObservationIgnored var signupAutoHideTimer: Timer?
+
     var cancellables = Set<AnyCancellable>()
     /// Lifetime observers (background/foreground) — never cleared by loadCurrentItem.
     private var _lifetimeObservers = Set<AnyCancellable>()
