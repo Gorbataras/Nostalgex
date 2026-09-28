@@ -50,3 +50,27 @@ final class ServerURLNormalizerTests: XCTestCase {
         XCTAssertFalse(SignInRequest.looksLikeMarkup(Data("{\"AccessToken\":\"x\"}".utf8)))
     }
 }
+
+// "Make sure Quick Connect is enabled" was shown even when the address was wrong.
+@MainActor
+final class QuickConnectFailureMessageTests: XCTestCase {
+    func testUnreachableServerGetsTheNetworkMessageNotTheEnableItMessage() {
+        let m = AppState.quickConnectFailureMessage(URLError(.cannotConnectToHost))
+        XCTAssertTrue(m.contains("8096"), m)
+        XCTAssertFalse(m.contains("Quick Connect is off"))
+    }
+
+    func testDisabledQuickConnectSaysSo() {
+        XCTAssertTrue(AppState.quickConnectFailureMessage(PlexAPIService.APIError.unauthorized).contains("Quick Connect is off"))
+    }
+
+    func testWrongPlaceSaysItIsNotJellyfin() {
+        XCTAssertTrue(AppState.quickConnectFailureMessage(PlexAPIService.APIError.httpFailure(statusCode: 404)).contains("isn't Jellyfin"))
+    }
+
+    func testNoEmDashes() {
+        for e: Error in [URLError(.timedOut), PlexAPIService.APIError.unauthorized, PlexAPIService.APIError.invalidResponse] {
+            XCTAssertFalse(AppState.quickConnectFailureMessage(e).contains("\u{2014}"))
+        }
+    }
+}

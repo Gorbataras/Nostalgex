@@ -815,7 +815,7 @@ extension AppState {
                 currentAuthAttempt = nil
                 jellyfinQuickConnectCode = ""
                 Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_quick_connect_failed"))
-                authError = "Could not start Quick Connect. Make sure it's enabled on your Jellyfin server."
+                authError = Self.quickConnectFailureMessage(error)
             }
         }
     }
@@ -927,6 +927,21 @@ extension AppState {
             }
         }
         throw PlexAPIService.APIError.invalidResponse
+    }
+
+    /// Quick Connect failing to start was one message for two different problems, and the
+    /// common one (the server wasn't reachable at that address) got the wrong advice.
+    /// Jellyfin answers 401 when Quick Connect is switched off.
+    static func quickConnectFailureMessage(_ error: Error) -> String {
+        if error is URLError { return serverUnreachableMessage(error, backend: "Jellyfin") }
+        switch error as? PlexAPIService.APIError {
+        case .unauthorized?:
+            return "Quick Connect is off on this server. Turn it on in Jellyfin (Dashboard, then General), or sign in with your password."
+        case .httpFailure(statusCode: 404)?, .receivedMarkupInsteadOfJSON?:
+            return "That address answered, but it isn't Jellyfin. Check the address and port (Jellyfin uses 8096)."
+        default:
+            return "Could not start Quick Connect. Check the server address, or sign in with your password."
+        }
     }
 
     static func isWrongPlaceError(_ error: Error) -> Bool {
