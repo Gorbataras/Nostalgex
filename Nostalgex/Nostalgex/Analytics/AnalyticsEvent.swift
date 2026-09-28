@@ -144,12 +144,15 @@ enum AnalyticsEvent: Sendable {
     case connectStarted(backend: AnalyticsBackend, method: AnalyticsConnectMethod)
 
     /// A sign-in succeeded. `serverCount` is the number of reachable servers found
-    /// (always 1 for Jellyfin/Emby which are single-server flows).
-    case connectCompleted(backend: AnalyticsBackend, serverCount: Int)
+    /// (always 1 for Jellyfin/Emby which are single-server flows). `priorFailures` is
+    /// how many sign-ins failed in a row before this one since launch (bucketed on the
+    /// wire), and `firstFailureReason` is the reason of the first of those.
+    case connectCompleted(backend: AnalyticsBackend, serverCount: Int, priorFailures: Int, firstFailureReason: AnalyticsConnectFailureReason?)
 
-    /// A sign-in failed. `reason` comes from a fixed, short vocabulary (see the
-    /// existing `analyticsReason(for:)` pattern) — never a localized string.
-    case connectFailed(backend: AnalyticsBackend, reason: String)
+    /// A sign-in failed. `reason` is from the closed `AnalyticsConnectFailureReason`
+    /// vocabulary; `context` adds method, attempt, elapsed bucket, a numeric error code
+    /// and, for Jellyfin / Emby, coarse categories of the typed URL. No free text.
+    case connectFailed(backend: AnalyticsBackend, reason: AnalyticsConnectFailureReason, context: AnalyticsConnectFailureContext)
 
     /// The user cancelled an in-progress sign-in (tapped Cancel on the PIN /
     /// Quick Connect / Sign In screen).
@@ -302,11 +305,22 @@ enum AnalyticsEvent: Sendable {
         case .connectStarted(let backend, let method):
             return ["backend": backend.rawValue, "method": method.wireValue]
 
-        case .connectCompleted(let backend, let serverCount):
-            return ["backend": backend.rawValue, "serverCount": String(serverCount)]
+        case .connectCompleted(let backend, let serverCount, let priorFailures, let firstFailureReason):
+            var params = [
+                "backend": backend.rawValue,
+                "serverCount": String(serverCount),
+                "priorFailures": AnalyticsBuckets.count(priorFailures),
+            ]
+            if priorFailures > 0, let firstFailureReason {
+                params["firstFailureReason"] = firstFailureReason.wireValue
+            }
+            return params
 
-        case .connectFailed(let backend, let reason):
-            return ["backend": backend.rawValue, "reason": reason]
+        case .connectFailed(let backend, let reason, let context):
+            var params = context.wireParameters
+            params["backend"] = backend.rawValue
+            params["reason"] = reason.wireValue
+            return params
 
         case .connectCancelled(let backend, let method):
             return ["backend": backend.rawValue, "method": method.wireValue]

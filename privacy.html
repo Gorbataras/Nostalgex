@@ -44,6 +44,7 @@
     <li>A server connection was started</li>
     <li>A server connection finished, with the number of servers found</li>
     <li>A server connection failed, with a short reason code (for example <code>no_reachable_server</code> or <code>jellyfin_auth_failed</code>)</li>
+    <li>With a failed or finished connection: a reason from a fixed list (like <code>connection_refused</code>), a bucketed try count and duration, a numeric error code, and for Jellyfin and Emby the kind of address typed (like <code>private_ipv4</code>) and whether it had a scheme, port or path. The address itself never leaves the Apple TV</li>
     <li>A library finished loading, with the number of channels, the number of items, and whether it happened in the background</li>
     <li>A library failed to load, with a short error reason</li>
     <li>A channel was tuned, with the channel number</li>
