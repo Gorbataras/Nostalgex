@@ -295,6 +295,12 @@ class AppState {
     /// `connect.cancelled` / `connect.code_expired`, which need to say WHICH kind of
     /// sign-in the user backed out of.
     var currentAuthAttempt: (backend: AnalyticsBackend, method: AnalyticsConnectMethod)? = nil
+    /// When the in-flight sign-in started, for the `elapsedBucket` on `connect.failed`.
+    @ObservationIgnored var currentAuthAttemptStartedAt: Date? = nil
+    /// Coarse categories of the URL typed for the in-flight Jellyfin / Emby sign-in.
+    @ObservationIgnored var currentAuthAttemptURLShape: TypedServerURLShape? = nil
+    /// Consecutive sign-in failures since launch. Memory only, never persisted.
+    @ObservationIgnored var connectLedger = ConnectAttemptLedger()
     /// True after auth when the account can reach more than one server and the user
     /// hasn't yet chosen which to include. Drives the login server picker.
     var needsServerSelection: Bool = false

@@ -35,14 +35,18 @@ final class AnalyticsEventTests: XCTestCase {
     }
 
     func testConnectCompletedSerializesServerCount() {
-        let event = AnalyticsEvent.connectCompleted(backend: .plex, serverCount: 3)
+        let event = AnalyticsEvent.connectCompleted(backend: .plex, serverCount: 3, priorFailures: 0, firstFailureReason: nil)
         XCTAssertEqual(event.name, "connect.completed")
-        XCTAssertEqual(event.parameters, ["backend": "plex", "serverCount": "3"])
+        XCTAssertEqual(event.parameters, ["backend": "plex", "serverCount": "3", "priorFailures": "0"])
     }
 
+    /// Full connect.failed contract lives in ConnectFailureTests.swift.
     func testConnectFailedCarriesReason() {
-        let event = AnalyticsEvent.connectFailed(backend: .emby, reason: "emby_unreachable")
-        XCTAssertEqual(event.parameters, ["backend": "emby", "reason": "emby_unreachable"])
+        let event = AnalyticsEvent.connectFailed(backend: .emby, reason: .timeout, context: AnalyticsConnectFailureContext(
+            method: .password, attempt: 1, elapsedSeconds: 15, errorCode: -1001, urlShape: nil
+        ))
+        XCTAssertEqual(event.parameters["backend"], "emby")
+        XCTAssertEqual(event.parameters["reason"], "timeout")
     }
 
     func testConnectCancelledAndCodeExpiredNameTheMethod() {
