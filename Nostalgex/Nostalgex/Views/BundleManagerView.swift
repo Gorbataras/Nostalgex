@@ -40,6 +40,7 @@ struct SettingsPageView: View {
                                 isFocused: focusedItem == "rate",
                                 showToggle: false
                             ) {
+                                Analytics.track(.rateTapped)
                                 openURL(AppStoreLink.productPage)
                             }
                             .focused($focusedItem, equals: "rate")
@@ -308,6 +309,9 @@ struct SettingsPageView: View {
         }
         .sheet(isPresented: $showStreamQualityPicker) {
             StreamQualityPickerSheet(selected: streamQuality) { picked in
+                if picked != streamQuality {
+                    Analytics.track(.settingChanged(key: "stream_quality", value: picked.rawValue))
+                }
                 StreamQuality.current = picked
                 streamQuality = picked
             }

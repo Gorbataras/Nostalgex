@@ -247,6 +247,10 @@ extension AppState {
         sleepTimer?.invalidate()
         sleepGraceTimer?.invalidate()
         sleepGracePromptActive = false
+        // Log both arm and cancel through the same generic settings channel; the
+        // value (`0` for OFF, minutes for anything else) reads on the dashboard
+        // without needing a second event.
+        Analytics.track(.settingChanged(key: "sleep_timer_minutes", value: String(max(minutes, 0))))
         guard minutes > 0 else {
             sleepTimerEndDate = nil
             sleepTimerMinutes = nil
@@ -294,6 +298,7 @@ extension AppState {
     /// Lightweight stop: pause the stream, drop the transcode, return to the guide.
     /// Deliberately NOT `disconnect()` — that would drop server credentials.
     private func expireSleepTimer() {
+        emitPlaybackStoppedForActiveSession()
         player?.pause()
         stopActiveTranscodeIfNeeded()
         cancelSleepTimer()
@@ -309,13 +314,43 @@ extension AppState {
     }
 
     /// Shows an error frame briefly, then advances so a single bad item never strands a channel.
-    private func showErrorThenSkip(_ message: String, generation: Int) {
+    private func showErrorThenSkip(_ message: String, generation: Int, errorCode: AnalyticsPlaybackErrorCode? = nil) {
         playbackState = .error(message)
+        if let errorCode {
+            emitPlaybackError(errorCode)
+        }
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             guard let self, self.loadGeneration == generation else { return }
             self.advanceToNextItem()
         }
+    }
+
+    /// Convenience for firing `playback.error` from any playback path. No-op when there
+    /// is no active channel (which is the only case where an error signal wouldn't have
+    /// a channel number to send).
+    private func emitPlaybackError(_ code: AnalyticsPlaybackErrorCode) {
+        guard let channel = currentChannel else { return }
+        Analytics.track(.playbackError(
+            channelNumber: channel.number,
+            backend: analyticsBackend,
+            code: code
+        ))
+    }
+
+    /// Fire `playback.ready` once per session and record delivery mode for the later
+    /// `playback.stopped` signal. Every readyToPlay path in loadCurrentItem/retry/
+    /// fallback funnels through here.
+    fileprivate func reportPlaybackReadyIfNeeded(delivery: AnalyticsPlaybackDelivery) {
+        currentPlaybackDelivery = delivery
+        guard !playbackReadyReported, let channel = currentChannel else { return }
+        playbackReadyReported = true
+        Analytics.track(.playbackReady(
+            channelNumber: channel.number,
+            backend: analyticsBackend,
+            delivery: delivery,
+            channel: AnalyticsChannelDescriptor.describe(channel)
+        ))
     }
 
     func loadCurrentItem() {
@@ -326,6 +361,16 @@ extension AppState {
         audibleGroup = nil
         audibleGroupItem = nil
         hasSubtitleTracks = false
+
+        // Flush accumulated watch time for the outgoing session before creating a new
+        // tracker. This is where per-item watch time analytics is emitted: the previous
+        // channel+delivery is still current at this point.
+        emitPlaybackStoppedForActiveSession()
+
+        // Session state resets — the new item gets a fresh delivery and a fresh ready
+        // signal. Both are set inside the readyToPlay branches below.
+        currentPlaybackDelivery = nil
+        playbackReadyReported = false
 
         // Stop the previous tracker before anything else so its scrobble fires cleanly.
         let outgoing = playbackTracker
@@ -377,7 +422,7 @@ extension AppState {
 
         if !isDemoMode && directURL == nil && transcodeURL == nil {
             print("[Plex90] gen=\(generation) | No URL available")
-            showErrorThenSkip("No playable source", generation: generation)
+            showErrorThenSkip("No playable source", generation: generation, errorCode: .noPlayableSource)
             return
         }
 
@@ -417,7 +462,7 @@ extension AppState {
                     // Transcode branch: ask the backend how to play it (Jellyfin = PlaybackInfo,
                     // others = hand-built URL). This is the only await in the load path.
                     guard let api = itemAPI else {
-                        self.showErrorThenSkip("No playable source", generation: generation)
+                        self.showErrorThenSkip("No playable source", generation: generation, errorCode: .noPlayableSource)
                         return
                     }
                     let resolved = await api.resolveTranscodePlayback(for: item, offsetSeconds: self.seekOffset)
@@ -437,7 +482,7 @@ extension AppState {
                     }
                     guard let resolution else {
                         print("[Plex90] gen=\(generation) | No playable source after PlaybackInfo")
-                        self.showErrorThenSkip("Transcoding unavailable", generation: generation)
+                        self.showErrorThenSkip("Transcoding unavailable", generation: generation, errorCode: .transcodingUnavailable)
                         return
                     }
                     resolvedURL = resolution.url
@@ -472,6 +517,11 @@ extension AppState {
                         switch status {
                         case .readyToPlay:
                             print("[Plex90] gen=\(generation) | READY: \"\(title)\"")
+                            // First readyToPlay in this session wins: record delivery and
+                            // emit the analytics ready signal. Retry / transcode-fallback
+                            // paths re-enter readyToPlay for the same channel; they'd
+                            // otherwise double-count.
+                            self.reportPlaybackReadyIfNeeded(delivery: isDirectPlay ? .directPlay : .transcode)
                             if let seekTo, seekTo > 0 {
                                 print("[Plex90] gen=\(generation) | Seeking to \(seekTo)s")
                                 let target = CMTime(seconds: Double(seekTo), preferredTimescale: 600)
@@ -576,6 +626,8 @@ extension AppState {
                         switch status {
                         case .readyToPlay:
                             print("[Plex90] gen=\(generation) | RETRY READY: \"\(title)\"")
+                            // Retry re-uses whatever delivery the session already had.
+                            self.reportPlaybackReadyIfNeeded(delivery: self.currentPlaybackDelivery ?? .transcode)
                             if let seekTo, seekTo > 0 {
                                 let target = CMTime(seconds: Double(seekTo), preferredTimescale: 600)
                                 self.player?.seek(to: target) { _ in
@@ -600,6 +652,7 @@ extension AppState {
                             guard self.loadGeneration == generation else { return }
                             let msg = playerItem.error?.localizedDescription ?? "Unknown error"
                             print("[Plex90] gen=\(generation) | RETRY FAILED: \"\(title)\" - \(msg)")
+                            self.emitPlaybackError(.playerFailed)
                             self.autoSkipOnError(generation: generation)
                         default:
                             break
@@ -626,6 +679,13 @@ extension AppState {
         guard loadGeneration == generation else { return }
         let title = currentItem?.title ?? "Unknown"
         print("[Plex90] gen=\(generation) | TRANSCODE FALLBACK: \"\(title)\"")
+        // Analytics: direct play failed and we're moving to the server-side transcoder.
+        if let channel = currentChannel {
+            Analytics.track(.playbackTranscodeFallback(
+                channelNumber: channel.number,
+                backend: analyticsBackend
+            ))
+        }
         cancellables.removeAll()
         player?.replaceCurrentItem(with: nil)
 
@@ -649,6 +709,8 @@ extension AppState {
                         switch status {
                         case .readyToPlay:
                             print("[Plex90] gen=\(generation) | TRANSCODE READY: \"\(title)\"")
+                            // Fallback path is by definition a transcode delivery.
+                            self.reportPlaybackReadyIfNeeded(delivery: .transcode)
                             if let seekTo, seekTo > 0 {
                                 let target = CMTime(seconds: Double(seekTo), preferredTimescale: 600)
                                 self.player?.seek(to: target) { _ in
@@ -671,6 +733,7 @@ extension AppState {
                             guard self.loadGeneration == generation else { return }
                             let msg = playerItem.error?.localizedDescription ?? "Unknown error"
                             print("[Plex90] gen=\(generation) | TRANSCODE FAILED: \"\(title)\" - \(msg)")
+                            self.emitPlaybackError(.playerFailed)
                             self.autoSkipOnError(generation: generation)
                         default:
                             break
@@ -730,13 +793,19 @@ extension AppState {
                 // cannot render: an HEVC MP4 tagged hev1, an exotic profile, a broken index.
                 // The server stream is the answer, and it gets its own capped retry after.
                 print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, direct play gave no picture (\(detail)) — switching to the server stream")
+                if let channel = self.currentChannel {
+                    Analytics.track(.playbackTranscodeFallback(channelNumber: channel.number, backend: self.analyticsBackend))
+                }
                 let backend = self.api(for: item.serverID)
                 let offset = self.seekOffset
                 Task { @MainActor [weak self] in
                     guard let self, self.loadGeneration == generation else { return }
                     guard let resolved = await backend.resolveTranscodePlayback(for: item, offsetSeconds: offset),
                           self.loadGeneration == generation else {
-                        if self.loadGeneration == generation { self.advanceToNextItem() }
+                        if self.loadGeneration == generation {
+                            self.emitPlaybackError(.watchdogSkip)
+                            self.advanceToNextItem()
+                        }
                         return
                     }
                     self.activeTranscode = (item.serverID, resolved.resolution.playSessionId)
@@ -758,6 +827,7 @@ extension AppState {
                 return
             }
             print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, no picture (\(detail)) — advancing to next item")
+            self.emitPlaybackError(.watchdogSkip)
             self.advanceToNextItem()
         }
     }

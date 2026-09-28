@@ -16,15 +16,60 @@ This policy covers two separate things: the Nostalgex app on Apple TV, and the n
 
 ## The app: what it sends
 
-Nostalgex sends anonymous usage events to [TelemetryDeck](https://telemetrydeck.com), a privacy-focused analytics service. This is the complete list of events the app can send. There are seven, and there are no others:
+Nostalgex sends anonymous usage events to [TelemetryDeck](https://telemetrydeck.com), a privacy-focused analytics service, so we can tell whether the app is working: how often it installs and connects, whether playback starts and stays up, and which settings people actually use. Every event carries a `demo` flag so demo-mode exploration can be filtered out of the real numbers.
 
-- A server connection was started
-- A server connection finished, with the number of servers found
-- A server connection failed, with a short reason code (for example `no_reachable_server` or `jellyfin_auth_failed`)
-- A library finished loading, with the number of channels, the number of items, and whether it happened in the background
-- A library failed to load, with a short error reason
-- A channel was tuned, with the channel number
-- Playback started, with the channel number
+This is the complete list of events the app can send.
+
+**Launch and credentials**
+
+- App launched, marked as either the first launch on this install or a return launch, so installs can be joined to connect success
+- A saved sign-in could not be read back on launch (device data loss), with the keychain status code (a short number, no server or token bytes)
+- A fresh sign-in was written to the keychain but could not be verified back (the session will die on relaunch)
+
+**Connecting to a server** — the same event names apply to Plex, Jellyfin, and Emby, with a `backend` parameter naming which one:
+
+- Connect started, with the backend and the method (`pin`, `password`, or `quick_connect`)
+- Connect completed, with the backend and the number of reachable servers found
+- Connect failed, with the backend and a short reason code (for example `no_reachable_server`, `jellyfin_auth_failed`, `emby_unreachable`)
+- Connect cancelled, with the backend and the method (the user tapped Cancel)
+- Connect code expired, with the backend and the method (PIN or Quick Connect timed out)
+- Server picker confirmed, with the number of servers the user chose to include
+
+**Library**
+
+- A library scan started, and whether it was a background refresh
+- A library scan finished, with the number of channels, the number of items, whether it happened in the background, how many milliseconds it took, and whether it was partial (one or more servers only returned some of the library)
+- A library scan failed in the foreground, with a short error reason
+- A library scan was abandoned, with the item count so far and whether the user asked to stop waiting (`userInitiated=true`) or the stall watchdog gave up (`userInitiated=false`)
+- A library scan finished but built no channels (the "no channels found" state)
+- The user tapped the STOP WAITING button on the loading screen
+- A background library refresh failed (silent to the user), with a short error reason
+
+**Tuning and playback**
+
+Each of the three events below also carries a short "channel identity" that is fixed by the app, not by your library:
+
+- `channelType`: either `static` (a channel Nostalgex ships in its own catalog, the same across every install) or `collection` (a channel that Nostalgex built from a movie collection on your own server)
+- `channelID`: only present for `static` channels — a small number from Nostalgex's own catalog
+- `channelName`: only present for `static` channels — the display name from the app's own built-in lineup (for example `REWATCHABLES MOVIES`, `KIDZ CARTOONS`, `90S SITCOMS`). This is read from the copy of the channel list that ships inside the app on the App Store, never from any list your server might host, and never from your library
+- `bundle`: the fixed bundle key the channel belongs to (`nostalgex`, `kids`, `truecrime`, `essentials`, `premium`, `arthouse`, `adventureland`, `sports`, `decades`, `franchises`, `franchise`, `streamers`, `seasonal`, `high-rotation`, or `collections-franchises` / `collections-actors` / `collections-custom` for user-collection channels)
+
+For channels Nostalgex builds from your own collections, `channelType` is `collection` and none of `channelID`, `channelName`, or the collection's title is sent — only the bundle key, so the app can tell franchise-style collections apart from actor collections apart from custom collections at the group level. The names of collections, servers, and titles from your library never leave the device.
+
+- A channel was tuned to by the user, with the channel number, the backend, the method (`guide`, `mini_strip`, `next`, or `previous`), and the channel identity above. Automatic re-selections (library load, snapshot restore, background refresh, foreground return) never fire this event
+- Playback became ready to play, with the channel number, the backend, whether the stream is direct play or a server-side transcode, and the channel identity above
+- Playback stopped, with the channel number, the backend, the delivery mode, the channel identity above, and the accumulated active watch time (a number of seconds — no titles, no scenes, no timestamps). Fires when the user changes channel, disconnects, backgrounds the app, or the sleep timer stops playback
+- Playback errored, with the channel number, the backend, and one of a short fixed list of reason codes: `no_playable_source`, `transcoding_unavailable`, `player_failed`, `watchdog_skip`, `stalled`
+- Playback fell back to a server-side transcode after direct play failed, with the channel number and the backend
+
+**Session length**
+
+- The app moved to the background, carrying the number of wall-clock seconds it spent in the foreground since the last launch or return-to-foreground. No screen, activity, or content details — just the length of the visit. Used to measure total time in the app
+
+**Settings and app use**
+
+- A setting changed. One generic event covers channel package toggles, server toggles, rescan taps, disconnect taps, retro mode, stream quality, subtitle language, audio language, subtitle-in-fullscreen toggle, auto foreign-audio subtitles, Plex playback reporting toggle, and sleep timer minutes. The event carries a short setting key (for example `retro_mode`, `bundle:essentials`, `subtitle_language`) and a short value (`true`/`false`, a language code, or a numeric bucket). No library or server identity is included; server toggles do not include the server's identifier
+- The user tapped RATE NOSTALGEX (opens the App Store)
 
 ## The app: what it never sends
 
@@ -32,6 +77,7 @@ Nostalgex sends anonymous usage events to [TelemetryDeck](https://telemetrydeck.
 - Your Plex, Jellyfin, or Emby username, password, or token
 - Your server address, hostname, or IP address
 - Your library contents. No titles, no filenames, no posters, no watch history
+- Any name that came from your library. That includes the names of collections you have on your server, the names of your servers themselves, folder names, and titles. The only channel names that are sent are the built-in ones from Nostalgex's own lineup, read from the copy shipped inside the app
 - Any advertising identifier, and nothing that lets anyone track you across other apps or websites
 
 ## The app: how events are grouped

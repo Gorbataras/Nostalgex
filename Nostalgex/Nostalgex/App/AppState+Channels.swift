@@ -67,7 +67,11 @@ extension AppState {
         } else {
             enabledBundleIDs.insert(bundle.id)
         }
-        print("[Plex90] TOGGLE: '\(bundle.id)' now \(enabledBundleIDs.contains(bundle.id) ? "ON" : "OFF")")
+        let nowEnabled = enabledBundleIDs.contains(bundle.id)
+        print("[Plex90] TOGGLE: '\(bundle.id)' now \(nowEnabled ? "ON" : "OFF")")
+        // Bundle IDs are static (`essentials`, `high-rotation`, `collections-franchises`,
+        // …); safe to include as-is. Nothing here reveals library or user identity.
+        Analytics.track(.settingChanged(key: "bundle:\(bundle.id)", value: nowEnabled ? "true" : "false"))
 
         // Update runtime bundle state
         for i in bundles.indices {

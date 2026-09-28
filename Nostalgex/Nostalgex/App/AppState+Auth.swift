@@ -112,6 +112,10 @@ extension AppState {
             )
             if let diagnostic = signInLossDiagnostic {
                 print("[Plex90] AUTH: \(diagnostic)")
+                // Fire once per launch — hydrateCredentialsWithRetry is a launch path.
+                // Report the primary token's OSStatus (short digits, not PII).
+                let keychainStatus = KeychainService.lastLoadStatuses()["plex_token"].map(String.init) ?? "?"
+                Analytics.track(.credentialsSignInLost(code: keychainStatus))
             }
         }
     }
@@ -135,6 +139,7 @@ extension AppState {
         UserDefaults.standard.set(true, forKey: Self.hasHeldSignInMarkerKey)
         if !allPersisted {
             print("[Plex90] AUTH: credentials could not be persisted — sign-in will be lost on relaunch")
+            Analytics.track(.credentialsPersistFailed)
         }
         persistSelectedServers()
     }
@@ -187,6 +192,7 @@ extension AppState {
     /// Login picker confirmed: lock in the chosen servers and scan.
     func confirmServerSelection(_ servers: [ServerRef]) {
         guard !servers.isEmpty else { return }
+        Analytics.track(.connectServerPickerConfirmed(backend: .plex, serverCount: servers.count))
         completePlexSignIn(token: token, servers: servers)
         needsServerSelection = false
         Task { await loadLibrary() }
@@ -204,12 +210,16 @@ extension AppState {
 
     /// Include/exclude a server from Settings, then rescan. Won't remove the last server.
     func toggleServer(_ server: ServerRef) {
-        if selectedServers.contains(where: { $0.machineIdentifier == server.machineIdentifier }) {
+        let wasIncluded = selectedServers.contains(where: { $0.machineIdentifier == server.machineIdentifier })
+        if wasIncluded {
             guard selectedServers.count > 1 else { return }
             setSelectedServers(selectedServers.filter { $0.machineIdentifier != server.machineIdentifier })
         } else {
             setSelectedServers(selectedServers + [server])
         }
+        // Server identity is deliberately absent — a `true`/`false` toggle is enough
+        // to see how often the row is used; the machine identifier is not analytics data.
+        Analytics.track(.settingChanged(key: "server", value: wasIncluded ? "false" : "true"))
         LibrarySnapshotStore.clear()
         Task { await loadLibrary() }
     }
@@ -327,6 +337,9 @@ extension AppState {
         justAuthenticated = false
 
         isDemoMode = true
+        // Every subsequent signal on this device is tagged demo=true so the dashboard
+        // can filter demo-mode exploration out of the real usage stats.
+        Analytics.setDemoMode(true)
         serverName = "Demo"
         isConnected = true
         isLoading = false
@@ -486,7 +499,8 @@ extension AppState {
         authError = nil
         isAuthInProgress = true
         pinCode = ""
-        Analytics.track(.plexConnectStarted)
+        currentAuthAttempt = (.plex, .pin)
+        Analytics.track(.connectStarted(backend: .plex, method: .pin))
         pinPollTask = Task {
             // An Apple TV that just woke up can have no route yet; that fails instantly
             // rather than timing out, so a single attempt flashed the PIN screen and bounced
@@ -510,7 +524,8 @@ extension AppState {
                 }
             }
             isAuthInProgress = false
-            Analytics.track(.plexConnectFailed(reason: "pin_request_failed"))
+            currentAuthAttempt = nil
+            Analytics.track(.connectFailed(backend: .plex, reason: "pin_request_failed"))
             authError = Self.pinRequestFailureMessage(lastError)
         }
     }
@@ -579,6 +594,14 @@ extension AppState {
     }
 
     func cancelPINAuth() {
+        // Report cancel BEFORE clearing currentAuthAttempt so the signal names the
+        // sign-in the user backed out of. `wasInFlight` gate avoids sending a cancel
+        // for `startPINAuth()` -> immediate-failure paths that already fired failed.
+        let wasInFlight = isAuthInProgress
+        if wasInFlight, let attempt = currentAuthAttempt {
+            Analytics.track(.connectCancelled(backend: attempt.backend, method: attempt.method))
+        }
+        currentAuthAttempt = nil
         pinPollTask?.cancel()
         pinPollTask = nil
         isAuthInProgress = false
@@ -593,12 +616,20 @@ extension AppState {
     /// Use when the user wants to pick up library changes without signing out.
     func rescanLibrary() async {
         guard hasCredentials else { return }
+        Analytics.track(.settingChanged(key: "rescan", value: "tapped"))
         LibrarySnapshotStore.clear()
         DailyManifestStore.clearAll(credentialFingerprint: scheduleCredentialFingerprint)
         await loadLibrary()
     }
 
     func disconnect() {
+        Analytics.track(.settingChanged(key: "disconnect", value: "tapped"))
+        // Fold accumulated watch time into one final playback.stopped before the
+        // tracker is torn down. Otherwise every disconnect drops the last session's
+        // seconds on the floor.
+        emitPlaybackStoppedForActiveSession()
+        currentPlaybackDelivery = nil
+        playbackReadyReported = false
         let outgoing = playbackTracker
         playbackTracker = nil
         outgoing?.stop()
@@ -619,6 +650,8 @@ extension AppState {
         justAuthenticated = false
         lastFailureDiagnostic = nil
         isDemoMode = false
+        // Real backend from here on out; keep the analytics context in sync.
+        Analytics.setDemoMode(false)
     }
 
     private func startPolling() {
@@ -630,8 +663,10 @@ extension AppState {
                 guard !Task.isCancelled else { break }
                 attempts += 1
                 if attempts > 150 {
+                    Analytics.track(.connectCodeExpired(backend: .plex, method: .pin))
                     authError = "Code expired. Tap Connect to try again."
                     isAuthInProgress = false
+                    currentAuthAttempt = nil
                     break
                 }
                 do {
@@ -657,16 +692,18 @@ extension AppState {
                                 } else {
                                     authError = "Signed in, but couldn't reach your Plex server from this network (\(n) found, none reachable). Make sure the server is running and Remote Access is enabled, then try again."
                                 }
-                                Analytics.track(.plexConnectFailed(reason: "no_reachable_server"))
+                                Analytics.track(.connectFailed(backend: .plex, reason: "no_reachable_server"))
                                 isAuthInProgress = false
+                                currentAuthAttempt = nil
                                 break
                             }
 
                             isAuthInProgress = false
+                            currentAuthAttempt = nil
                             pinCode = ""
                             justAuthenticated = true
                             lastFailureDiagnostic = nil
-                            Analytics.track(.plexConnectCompleted(serverCount: availableServers.count))
+                            Analytics.track(.connectCompleted(backend: .plex, serverCount: availableServers.count))
                             if availableServers.count == 1 {
                                 completePlexSignIn(token: authToken, servers: availableServers)
                                 await loadLibrary()
@@ -678,9 +715,10 @@ extension AppState {
                             }
                         } catch {
                             isDiscoveringServers = false
-                            Analytics.track(.plexConnectFailed(reason: "server_discovery_failed"))
+                            Analytics.track(.connectFailed(backend: .plex, reason: "server_discovery_failed"))
                             authError = "Signed in, but couldn't reach plex.tv to find your servers. Check your connection and try again."
                             isAuthInProgress = false
+                            currentAuthAttempt = nil
                         }
                         break
                     }
@@ -703,7 +741,8 @@ extension AppState {
         pinPollTask?.cancel()
         authError = nil
         isAuthInProgress = true
-        Analytics.track(.plexConnectStarted)
+        currentAuthAttempt = (.jellyfin, .password)
+        Analytics.track(.connectStarted(backend: .jellyfin, method: .password))
         pinPollTask = Task {
             do {
                 let result = try await JellyfinAPIService.authenticate(serverURL: url, username: username, password: password)
@@ -712,14 +751,16 @@ extension AppState {
             } catch let api as PlexAPIService.APIError {
                 guard !Task.isCancelled else { return }
                 isAuthInProgress = false
-                Analytics.track(.plexConnectFailed(reason: "jellyfin_auth_failed"))
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_auth_failed"))
                 authError = api == .unauthorized
                     ? "Incorrect username or password."
                     : "Could not reach the Jellyfin server. Check the URL."
             } catch {
                 guard !Task.isCancelled else { return }
                 isAuthInProgress = false
-                Analytics.track(.plexConnectFailed(reason: "jellyfin_unreachable"))
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_unreachable"))
                 authError = Self.serverUnreachableMessage(error, backend: "Jellyfin")
             }
         }
@@ -735,7 +776,8 @@ extension AppState {
         authError = nil
         isAuthInProgress = true
         jellyfinQuickConnectCode = ""
-        Analytics.track(.plexConnectStarted)
+        currentAuthAttempt = (.jellyfin, .quickConnect)
+        Analytics.track(.connectStarted(backend: .jellyfin, method: .quickConnect))
         pinPollTask = Task {
             do {
                 let initiated = try await JellyfinAPIService.quickConnectInitiate(serverURL: url)
@@ -748,8 +790,10 @@ extension AppState {
                     guard !Task.isCancelled else { break }
                     attempts += 1
                     if attempts > 150 {
+                        Analytics.track(.connectCodeExpired(backend: .jellyfin, method: .quickConnect))
                         authError = "Code expired. Tap Connect to try again."
                         isAuthInProgress = false
+                        currentAuthAttempt = nil
                         jellyfinQuickConnectCode = ""
                         break
                     }
@@ -764,8 +808,9 @@ extension AppState {
             } catch {
                 guard !Task.isCancelled else { return }
                 isAuthInProgress = false
+                currentAuthAttempt = nil
                 jellyfinQuickConnectCode = ""
-                Analytics.track(.plexConnectFailed(reason: "jellyfin_quick_connect_failed"))
+                Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_quick_connect_failed"))
                 authError = "Could not start Quick Connect. Make sure it's enabled on your Jellyfin server."
             }
         }
@@ -785,10 +830,11 @@ extension AppState {
         availableServers = [ref]
 
         isAuthInProgress = false
+        currentAuthAttempt = nil
         jellyfinQuickConnectCode = ""
         justAuthenticated = true
         lastFailureDiagnostic = nil
-        Analytics.track(.plexConnectCompleted(serverCount: 1))
+        Analytics.track(.connectCompleted(backend: .jellyfin, serverCount: 1))
 
         setSelectedServers([ref])   // persists selectedServers + syncs primary fields
         saveCredentials()           // persists backendKind, token, serverURL, jellyfinUserId
@@ -806,7 +852,8 @@ extension AppState {
         pinPollTask?.cancel()
         authError = nil
         isAuthInProgress = true
-        Analytics.track(.plexConnectStarted)
+        currentAuthAttempt = (.emby, .password)
+        Analytics.track(.connectStarted(backend: .emby, method: .password))
         pinPollTask = Task {
             do {
                 let result = try await EmbyAPIService.authenticate(serverURL: url, username: username, password: password)
@@ -815,14 +862,16 @@ extension AppState {
             } catch let api as PlexAPIService.APIError {
                 guard !Task.isCancelled else { return }
                 isAuthInProgress = false
-                Analytics.track(.plexConnectFailed(reason: "emby_auth_failed"))
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .emby, reason: "emby_auth_failed"))
                 authError = api == .unauthorized
                     ? "Incorrect username or password."
                     : "Could not reach the Emby server. Check the URL."
             } catch {
                 guard !Task.isCancelled else { return }
                 isAuthInProgress = false
-                Analytics.track(.plexConnectFailed(reason: "emby_unreachable"))
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .emby, reason: "emby_unreachable"))
                 authError = Self.serverUnreachableMessage(error, backend: "Emby")
             }
         }
@@ -841,9 +890,10 @@ extension AppState {
         availableServers = [ref]
 
         isAuthInProgress = false
+        currentAuthAttempt = nil
         justAuthenticated = true
         lastFailureDiagnostic = nil
-        Analytics.track(.plexConnectCompleted(serverCount: 1))
+        Analytics.track(.connectCompleted(backend: .emby, serverCount: 1))
 
         setSelectedServers([ref])
         saveCredentials()
