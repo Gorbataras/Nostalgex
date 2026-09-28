@@ -39,16 +39,16 @@
   </ul>
 
   <h2>The app: what it sends</h2>
-  <p>Nostalgex sends anonymous usage events to <a href="https://telemetrydeck.com" rel="noopener">TelemetryDeck</a>, a privacy-focused analytics service. This is the complete list of events the app can send. There are seven, and there are no others:</p>
+  <p>Nostalgex sends anonymous usage events to <a href="https://telemetrydeck.com" rel="noopener">TelemetryDeck</a>, a privacy-focused analytics service. This is the complete list of what the app can send. Every value is a number or a word from a fixed list built into the app. Nothing you typed and nothing from your library is ever one of them. The full technical list, event by event, is in the <a href="https://github.com/chadMueller/Nostalgex/blob/main/Nostalgex/PRIVACY_POLICY.md" rel="noopener">privacy policy on GitHub</a>.</p>
   <ul>
-    <li>A server connection was started</li>
-    <li>A server connection finished, with the number of servers found</li>
-    <li>A server connection failed, with a short reason code (for example <code>no_reachable_server</code> or <code>jellyfin_auth_failed</code>)</li>
-    <li>With a failed or finished connection: a reason from a fixed list (like <code>connection_refused</code>), a bucketed try count and duration, a numeric error code, and for Jellyfin and Emby the kind of address typed (like <code>private_ipv4</code>) and whether it had a scheme, port or path. The address itself never leaves the Apple TV</li>
-    <li>A library finished loading, with the number of channels, the number of items, and whether it happened in the background</li>
-    <li>A library failed to load, with a short error reason</li>
-    <li>A channel was tuned, with the channel number</li>
-    <li>Playback started, with the channel number</li>
+    <li>The app opened for the first time or again, and how long it stayed open</li>
+    <li>A server connection was started, finished, cancelled, timed out or failed, and which kind of server (Plex, Jellyfin or Emby). A failure carries a reason from a fixed list (like <code>connection_refused</code> or <code>auth_invalid_credentials</code>), a bucketed try count and duration, and a numeric error code. For Jellyfin and Emby it also says what kind of address was typed (like <code>private_ipv4</code>) and whether it had a scheme, port or path. The address itself never leaves the Apple TV</li>
+    <li>A saved sign-in could not be read back or written, with a short numeric status code</li>
+    <li>A library load started, finished, failed, stalled or came back empty, with counts (channels, items, milliseconds) and a short error code</li>
+    <li>A channel was tuned, with the channel number, how you got there (guide, next, previous) and the channel's identity from the app's own built-in lineup (for example <code>REWATCHABLES MOVIES</code>). Channels built from your own collections send only a category, never the collection's name</li>
+    <li>Playback started, stopped, fell back to server conversion, or hit an error, with the channel details above, whether it played directly or was converted, how many seconds were watched, and a short error code</li>
+    <li>A setting was changed, with the setting and its new value (like subtitles on or off)</li>
+    <li>The Rate button was pressed, and the update-emails QR code was shown or its reminder was dismissed</li>
   </ul>
 
   <h2>The app: what it never sends</h2>
