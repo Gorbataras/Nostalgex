@@ -61,6 +61,16 @@ struct EmbyAPIService: MediaBackend {
         return try JSONDecoder().decode(T.self, from: data)
     }
 
+    /// `decode` for sign-in calls: a 2xx web page becomes `.receivedMarkupInsteadOfJSON`
+    /// so a wrong path or proxy page isn't reported as a generic failure.
+    private static func decodeSignIn<T: Decodable>(_ type: T.Type, data: Data, response: URLResponse?) throws -> T {
+        if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+           SignInRequest.looksLikeMarkup(data) {
+            throw PlexAPIService.APIError.receivedMarkupInsteadOfJSON(statusCode: http.statusCode)
+        }
+        return try decode(type, data: data, response: response)
+    }
+
     // MARK: - Connection test
 
     func testConnection() async throws -> String {
@@ -484,6 +494,7 @@ struct EmbyAPIService: MediaBackend {
             throw PlexAPIService.APIError.invalidResponse
         }
         var req = URLRequest(url: url)
+        req.timeoutInterval = SignInRequest.timeout
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -491,7 +502,7 @@ struct EmbyAPIService: MediaBackend {
         req.httpBody = try JSONEncoder().encode(["Username": username, "Pw": password])
 
         let (data, response) = try await session.data(for: req)
-        let result = try decode(EmbyAuthenticationResult.self, data: data, response: response)
+        let result = try decodeSignIn(EmbyAuthenticationResult.self, data: data, response: response)
         guard let token = result.AccessToken, let uid = result.User?.Id else {
             throw PlexAPIService.APIError.unauthorized
         }
