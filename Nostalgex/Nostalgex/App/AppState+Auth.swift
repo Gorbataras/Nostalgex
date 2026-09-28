@@ -499,7 +499,8 @@ extension AppState {
         authError = nil
         isAuthInProgress = true
         pinCode = ""
-        beginConnectAttempt(backend: .plex, method: .pin)
+        currentAuthAttempt = (.plex, .pin)
+        Analytics.track(.connectStarted(backend: .plex, method: .pin))
         pinPollTask = Task {
             // An Apple TV that just woke up can have no route yet; that fails instantly
             // rather than timing out, so a single attempt flashed the PIN screen and bounced
@@ -523,8 +524,8 @@ extension AppState {
                 }
             }
             isAuthInProgress = false
-            let (reason, code) = lastError.map(ConnectFailureClassifier.baseReason(for:)) ?? (.other, nil)
-            resolveConnectAttempt(.failed(reason, errorCode: code))
+            currentAuthAttempt = nil
+            Analytics.track(.connectFailed(backend: .plex, reason: "pin_request_failed"))
             authError = Self.pinRequestFailureMessage(lastError)
         }
     }
@@ -550,125 +551,57 @@ extension AppState {
     /// "Could not reach" hid every cause behind one line. The one that cost a user days:
     /// tvOS refusing a plain http:// URL outside the private LAN ranges (a Tailscale or
     /// other VPN address), which the app reported exactly like a dead server.
-    /// The copy lives in `ConnectFailureClassifier`, the same table analytics uses.
     static func serverUnreachableMessage(_ error: Error, backend: String) -> String {
-        ConnectFailureClassifier.classify(error, backendName: backend).message
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .appTransportSecurityRequiresSecureConnection:
+                return "tvOS blocked the plain http:// address. Use https://, or update Nostalgex (fixed in 1.0.22)."
+            case .cannotFindHost, .dnsLookupFailed:
+                return "Could not find that host. Check the address."
+            case .cannotConnectToHost:
+                return "Nothing answered at that address and port. Check the port (Jellyfin and Emby default to 8096)."
+            case .timedOut:
+                return "The \(backend) server took too long to answer. Check the address, or that the Apple TV can reach it."
+            case .notConnectedToInternet, .networkConnectionLost:
+                return "No network. Check the Apple TV's connection."
+            case .serverCertificateUntrusted, .serverCertificateHasBadDate, .serverCertificateHasUnknownRoot, .serverCertificateNotYetValid, .secureConnectionFailed:
+                return "The server's HTTPS certificate is not trusted by the Apple TV (error \(urlError.code.rawValue))."
+            default:
+                return "Could not reach the \(backend) server (error \(urlError.code.rawValue)). Check the URL."
+            }
+        }
+        return "Could not reach the \(backend) server. Check the URL."
     }
 
-    /// plex.tv PIN request failures, worded for the Plex screen but classified by the
-    /// same `ConnectFailureClassifier` that picks the analytics reason.
     static func pinRequestFailureMessage(_ error: Error?) -> String {
-        guard let error else { return "Could not reach plex.tv. Check your connection, then tap Connect again." }
-        let (reason, code) = ConnectFailureClassifier.baseReason(for: error)
-        switch reason {
-        case .rateLimited:
-            return "plex.tv is rate-limiting sign-in requests from this device. Wait a minute, then tap Connect again."
-        case .offline:
-            return "No internet connection. Check the Apple TV's Wi‑Fi or Ethernet, then tap Connect again."
-        case .timeout:
-            return "plex.tv took too long to respond. Check your connection, then tap Connect again."
-        default:
-            if let api = error as? PlexAPIService.APIError, case .httpFailure(let status) = api {
-                return "plex.tv returned an error (HTTP \(status)). Try again in a moment."
+        if let api = error as? PlexAPIService.APIError, case .httpFailure(let code) = api {
+            if code == 429 {
+                return "plex.tv is rate-limiting sign-in requests from this device. Wait a minute, then tap Connect again."
             }
-            if let code {
-                return "Could not reach plex.tv (error \(code)). Check your connection, then tap Connect again."
-            }
-            return "Could not reach plex.tv. Check your connection, then tap Connect again."
+            return "plex.tv returned an error (HTTP \(code)). Try again in a moment."
         }
-    }
-
-    // MARK: - Connect attempt lifecycle (analytics)
-
-    enum ConnectAttemptOutcome: Equatable {
-        case completed(serverCount: Int)
-        case failed(AnalyticsConnectFailureReason, errorCode: Int?)
-        case cancelled
-        case codeExpired
-    }
-
-    /// Opens a sign-in attempt and fires `connect.started`. An attempt still in flight
-    /// (a second press, or switching from password to Quick Connect) is closed as
-    /// cancelled first, so every `connect.started` resolves exactly once.
-    func beginConnectAttempt(backend: AnalyticsBackend, method: AnalyticsConnectMethod, typedURL: String? = nil, now: Date = Date()) {
-        if currentAuthAttempt != nil { resolveConnectAttempt(.cancelled, now: now) }
-        currentAuthAttempt = (backend, method)
-        currentAuthAttemptStartedAt = now
-        currentAuthAttemptURLShape = typedURL.map(TypedServerURLShape.init(typed:))
-        Analytics.track(.connectStarted(backend: backend, method: method))
-    }
-
-    /// Closes the in-flight attempt with exactly one terminal signal. A no-op when no
-    /// attempt is open, so a late or duplicate resolution can never double count.
-    func resolveConnectAttempt(_ outcome: ConnectAttemptOutcome, now: Date = Date()) {
-        guard let attempt = currentAuthAttempt else { return }
-        let startedAt = currentAuthAttemptStartedAt ?? now
-        let shape = currentAuthAttemptURLShape
-        currentAuthAttempt = nil
-        currentAuthAttemptStartedAt = nil
-        currentAuthAttemptURLShape = nil
-        switch outcome {
-        case .completed(let serverCount):
-            let prior = connectLedger.recordSuccess()
-            Analytics.track(.connectCompleted(
-                backend: attempt.backend, serverCount: serverCount,
-                priorFailures: prior.priorFailures, firstFailureReason: prior.firstFailureReason
-            ))
-        case .failed(let reason, let errorCode):
-            let position = connectLedger.recordFailure(reason)
-            Analytics.track(.connectFailed(backend: attempt.backend, reason: reason, context: AnalyticsConnectFailureContext(
-                method: attempt.method,
-                attempt: position,
-                elapsedSeconds: max(0, now.timeIntervalSince(startedAt)),
-                errorCode: errorCode,
-                urlShape: shape
-            )))
-        case .cancelled:
-            Analytics.track(.connectCancelled(backend: attempt.backend, method: attempt.method))
-        case .codeExpired:
-            Analytics.track(.connectCodeExpired(backend: attempt.backend, method: attempt.method))
-        }
-    }
-
-    /// Jellyfin / Emby failure: one classification sets both the reason and the message.
-    private func failServerSignIn(_ error: Error, backendName: String, stage: ConnectFailureStage = .signIn) {
-        let failure = ConnectFailureClassifier.classify(error, backendName: backendName, stage: stage)
-        isAuthInProgress = false
-        jellyfinQuickConnectCode = ""
-        resolveConnectAttempt(.failed(failure.reason, errorCode: failure.errorCode))
-        authError = failure.message
-    }
-
-    /// Tries each normalized base URL in order (see `ServerURLNormalizer.candidates`).
-    /// Moves on only when the address clearly wasn't the server (refused, 404, a web
-    /// page), never after a timeout, so a dead address still fails once and fast.
-    static func tryServerCandidates<T>(_ candidates: [String], _ operation: (String) async throws -> T) async throws -> (url: String, value: T) {
-        var firstError: Error?
-        for (index, url) in candidates.enumerated() {
-            do {
-                return (url, try await operation(url))
-            } catch {
-                if Task.isCancelled { throw error }
-                let retryable = shouldTryNextServerCandidate(ConnectFailureClassifier.baseReason(for: error).0)
-                if firstError == nil { firstError = error }
-                if !retryable || index == candidates.count - 1 {
-                    // A later candidate that got a real answer (wrong password, timeout)
-                    // says more than the first one's "nothing here".
-                    throw retryable ? (firstError ?? error) : error
-                }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost:
+                return "No internet connection. Check the Apple TV's Wi‑Fi or Ethernet, then tap Connect again."
+            case .timedOut:
+                return "plex.tv took too long to respond. Check your connection, then tap Connect again."
+            default:
+                return "Could not reach plex.tv (error \(urlError.code.rawValue)). Check your connection, then tap Connect again."
             }
         }
-        throw URLError(.badURL)
-    }
-
-    static func shouldTryNextServerCandidate(_ reason: AnalyticsConnectFailureReason) -> Bool {
-        reason == .connectionRefused || reason == .httpNotFound || reason == .markupResponse
+        return "Could not reach plex.tv. Check your connection, then tap Connect again."
     }
 
     func cancelPINAuth() {
-        // Names the sign-in the user backed out of. A no-op when the attempt already
-        // resolved (failed, completed, expired), so nothing is counted twice.
-        resolveConnectAttempt(.cancelled)
+        // Report cancel BEFORE clearing currentAuthAttempt so the signal names the
+        // sign-in the user backed out of. `wasInFlight` gate avoids sending a cancel
+        // for `startPINAuth()` -> immediate-failure paths that already fired failed.
+        let wasInFlight = isAuthInProgress
+        if wasInFlight, let attempt = currentAuthAttempt {
+            Analytics.track(.connectCancelled(backend: attempt.backend, method: attempt.method))
+        }
+        currentAuthAttempt = nil
         pinPollTask?.cancel()
         pinPollTask = nil
         isAuthInProgress = false
@@ -730,9 +663,10 @@ extension AppState {
                 guard !Task.isCancelled else { break }
                 attempts += 1
                 if attempts > 150 {
-                    resolveConnectAttempt(.codeExpired)
+                    Analytics.track(.connectCodeExpired(backend: .plex, method: .pin))
                     authError = "Code expired. Tap Connect to try again."
                     isAuthInProgress = false
+                    currentAuthAttempt = nil
                     break
                 }
                 do {
@@ -740,7 +674,6 @@ extension AppState {
                         isDiscoveringServers = true
                         do {
                             let result = try await PlexAPIService.discoverServers(token: authToken)
-                            guard !Task.isCancelled else { break }
                             isDiscoveringServers = false
                             availableServers = result.reachable.map {
                                 ServerRef(machineIdentifier: $0.machineIdentifier, name: $0.name, baseURL: $0.bestReachableURI, owned: $0.owned, token: $0.token)
@@ -750,29 +683,27 @@ extension AppState {
                                 // Differentiate "no server on the account" from "server(s)
                                 // exist but none reachable" — very different fixes for the user.
                                 let n = result.totalServers
-                                let reason: AnalyticsConnectFailureReason
                                 if n == 0 {
-                                    reason = .plexNoServerOnAccount
                                     authError = "Signed in, but no Plex Media Server was found on your account. Set up Plex on a computer or NAS (with media), make sure it's running, then try again."
                                 } else if result.ownedServers == 0 {
-                                    reason = .plexNoReachableShared
                                     // Shared-only user: they don't own the server, so "enable
                                     // Remote Access" is the wrong advice — only the owner can.
                                     authError = "Signed in, but the shared library you have access to isn't reachable right now (\(n) found, none reachable). Ask the server's owner to confirm it's online and Remote Access is on, then try again."
                                 } else {
-                                    reason = .plexNoReachableOwned
                                     authError = "Signed in, but couldn't reach your Plex server from this network (\(n) found, none reachable). Make sure the server is running and Remote Access is enabled, then try again."
                                 }
-                                resolveConnectAttempt(.failed(reason, errorCode: nil))
+                                Analytics.track(.connectFailed(backend: .plex, reason: "no_reachable_server"))
                                 isAuthInProgress = false
+                                currentAuthAttempt = nil
                                 break
                             }
 
                             isAuthInProgress = false
+                            currentAuthAttempt = nil
                             pinCode = ""
                             justAuthenticated = true
                             lastFailureDiagnostic = nil
-                            resolveConnectAttempt(.completed(serverCount: availableServers.count))
+                            Analytics.track(.connectCompleted(backend: .plex, serverCount: availableServers.count))
                             if availableServers.count == 1 {
                                 completePlexSignIn(token: authToken, servers: availableServers)
                                 await loadLibrary()
@@ -783,12 +714,11 @@ extension AppState {
                                 needsServerSelection = true
                             }
                         } catch {
-                            guard !Task.isCancelled else { break }
                             isDiscoveringServers = false
-                            let failure = ConnectFailureClassifier.classify(error, backendName: "Plex", stage: .plexDiscovery)
-                            resolveConnectAttempt(.failed(failure.reason, errorCode: failure.errorCode))
-                            authError = failure.message
+                            Analytics.track(.connectFailed(backend: .plex, reason: "server_discovery_failed"))
+                            authError = "Signed in, but couldn't reach plex.tv to find your servers. Check your connection and try again."
                             isAuthInProgress = false
+                            currentAuthAttempt = nil
                         }
                         break
                     }
@@ -804,24 +734,36 @@ extension AppState {
     /// Username/password login against a Jellyfin server URL. On success switches the
     /// backend to Jellyfin, persists credentials, and loads the library.
     func authenticateJellyfin(serverURL rawURL: String, username: String, password: String) {
-        let candidates = ServerURLNormalizer.candidates(rawURL)
-        guard !candidates.isEmpty else { authError = "Enter your Jellyfin server URL."; return }
+        let url = Self.normalizeJellyfinServerURL(rawURL)
+        guard !url.isEmpty else { authError = "Enter your Jellyfin server URL."; return }
         guard !username.isEmpty else { authError = "Enter your Jellyfin username."; return }
 
         pinPollTask?.cancel()
         authError = nil
         isAuthInProgress = true
-        beginConnectAttempt(backend: .jellyfin, method: .password, typedURL: rawURL)
+        currentAuthAttempt = (.jellyfin, .password)
+        Analytics.track(.connectStarted(backend: .jellyfin, method: .password))
         pinPollTask = Task {
             do {
-                let (url, result) = try await Self.tryServerCandidates(candidates) {
+                let (url, result) = try await Self.tryServerCandidates(rawURL) {
                     try await JellyfinAPIService.authenticate(serverURL: $0, username: username, password: password)
                 }
                 guard !Task.isCancelled else { return }
                 await completeJellyfinAuth(serverURL: url, result: result)
+            } catch let api as PlexAPIService.APIError {
+                guard !Task.isCancelled else { return }
+                isAuthInProgress = false
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_auth_failed"))
+                authError = api == .unauthorized
+                    ? "Incorrect username or password."
+                    : "Could not reach the Jellyfin server. Check the URL."
             } catch {
                 guard !Task.isCancelled else { return }
-                failServerSignIn(error, backendName: "Jellyfin")
+                isAuthInProgress = false
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_unreachable"))
+                authError = Self.serverUnreachableMessage(error, backend: "Jellyfin")
             }
         }
     }
@@ -829,24 +771,21 @@ extension AppState {
     /// Quick Connect login: shows a code the user approves in their Jellyfin dashboard,
     /// then polls until approved and exchanges the secret for an access token.
     func startJellyfinQuickConnect(serverURL rawURL: String) {
-        let candidates = ServerURLNormalizer.candidates(rawURL)
-        guard !candidates.isEmpty else { authError = "Enter your Jellyfin server URL."; return }
+        let url = Self.normalizeJellyfinServerURL(rawURL)
+        guard !url.isEmpty else { authError = "Enter your Jellyfin server URL."; return }
 
         pinPollTask?.cancel()
         authError = nil
         isAuthInProgress = true
         jellyfinQuickConnectCode = ""
-        beginConnectAttempt(backend: .jellyfin, method: .quickConnect, typedURL: rawURL)
+        currentAuthAttempt = (.jellyfin, .quickConnect)
+        Analytics.track(.connectStarted(backend: .jellyfin, method: .quickConnect))
         pinPollTask = Task {
-            // Failing to get a code (Quick Connect off, or server unreachable) is told
-            // apart from failing the final token exchange after approval.
-            var stage: ConnectFailureStage = .quickConnectStart
             do {
-                let (url, initiated) = try await Self.tryServerCandidates(candidates) {
+                let (url, initiated) = try await Self.tryServerCandidates(rawURL) {
                     try await JellyfinAPIService.quickConnectInitiate(serverURL: $0)
                 }
                 guard !Task.isCancelled else { return }
-                stage = .signIn
                 jellyfinQuickConnectCode = initiated.code
 
                 var attempts = 0
@@ -855,9 +794,10 @@ extension AppState {
                     guard !Task.isCancelled else { break }
                     attempts += 1
                     if attempts > 150 {
-                        resolveConnectAttempt(.codeExpired)
+                        Analytics.track(.connectCodeExpired(backend: .jellyfin, method: .quickConnect))
                         authError = "Code expired. Tap Connect to try again."
                         isAuthInProgress = false
+                        currentAuthAttempt = nil
                         jellyfinQuickConnectCode = ""
                         break
                     }
@@ -871,7 +811,11 @@ extension AppState {
                 }
             } catch {
                 guard !Task.isCancelled else { return }
-                failServerSignIn(error, backendName: "Jellyfin", stage: stage)
+                isAuthInProgress = false
+                currentAuthAttempt = nil
+                jellyfinQuickConnectCode = ""
+                Analytics.track(.connectFailed(backend: .jellyfin, reason: "jellyfin_quick_connect_failed"))
+                authError = "Could not start Quick Connect. Make sure it's enabled on your Jellyfin server."
             }
         }
     }
@@ -890,10 +834,11 @@ extension AppState {
         availableServers = [ref]
 
         isAuthInProgress = false
+        currentAuthAttempt = nil
         jellyfinQuickConnectCode = ""
         justAuthenticated = true
         lastFailureDiagnostic = nil
-        resolveConnectAttempt(.completed(serverCount: 1))
+        Analytics.track(.connectCompleted(backend: .jellyfin, serverCount: 1))
 
         setSelectedServers([ref])   // persists selectedServers + syncs primary fields
         saveCredentials()           // persists backendKind, token, serverURL, jellyfinUserId
@@ -904,24 +849,36 @@ extension AppState {
 
     /// Username/password login against an Emby server URL.
     func authenticateEmby(serverURL rawURL: String, username: String, password: String) {
-        let candidates = ServerURLNormalizer.candidates(rawURL)
-        guard !candidates.isEmpty else { authError = "Enter your Emby server URL."; return }
+        let url = Self.normalizeJellyfinServerURL(rawURL)
+        guard !url.isEmpty else { authError = "Enter your Emby server URL."; return }
         guard !username.isEmpty else { authError = "Enter your Emby username."; return }
 
         pinPollTask?.cancel()
         authError = nil
         isAuthInProgress = true
-        beginConnectAttempt(backend: .emby, method: .password, typedURL: rawURL)
+        currentAuthAttempt = (.emby, .password)
+        Analytics.track(.connectStarted(backend: .emby, method: .password))
         pinPollTask = Task {
             do {
-                let (url, result) = try await Self.tryServerCandidates(candidates) {
+                let (url, result) = try await Self.tryServerCandidates(rawURL) {
                     try await EmbyAPIService.authenticate(serverURL: $0, username: username, password: password)
                 }
                 guard !Task.isCancelled else { return }
                 await completeEmbyAuth(serverURL: url, result: result)
+            } catch let api as PlexAPIService.APIError {
+                guard !Task.isCancelled else { return }
+                isAuthInProgress = false
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .emby, reason: "emby_auth_failed"))
+                authError = api == .unauthorized
+                    ? "Incorrect username or password."
+                    : "Could not reach the Emby server. Check the URL."
             } catch {
                 guard !Task.isCancelled else { return }
-                failServerSignIn(error, backendName: "Emby")
+                isAuthInProgress = false
+                currentAuthAttempt = nil
+                Analytics.track(.connectFailed(backend: .emby, reason: "emby_unreachable"))
+                authError = Self.serverUnreachableMessage(error, backend: "Emby")
             }
         }
     }
@@ -939,12 +896,44 @@ extension AppState {
         availableServers = [ref]
 
         isAuthInProgress = false
+        currentAuthAttempt = nil
         justAuthenticated = true
         lastFailureDiagnostic = nil
-        resolveConnectAttempt(.completed(serverCount: 1))
+        Analytics.track(.connectCompleted(backend: .emby, serverCount: 1))
 
         setSelectedServers([ref])
         saveCredentials()
         await loadLibrary()
+    }
+
+    /// Cleans up a typed Jellyfin / Emby address (see `ServerURLNormalizer`). Only used to
+    /// check that something usable was typed; sign-in itself tries every candidate.
+    static func normalizeJellyfinServerURL(_ raw: String) -> String {
+        ServerURLNormalizer.normalize(raw)
+    }
+
+    /// Runs a sign-in call against each candidate base URL in order and returns the one
+    /// that answered. A bare IP tries `:8096` first and the address as typed second.
+    /// Moves on only when the first try clearly hit the wrong place (nothing listening,
+    /// a 404, or a web page); a wrong password or a timeout is a real answer and stops.
+    static func tryServerCandidates<T>(_ raw: String, _ operation: (String) async throws -> T) async throws -> (url: String, value: T) {
+        let candidates = ServerURLNormalizer.candidates(raw)
+        guard !candidates.isEmpty else { throw PlexAPIService.APIError.invalidResponse }
+        for (index, url) in candidates.enumerated() {
+            do {
+                return (url, try await operation(url))
+            } catch {
+                guard index < candidates.count - 1, isWrongPlaceError(error) else { throw error }
+            }
+        }
+        throw PlexAPIService.APIError.invalidResponse
+    }
+
+    static func isWrongPlaceError(_ error: Error) -> Bool {
+        if let urlError = error as? URLError { return urlError.code == .cannotConnectToHost }
+        switch error as? PlexAPIService.APIError {
+        case .httpFailure(statusCode: 404)?, .receivedMarkupInsteadOfJSON?: return true
+        default: return false
+        }
     }
 }
