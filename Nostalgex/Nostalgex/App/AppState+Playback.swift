@@ -345,6 +345,7 @@ extension AppState {
         currentPlaybackDelivery = delivery
         guard !playbackReadyReported, let channel = currentChannel else { return }
         playbackReadyReported = true
+        armSignupPromptIfNeeded()
         Analytics.track(.playbackReady(
             channelNumber: channel.number,
             backend: analyticsBackend,

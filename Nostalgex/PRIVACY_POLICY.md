@@ -71,6 +71,13 @@ For channels Nostalgex builds from your own collections, `channelType` is `colle
 - A setting changed. One generic event covers channel package toggles, server toggles, rescan taps, disconnect taps, retro mode, stream quality, subtitle language, audio language, subtitle-in-fullscreen toggle, auto foreign-audio subtitles, Plex playback reporting toggle, and sleep timer minutes. The event carries a short setting key (for example `retro_mode`, `bundle:essentials`, `subtitle_language`) and a short value (`true`/`false`, a language code, or a numeric bucket). No library or server identity is included; server toggles do not include the server's identifier
 - The user tapped RATE NOSTALGEX (opens the App Store)
 
+**Update emails**
+
+- An update-emails QR code was shown, with where (`settings` or `post_playback`) and the backend. Not sent in demo mode
+- The one-time update-emails card closed, with how (`button`, `back`, or `timeout`)
+
+The QR codes are plain links to the signup form on nostalgex.app. You type your email on your phone, not on the Apple TV, and the app never sees it. There is no event for scanning, and nothing links these events to an email address.
+
 ## The app: what it never sends
 
 - Your name, email address, or any account details
@@ -89,6 +96,8 @@ Alongside each event, the analytics library also records ordinary technical deta
 ## The website
 
 Three pages on nostalgex.app load two analytics scripts, Data Haus (our own) and statsngraphs: the home page, the connect page, and the support page. They count page visits, referrers, and basic device and country information. They do not use advertising cookies and do not build a profile of you across other sites.
+
+If you sign up for update emails, your email address goes to Resend, the service that sends them. Along with it we store which signup form or QR code you used (for example the home page, the connect page, or the Apple TV app's settings screen), the page you signed up on, and any campaign tags that were on the link you followed. Nothing else about your visit is stored with it, and it is never joined to app analytics. Every email has an unsubscribe link.
 
 The web tuner itself loads neither. Once you are connected and watching, no analytics script is running on the page, so nothing about your library or what you play is measured. The privacy policy page does not load them either. All of this is separate from the app, and nothing from the app is joined to anything from the website.
 

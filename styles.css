@@ -1452,6 +1452,11 @@ a { color: inherit; }
   color: var(--ink-faint);
 }
 
+/* Update-emails form under the connect card. Reuses the footer signup styles,
+   centered to match the rest of this page. */
+.connect-signup { margin: 40px auto 0; }
+.connect-signup .subscribe-form { justify-content: center; }
+
 /* This page only has two nav actions, so the home link survives the narrow
    breakpoint where index.html drops its outline button. */
 .page-connect .nav-actions .btn-outline { display: inline-flex; }

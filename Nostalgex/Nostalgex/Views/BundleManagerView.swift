@@ -13,6 +13,7 @@ struct SettingsPageView: View {
     @State private var streamQuality = StreamQuality.current
     @State private var showStreamQualityPicker = false
     @State private var showAudioLanguagePicker = false
+    @State private var signupQRShownReported = false
 
     var body: some View {
         ZStack {
@@ -31,7 +32,7 @@ struct SettingsPageView: View {
                     VStack(alignment: .leading, spacing: 48) {
 
                         VStack(alignment: .leading, spacing: 20) {
-                            sectionHeader("APP STORE", subtitle: "Star ratings help other Plex households find Nostalgex")
+                            sectionHeader("SUPPORT NOSTALGEX", subtitle: "Star ratings help other Plex households find Nostalgex")
 
                             SettingsToggleRow(
                                 title: "RATE NOSTALGEX",
@@ -47,30 +48,55 @@ struct SettingsPageView: View {
                             .id("rate")
                             .accessibilityHint("Opens Nostalgex in the App Store to leave a star rating")
 
-                            // Decorative only — avoids stealing a focus row from the button above.
-                            HStack(alignment: .center, spacing: 24) {
-                                QRCodeView(url: "https://buymeacoffee.com/chadmueller")
-                                    .frame(width: 120, height: 120)
-                                    .padding(10)
-                                    .background(Color.white)
-                                    .cornerRadius(8)
+                            // Decorative only — neither QR takes a focus row from the button above.
+                            HStack(alignment: .top, spacing: 64) {
+                                HStack(alignment: .center, spacing: 24) {
+                                    QRCodeView(url: "https://buymeacoffee.com/chadmueller")
+                                        .frame(width: 120, height: 120)
+                                        .padding(10)
+                                        .background(Color.white)
+                                        .cornerRadius(8)
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("BUY ME A COFFEE")
-                                        .font(.custom("DMMono-Medium", size: 22))
-                                        .foregroundStyle(Color(hex: "#FFE500"))
-                                    Text("Scan with your phone to support development")
-                                        .font(.custom("DMMono-Regular", size: 20))
-                                        .foregroundStyle(.white.opacity(0.8))
-                                    Text("buymeacoffee.com/chadmueller")
-                                        .font(.custom("DMMono-Regular", size: 20))
-                                        .foregroundStyle(.white.opacity(0.7))
-                                        .padding(.top, 2)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("BUY ME A COFFEE")
+                                            .font(.custom("DMMono-Medium", size: 22))
+                                            .foregroundStyle(Color(hex: "#FFE500"))
+                                        Text("Scan with your phone to support development")
+                                            .font(.custom("DMMono-Regular", size: 20))
+                                            .foregroundStyle(.white.opacity(0.8))
+                                        Text("buymeacoffee.com/chadmueller")
+                                            .font(.custom("DMMono-Regular", size: 20))
+                                            .foregroundStyle(.white.opacity(0.7))
+                                            .padding(.top, 2)
+                                    }
                                 }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel("Support: scan QR code to visit buymeacoffee.com slash chadmueller")
+
+                                HStack(alignment: .center, spacing: 24) {
+                                    QRCodeView(url: SignupPrompt.url(for: .settings))
+                                        .frame(width: 120, height: 120)
+                                        .padding(10)
+                                        .background(Color.white)
+                                        .cornerRadius(8)
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text("GET UPDATE EMAILS")
+                                            .font(.custom("DMMono-Medium", size: 22))
+                                            .foregroundStyle(Color(hex: "#00C4FF"))
+                                        Text("Scan to hear when new channels ship")
+                                            .font(.custom("DMMono-Regular", size: 20))
+                                            .foregroundStyle(.white.opacity(0.8))
+                                        Text("nostalgex.app")
+                                            .font(.custom("DMMono-Regular", size: 20))
+                                            .foregroundStyle(.white.opacity(0.7))
+                                            .padding(.top, 2)
+                                    }
+                                }
+                                .accessibilityElement(children: .combine)
+                                .accessibilityLabel("Update emails: scan QR code to sign up at nostalgex.app")
                             }
                             .padding(.top, 8)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel("Support: scan QR code to visit buymeacoffee.com slash chadmueller")
                             .allowsHitTesting(false)
                         }
 
@@ -295,6 +321,12 @@ struct SettingsPageView: View {
             // Nil lets tvOS pick first focusable (RATE NOSTALGEX is the top row).
             focusedItem = nil
             appState.player?.isMuted = true
+            // Once per settings visit, not per render or per picker sheet. The QR sits
+            // in the first section, so it's on screen whenever this page is.
+            if !signupQRShownReported && !appState.isDemoMode {
+                signupQRShownReported = true
+                Analytics.track(.signupQRShown(placement: .settings, backend: appState.analyticsBackend))
+            }
         }
         .task {
             // Refresh the reachable-server list so deselected servers can be re-added.

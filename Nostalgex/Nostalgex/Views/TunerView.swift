@@ -62,6 +62,18 @@ struct TunerView: View {
                             retroMode: appState.retroMode
                         )
                         .frame(width: videoWidth, height: videoHeight)
+                        .overlay(alignment: .bottomTrailing) {
+                            // One-time update-emails card. Lives in the guide only, never
+                            // over the full-screen player, so it can't take focus mid-program.
+                            if appState.signupPromptVisible {
+                                SignupPromptCard { method in
+                                    appState.dismissSignupPrompt(method: method)
+                                }
+                                .padding(28)
+                                .transition(.opacity)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.25), value: appState.signupPromptVisible)
                     }
 
                     // Nav bar overlaid at top-left, above the info panel
@@ -120,6 +132,20 @@ struct TunerView: View {
                 appState.isFullScreen = true
             }
         }
+        // Update-emails prompt: the guide is the natural break. Try whenever the guide
+        // becomes the front screen or the prompt turns eligible while it already is.
+        .task(id: signupPresentationKey) {
+            guard appState.signupPromptEligible, navigationPath.isEmpty, !appState.isFullScreen else { return }
+            try? await Task.sleep(nanoseconds: UInt64(SignupPrompt.guideSettleDelay * 1_000_000_000))
+            guard !Task.isCancelled, navigationPath.isEmpty, !appState.isFullScreen else { return }
+            appState.presentSignupPromptIfReady()
+        }
+    }
+
+    /// Changes whenever one of the prompt's presentation conditions changes, restarting
+    /// the settle delay above. Returning from Settings re-runs it via onAppear/task.
+    private var signupPresentationKey: String {
+        "\(appState.signupPromptEligible)-\(appState.isFullScreen)-\(navigationPath.count)"
     }
 
     /// Channel to show in the info panel: focused channel in EPG, or current if none focused
