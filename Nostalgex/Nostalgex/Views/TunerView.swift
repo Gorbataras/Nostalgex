@@ -74,7 +74,8 @@ struct TunerView: View {
                 ChannelGuideView(
                     schedules: schedules,
                     windowStart: windowStart,
-                    onFocusChanged: { id in previewChannelID = id }
+                    onFocusChanged: { id in previewChannelID = id },
+                    onOpenSettings: { navigationPath.append(AppDestination.settings) }
                 )
                 .frame(maxHeight: .infinity)
             }

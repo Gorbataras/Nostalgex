@@ -8,6 +8,7 @@ struct ChannelGuideView: View {
     let schedules: [Int: ChannelSchedule]
     let windowStart: Date
     var onFocusChanged: ((Int?) -> Void)? = nil
+    var onOpenSettings: (() -> Void)? = nil
 
     // How many 30-min slots the user has scrolled forward (0-44 for 24-hour window)
     @State private var slotOffset: Int = 0
@@ -88,11 +89,14 @@ struct ChannelGuideView: View {
                                             : "Channel \(channel.number), \(channel.name)"
                                     )
                                     .id(channel.id)
+                                    // Play/Pause full-screens whatever is already tuned, from any row.
+                                    // Select (the button action above) is what tunes the
+                                    // highlighted row. Handling it here matters: a focused
+                                    // row would otherwise swallow the press before the
+                                    // guide-level handler, and used to retune instead.
                                     .onPlayPauseCommand {
-                                        if appState.currentChannel?.id == channel.id {
+                                        if appState.currentChannel != nil {
                                             appState.isFullScreen = true
-                                        } else {
-                                            appState.tuneChannelFromUser(channel, method: .guide, precomputedSchedule: schedules[channel.id])
                                         }
                                     }
                                 }
@@ -217,6 +221,15 @@ struct ChannelGuideView: View {
                     appState.isFullScreen = true
                 }
             }
+            // Menu jumps back to the channel that's actually playing, so a long
+            // scroll down the grid doesn't mean scrolling all the way back up.
+            // A second press, once focus is already there, does nothing — Menu
+            // on the root screen has nowhere else to go.
+            .onExitCommand {
+                guard let liveID = appState.currentChannel?.id,
+                      focusedChannelID != liveID else { return }
+                focusedChannelID = liveID
+            }
 
             // Bundle jump sidebar
             if showBundleSidebar {
@@ -227,6 +240,12 @@ struct ChannelGuideView: View {
                         withAnimation(.easeIn(duration: 0.15)) {
                             showBundleSidebar = false
                         }
+                    },
+                    onOpenSettings: {
+                        withAnimation(.easeIn(duration: 0.15)) {
+                            showBundleSidebar = false
+                        }
+                        onOpenSettings?()
                     },
                     onDismiss: {
                         withAnimation(.easeIn(duration: 0.15)) {
@@ -484,8 +503,11 @@ private struct EPGRow: View {
 private struct BundleJumpSidebar: View {
     let targets: [(bundleID: String, bundleName: String, firstChannelID: Int, channelColor: Color)]
     let onSelect: (Int) -> Void
+    let onOpenSettings: () -> Void
     let onDismiss: () -> Void
+    /// -1 is the pinned Settings row. Package rows use their list index.
     @FocusState private var focusedIndex: Int?
+    private let settingsFocus = -1
 
     var body: some View {
         HStack(spacing: 0) {
@@ -500,6 +522,39 @@ private struct BundleJumpSidebar: View {
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: false) {
                         VStack(spacing: 2) {
+                            // Inside the list, not above it: tvOS won't move focus out
+                            // of a ScrollView, so Settings has to be a row. It sits
+                            // first; the sidebar still opens on the first package,
+                            // and Up from there lands here.
+                            let settingsFocused = focusedIndex == settingsFocus
+                            Button(action: onOpenSettings) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(settingsFocused ? Color(hex: "#FFE500") : .white.opacity(0.75))
+                                        .frame(width: 20)
+
+                                    Text("SETTINGS")
+                                        .font(.custom("DMMono-Medium", size: 18))
+                                        .foregroundStyle(settingsFocused ? Color(hex: "#FFE500") : .white.opacity(0.75))
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                                .background(settingsFocused ? Color.white.opacity(0.08) : .clear)
+                            }
+                            .buttonStyle(NoHighlightButtonStyle())
+                            .focused($focusedIndex, equals: settingsFocus)
+                            .accessibilityIdentifier("tunerSidebarSettings")
+                            .id(settingsFocus)
+
+                            Rectangle()
+                                .fill(Color.white.opacity(0.1))
+                                .frame(height: 1)
+                                .padding(.horizontal, 16)
+                                .padding(.bottom, 6)
+
                             ForEach(Array(targets.enumerated()), id: \.element.bundleID) { index, target in
                                 let isFocused = focusedIndex == index
 
@@ -528,7 +583,7 @@ private struct BundleJumpSidebar: View {
                         }
                     }
                     .onChange(of: focusedIndex) { _, newIndex in
-                        if let idx = newIndex {
+                        if let idx = newIndex, idx >= 0 {
                             withAnimation(.easeInOut(duration: 0.15)) {
                                 proxy.scrollTo(idx, anchor: .center)
                             }

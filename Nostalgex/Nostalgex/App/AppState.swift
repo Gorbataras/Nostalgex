@@ -360,13 +360,14 @@ class AppState {
 
     static let syncPlexActivityDefaultsKey = "nostalgex_sync_plex_activity"
 
-    /// When true, playback is reported to Plex (timeline + scrobble) so items surface in
-    /// "Continue Watching" and play counts grow. Off = watch privately, no Plex activity.
-    /// Plex-only; Jellyfin/Emby/demo never report regardless.
+    /// When true, playback is reported to the connected server so play counts grow
+    /// and items can surface in Continue Watching. Off = watch privately.
+    /// Same switch for Plex, Jellyfin, and Emby. Demo never reports.
     ///
     /// Defaults OFF. Channel surfing tunes past dozens of programs in a sitting, and
     /// reporting each one buries the household's real "Continue Watching" row under
     /// half-watched items nobody chose to start. Opt in, don't opt out.
+    /// Rewatch channels still fill from plays the server already recorded.
     var syncPlexActivity: Bool = AppState.resolveSyncPlexActivity(
         stored: UserDefaults.standard.object(forKey: AppState.syncPlexActivityDefaultsKey)
     ) {
