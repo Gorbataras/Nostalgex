@@ -190,6 +190,15 @@ class AppState {
 
     var isConnected: Bool = false
     var isLoading: Bool = false
+
+    /// False until launch has finished reading the Keychain. RootView gates on this so a
+    /// signed-in user is never shown the connect screen: credentials are loaded in a
+    /// `.task`, which SwiftUI runs AFTER the first body evaluation, so `hasCredentials`
+    /// is false for at least one frame on every launch. On an Apple TV HD the Keychain
+    /// read is slow enough (and `hydrateCredentialsWithRetry` sleeps a second per
+    /// transient refusal) that the connect screen was on screen long enough to press,
+    /// and the press appeared to "go straight through" when hydration landed underneath.
+    var didAttemptCredentialHydration: Bool = false
     var isBackgroundRefreshing: Bool = false
     var isLibraryStale: Bool = false
     /// Change signature of the library as of the last full scan; nil when unknown.

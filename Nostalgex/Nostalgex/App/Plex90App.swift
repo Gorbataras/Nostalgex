@@ -18,7 +18,13 @@ struct RootView: View {
                     TunerView(navigationPath: $navigationPath)
                 } else if appState.needsServerSelection {
                     ServerPickerView()
-                } else if forceSettings || !appState.hasCredentials {
+                } else if forceSettings {
+                    SettingsView()
+                } else if !appState.didAttemptCredentialHydration {
+                    // Keychain not read yet. Showing SettingsView here put the connect
+                    // screen in front of users who were already signed in.
+                    LoadingView()
+                } else if !appState.hasCredentials {
                     SettingsView()
                 } else if appState.isLoading {
                     LoadingView()
@@ -45,10 +51,11 @@ struct RootView: View {
             UIApplication.shared.isIdleTimerDisabled = (newState == .playing)
         }
         .task {
-            if forceSettings { return }
-            if reproAppReviewFlow { return }
+            if forceSettings { appState.didAttemptCredentialHydration = true; return }
+            if reproAppReviewFlow { appState.didAttemptCredentialHydration = true; return }
             emitLaunchAnalyticsIfNeeded()
             if uiTestInstantAuth {
+                appState.didAttemptCredentialHydration = true
                 appState.startPINAuth()
                 return
             }
