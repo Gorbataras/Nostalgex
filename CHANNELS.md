@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 28 · **126 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
+**Config version:** 29 · **125 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
 
 ---
 
@@ -65,9 +65,9 @@ only name the channel's own defining genre.
 | NETWORKS | `streamers` | 11 | CH 119–129 | Channels by streaming service and studio |
 | TIS THE SEASON | `tis-the-season` | 1 | CH 130 | Christmas and holiday channels |
 | ARTHOUSE | `arthouse` | 4 | CH 140–143 | Criterion, foreign films, midnight movies, and cult classics |
-| HIGH ROTATION | `high-rotation` | 15 | CH 150–164 | Music videos by genre |
+| HIGH ROTATION | `high-rotation` | 14 | CH 150–164 | Music videos by genre |
 
-Bundled channels: 127 of 126.
+Bundled channels: 126 of 125.
 
 ---
 
@@ -306,7 +306,6 @@ _Music videos by genre_
 | 155 | `155` | RAP GODS | `#FF2DB4` | Any | 3 | source: music videos, incl Rap |
 | 156 | `156` | ALT ROCK | `#FF2DB4` | Any | 3 | source: music videos, incl Alternative/Indie Rock/Alternative Rock |
 | 157 | `157` | SLOW JAMS | `#FF2DB4` | Any | 3 | source: music videos, incl R&B/Soul/Acoustic |
-| 158 | `158` | MUSIC VIDEOS | `#FF2DB4` | Any | 3 | source: music videos |
 | 159 | `159` | Y2K | `#FF2DB4` | Any | 3 | source: music videos, 2000-2019 |
 | 160 | `160` | CURRENT SPIN | `#FF2DB4` | Any | 3 | source: music videos, 2020-2100 |
 | 161 | `161` | DANCE FLOOR | `#FF2DB4` | Any | 3 | source: music videos, incl Electronic/Dance/House/Techno/EDM/Trance |
@@ -367,4 +366,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v28 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v29 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
