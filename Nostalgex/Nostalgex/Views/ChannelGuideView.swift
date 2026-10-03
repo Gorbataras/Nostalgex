@@ -736,8 +736,8 @@ struct SeasonalInviteRow: View {
                 .foregroundStyle(isFocused ? .black.opacity(0.75) : .white.opacity(0.8))
                 .lineLimit(1)
 
-            Spacer(minLength: 12)
-
+            // Sits with the copy, not pinned to the far edge: on a 16:9 television a
+            // trailing Spacer threw it a screen-width away from the words it belongs to.
             Text("PRESS SELECT")
                 .font(.custom("DMMono-Medium", size: 14))
                 .foregroundStyle(isFocused ? .black.opacity(0.65) : .black)
@@ -746,6 +746,8 @@ struct SeasonalInviteRow: View {
                 .background(
                     Capsule().fill(isFocused ? Color.black.opacity(0.18) : accent)
                 )
+
+            Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity, minHeight: rowHeight, maxHeight: rowHeight, alignment: .leading)
