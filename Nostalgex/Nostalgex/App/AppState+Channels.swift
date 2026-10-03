@@ -114,7 +114,11 @@ extension AppState {
     func autoEnableBundlesWithContent() -> Bool {
         let availableChannelIDs = Set(allChannels.map(\.id))
         var changed = false
-        for bundle in bundles where !bundle.id.hasPrefix("collections-") && bundle.isInSeason {
+        // Seasonal bundles are deliberately excluded: they are offered through
+        // SeasonalPrompt and switched on only when the viewer says yes. Auto-enabling
+        // them would put horror in front of someone every October without asking.
+        for bundle in bundles where !bundle.id.hasPrefix("collections-")
+            && bundle.isInSeason && bundle.activeMonths == nil {
             guard !enabledBundleIDs.contains(bundle.id) else { continue }
             let hasContent = bundle.channelIDs.contains { availableChannelIDs.contains($0) }
             if hasContent {
@@ -166,6 +170,29 @@ extension AppState {
         let configCount = channelConfigChannels.count
         print("[Plex90] ENRICHMENT: \(newCount)/\(configCount) enabled-bundle channels have enough content after enrichment")
         printChannelAudit()
+    }
+
+    // MARK: - Seasonal invitations
+
+    /// The seasonal bundle to invite the viewer to add, or nil. Seasonal bundles are never
+    /// switched on for people — see `autoEnableBundlesWithContent`, which skips them.
+    var seasonalBundleOnOffer: ChannelBundle? {
+        _ = seasonalPromptRevision   // observation dependency; see the property's note
+        return SeasonalPrompt.bundleToOffer(
+            bundles: bundles,
+            enabledBundleIDs: enabledBundleIDs,
+            now: Date()
+        ) { SeasonalPrompt.isSilenced(bundleID: $0, now: Date()) }
+    }
+
+    /// Applies the viewer's answer. "Yes" turns the bundle on for the rest of its season;
+    /// it goes away by itself when the season ends, because `isInSeason` stops matching.
+    func answerSeasonalPrompt(_ answer: SeasonalPrompt.Answer, for bundle: ChannelBundle) {
+        let turnOn = SeasonalPrompt.record(answer, bundleID: bundle.id, now: Date())
+        Analytics.track(.settingChanged(key: "seasonalPrompt:\(bundle.id)", value: "\(answer)"))
+        seasonalPromptRevision += 1
+        guard turnOn else { return }   // declined: the invite row just stops being offered
+        toggleBundle(bundle)
     }
 
     func applyBundleFilter() {

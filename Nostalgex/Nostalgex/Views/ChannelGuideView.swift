@@ -22,6 +22,11 @@ struct ChannelGuideView: View {
 
     @State private var showBundleSidebar: Bool = false
 
+    /// Sentinel focus id for the seasonal invite row. Real channels use their own id, and
+    /// none of them is negative.
+    private static let seasonalRowID = -900
+    @State private var seasonalPromptShown = false
+
     private let channelColumnWidth: CGFloat = 220
     private let rowHeight: CGFloat = 80
     private let headerHeight: CGFloat = 60
@@ -61,6 +66,20 @@ struct ChannelGuideView: View {
                                         .foregroundStyle(.white.opacity(0.3))
                                         .frame(maxWidth: .infinity, minHeight: 200)
                                         .focusable()
+                                }
+                                if let offer = appState.seasonalBundleOnOffer {
+                                    Button { seasonalPromptShown = true } label: {
+                                        SeasonalInviteRow(
+                                            bundle: offer,
+                                            isFocused: focusedChannelID == Self.seasonalRowID,
+                                            rowHeight: rowHeight
+                                        )
+                                    }
+                                    .buttonStyle(NoHighlightButtonStyle())
+                                    .focused($focusedChannelID, equals: Self.seasonalRowID)
+                                    .accessibilityIdentifier("seasonalInviteRow")
+                                    .accessibilityLabel("Turn on the \(offer.name) package")
+                                    .id(Self.seasonalRowID)
                                 }
                                 ForEach(Array(appState.channels.enumerated()), id: \.element.id) { index, channel in
                                     Button {
@@ -225,6 +244,19 @@ struct ChannelGuideView: View {
             // scroll down the grid doesn't mean scrolling all the way back up.
             // A second press, once focus is already there, does nothing — Menu
             // on the root screen has nowhere else to go.
+            .confirmationDialog(
+                seasonalDialogTitle,
+                isPresented: $seasonalPromptShown,
+                titleVisibility: .visible
+            ) {
+                if let offer = appState.seasonalBundleOnOffer {
+                    Button("YES, TURN IT ON") { appState.answerSeasonalPrompt(.yes, for: offer) }
+                    Button("NOT THIS YEAR") { appState.answerSeasonalPrompt(.notNow, for: offer) }
+                    Button("DON'T ASK AGAIN", role: .destructive) {
+                        appState.answerSeasonalPrompt(.never, for: offer)
+                    }
+                }
+            }
             .onExitCommand {
                 guard let liveID = appState.currentChannel?.id,
                       focusedChannelID != liveID else { return }
@@ -606,6 +638,51 @@ private struct BundleJumpSidebar: View {
         }
         .onExitCommand {
             onDismiss()
+        }
+    }
+}
+
+
+private extension ChannelGuideView {
+    var seasonalDialogTitle: String {
+        guard let offer = appState.seasonalBundleOnOffer else { return "" }
+        return "Add \(offer.name) to your lineup for the rest of the month?"
+    }
+}
+
+/// The invite that sits above channel one while a seasonal package is in season and
+/// switched off. Nothing is added to anyone's lineup until they answer the dialog.
+struct SeasonalInviteRow: View {
+    let bundle: ChannelBundle
+    let isFocused: Bool
+    let rowHeight: CGFloat
+
+    private var headline: String {
+        switch bundle.id {
+        case "seasonal":        return "IT'S OCTOBER. ARE YOU READY TO FRIGHT?"
+        case "tis-the-season":  return "IT'S DECEMBER. DECK THE CHANNELS."
+        default:                return "\(bundle.name) IS IN SEASON."
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Text(headline)
+                .font(.custom("DMMono-Medium", size: 24))
+                .foregroundStyle(isFocused ? .black : Color(hex: "#FFE500"))
+            Text("ADD THE \(bundle.name) PACKAGE")
+                .font(.custom("DMMono-Regular", size: 18))
+                .foregroundStyle(isFocused ? .black.opacity(0.7) : .white.opacity(0.55))
+            Spacer()
+            Text("PRESS SELECT")
+                .font(.custom("DMMono-Regular", size: 16))
+                .foregroundStyle(isFocused ? .black.opacity(0.6) : .white.opacity(0.35))
+        }
+        .padding(.horizontal, 24)
+        .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .leading)
+        .background(isFocused ? Color(hex: "#FFE500") : Color.white.opacity(0.06))
+        .overlay(alignment: .leading) {
+            Rectangle().fill(Color(hex: "#FFE500")).frame(width: 4)
         }
     }
 }

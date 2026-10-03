@@ -199,6 +199,12 @@ class AppState {
     /// transient refusal) that the connect screen was on screen long enough to press,
     /// and the press appeared to "go straight through" when hydration landed underneath.
     var didAttemptCredentialHydration: Bool = false
+
+    /// Bumped whenever a seasonal invite is answered. `seasonalBundleOnOffer` reads it so
+    /// @Observable re-evaluates the guide: the silencing itself lives in UserDefaults,
+    /// which observation cannot see, so without this the invite row would sit there after
+    /// the viewer declined it.
+    var seasonalPromptRevision: Int = 0
     var isBackgroundRefreshing: Bool = false
     var isLibraryStale: Bool = false
     /// Change signature of the library as of the last full scan; nil when unknown.
