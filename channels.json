@@ -1,5 +1,5 @@
 {
-  "version": 26,
+  "version": 27,
   "exclusiveRules": [
     {
       "channelID": 130,
@@ -3907,7 +3907,6 @@
       "rules": {
         "source": "musicVideo",
         "yearRange": {
-          "min": 1980,
           "max": 1999
         }
       }

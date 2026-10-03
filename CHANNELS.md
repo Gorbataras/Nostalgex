@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 26 · **126 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
+**Config version:** 27 · **126 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
 
 ---
 
@@ -298,7 +298,7 @@ _Music videos by genre_
 
 | CH | `id` | Name | Color | Type | Min items | Rules |
 |---|---|---|---|---|---|---|
-| 150 | `150` | HIGH ROTATION | `#FF2DB4` | Any | 3 | source: music videos, 1980-1999 |
+| 150 | `150` | HIGH ROTATION | `#FF2DB4` | Any | 3 | source: music videos, …-1999 |
 | 151 | `151` | POP | `#FF2DB4` | Any | 3 | source: music videos, incl Pop |
 | 152 | `152` | ROCK'N | `#FF2DB4` | Any | 3 | source: music videos, incl Rock/Hard Rock/Classic Rock |
 | 153 | `153` | COUNTRY SWAGGER | `#FF2DB4` | Any | 3 | source: music videos, incl Country/Country Rock |
@@ -367,4 +367,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v26 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v27 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
