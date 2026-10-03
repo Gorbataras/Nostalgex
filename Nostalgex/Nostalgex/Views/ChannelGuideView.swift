@@ -540,15 +540,19 @@ private struct BundleJumpSidebar: View {
     /// -1 is the pinned Settings row. Package rows use their list index.
     @FocusState private var focusedIndex: Int?
     private let settingsFocus = -1
+    /// Matches the guide's own row height and focus treatment so the sidebar reads as
+    /// part of the same grid rather than a separate widget.
+    private static let width: CGFloat = 380
+    private static let rowHeight: CGFloat = 72
 
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
                 Text("PACKAGES")
-                    .font(.custom("DMMono-Medium", size: 18))
+                    .font(.custom("DMMono-Medium", size: 22))
                     .foregroundStyle(.white.opacity(0.6))
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 18)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 ScrollViewReader { proxy in
@@ -559,22 +563,38 @@ private struct BundleJumpSidebar: View {
                             // first; the sidebar still opens on the first package,
                             // and Up from there lands here.
                             let settingsFocused = focusedIndex == settingsFocus
+                            let settingsAccent = Color(hex: "#FFE500")
                             Button(action: onOpenSettings) {
-                                HStack(spacing: 12) {
+                                HStack(spacing: 14) {
+                                    Rectangle()
+                                        .fill(settingsFocused ? settingsAccent : settingsAccent.opacity(0.4))
+                                        .frame(width: settingsFocused ? 8 : 4)
+
                                     Image(systemName: "gearshape.fill")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(settingsFocused ? Color(hex: "#FFE500") : .white.opacity(0.75))
-                                        .frame(width: 20)
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(settingsFocused ? .white : .white.opacity(0.75))
+                                        .frame(width: 26)
 
                                     Text("SETTINGS")
-                                        .font(.custom("DMMono-Medium", size: 18))
-                                        .foregroundStyle(settingsFocused ? Color(hex: "#FFE500") : .white.opacity(0.75))
+                                        .font(.custom("DMMono-Medium", size: 24))
+                                        .foregroundStyle(settingsFocused ? .white : .white.opacity(0.75))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
 
                                     Spacer()
                                 }
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 14)
-                                .background(settingsFocused ? Color.white.opacity(0.08) : .clear)
+                                .padding(.trailing, 16)
+                                .frame(height: Self.rowHeight)
+                                .background(settingsFocused ? settingsAccent.opacity(0.32) : .clear)
+                                .overlay {
+                                    if settingsFocused {
+                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                            .strokeBorder(settingsAccent, lineWidth: 3)
+                                            .padding(2)
+                                            .shadow(color: settingsAccent.opacity(0.7), radius: 14)
+                                    }
+                                }
+                                .zIndex(settingsFocused ? 1 : 0)
                             }
                             .buttonStyle(NoHighlightButtonStyle())
                             .focused($focusedIndex, equals: settingsFocus)
@@ -593,20 +613,31 @@ private struct BundleJumpSidebar: View {
                                 Button {
                                     onSelect(target.firstChannelID)
                                 } label: {
-                                    HStack(spacing: 12) {
+                                    HStack(spacing: 14) {
                                         Rectangle()
-                                            .fill(target.channelColor)
-                                            .frame(width: 4)
+                                            .fill(isFocused ? target.channelColor : target.channelColor.opacity(0.4))
+                                            .frame(width: isFocused ? 8 : 4)
 
                                         Text(target.bundleName)
-                                            .font(.custom("DMMono-Medium", size: 18))
+                                            .font(.custom("DMMono-Medium", size: 24))
                                             .foregroundStyle(isFocused ? .white : .white.opacity(0.75))
                                             .lineLimit(1)
+                                            .minimumScaleFactor(0.8)
 
                                         Spacer()
                                     }
-                                    .padding(.vertical, 14)
-                                    .background(isFocused ? target.channelColor.opacity(0.15) : .clear)
+                                    .padding(.trailing, 16)
+                                    .frame(height: Self.rowHeight)
+                                    .background(isFocused ? target.channelColor.opacity(0.32) : .clear)
+                                    .overlay {
+                                        if isFocused {
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                                .strokeBorder(target.channelColor, lineWidth: 3)
+                                                .padding(2)
+                                                .shadow(color: target.channelColor.opacity(0.7), radius: 14)
+                                        }
+                                    }
+                                    .zIndex(isFocused ? 1 : 0)
                                 }
                                 .buttonStyle(NoHighlightButtonStyle())
                                 .focused($focusedIndex, equals: index)
@@ -623,7 +654,7 @@ private struct BundleJumpSidebar: View {
                     }
                 }
             }
-            .frame(width: 260)
+            .frame(width: Self.width)
             .background(Color(red: 0.03, green: 0.03, blue: 0.08).opacity(0.95))
 
             // Divider
@@ -659,30 +690,61 @@ struct SeasonalInviteRow: View {
 
     private var headline: String {
         switch bundle.id {
-        case "seasonal":        return "IT'S OCTOBER. ARE YOU READY TO FRIGHT?"
+        case "seasonal":        return "IT'S OCTOBER. ARE YOU READY TO SCREAM?"
         case "tis-the-season":  return "IT'S DECEMBER. DECK THE CHANNELS."
         default:                return "\(bundle.name) IS IN SEASON."
         }
     }
 
+    /// Each season gets its own colour so the invite reads as part of that season rather
+    /// than as a generic notice.
+    private var accent: Color {
+        switch bundle.id {
+        case "seasonal":        return Color(hex: "#FF6B00")   // pumpkin
+        case "tis-the-season":  return Color(hex: "#E74C3C")   // holiday red
+        default:                return Color(hex: "#FFE500")
+        }
+    }
+
+    /// Deliberately louder than a channel row: taller, outlined and glowing even when it
+    /// does not have focus. It is asking for something, and it only appears one month a
+    /// year — a 6% white fill made it read as another row and got scrolled straight past.
     var body: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 18) {
             Text(headline)
-                .font(.custom("DMMono-Medium", size: 24))
-                .foregroundStyle(isFocused ? .black : Color(hex: "#FFE500"))
+                .font(.custom("DMMono-Medium", size: 30))
+                .foregroundStyle(isFocused ? .black : accent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
             Text("ADD THE \(bundle.name) PACKAGE")
-                .font(.custom("DMMono-Regular", size: 18))
-                .foregroundStyle(isFocused ? .black.opacity(0.7) : .white.opacity(0.55))
-            Spacer()
+                .font(.custom("DMMono-Regular", size: 20))
+                .foregroundStyle(isFocused ? .black.opacity(0.75) : .white.opacity(0.8))
+                .lineLimit(1)
+
+            Spacer(minLength: 12)
+
             Text("PRESS SELECT")
-                .font(.custom("DMMono-Regular", size: 16))
-                .foregroundStyle(isFocused ? .black.opacity(0.6) : .white.opacity(0.35))
+                .font(.custom("DMMono-Medium", size: 18))
+                .foregroundStyle(isFocused ? .black.opacity(0.65) : .black)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(
+                    Capsule().fill(isFocused ? Color.black.opacity(0.18) : accent)
+                )
         }
-        .padding(.horizontal, 24)
-        .frame(maxWidth: .infinity, minHeight: rowHeight, alignment: .leading)
-        .background(isFocused ? Color(hex: "#FFE500") : Color.white.opacity(0.06))
+        .padding(.horizontal, 26)
+        .frame(maxWidth: .infinity, minHeight: rowHeight * 1.35, alignment: .leading)
+        .background(isFocused ? accent : accent.opacity(0.22))
+        .overlay {
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .strokeBorder(accent, lineWidth: isFocused ? 4 : 2)
+                .padding(2)
+                .shadow(color: accent.opacity(isFocused ? 0.8 : 0.45), radius: isFocused ? 18 : 10)
+        }
         .overlay(alignment: .leading) {
-            Rectangle().fill(Color(hex: "#FFE500")).frame(width: 4)
+            Rectangle().fill(accent).frame(width: isFocused ? 10 : 6)
         }
+        .zIndex(1)
     }
 }
