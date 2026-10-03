@@ -1,5 +1,5 @@
 {
-  "version": 27,
+  "version": 28,
   "exclusiveRules": [
     {
       "channelID": 130,
@@ -3905,10 +3905,7 @@
       "category": "high-rotation",
       "minItems": 3,
       "rules": {
-        "source": "musicVideo",
-        "yearRange": {
-          "max": 1999
-        }
+        "source": "musicVideo"
       }
     },
     {
