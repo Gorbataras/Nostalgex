@@ -731,14 +731,9 @@ struct SeasonalInviteRow: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            Text("ADD THE \(bundle.name) PACKAGE")
-                .font(.custom("DMMono-Regular", size: 16))
-                .foregroundStyle(isFocused ? .black.opacity(0.75) : .white.opacity(0.8))
-                .lineLimit(1)
-
-            // Sits with the copy, not pinned to the far edge: on a 16:9 television a
-            // trailing Spacer threw it a screen-width away from the words it belongs to.
-            Text("PRESS SELECT")
+            // One call to action, not two. "ADD THE SCREAM PACKAGE" next to "PRESS SELECT"
+            // said the same thing twice.
+            Text("PRESS TO ADD THE \(bundle.name) PACKAGE")
                 .font(.custom("DMMono-Medium", size: 14))
                 .foregroundStyle(isFocused ? .black.opacity(0.65) : .black)
                 .padding(.horizontal, 11)
