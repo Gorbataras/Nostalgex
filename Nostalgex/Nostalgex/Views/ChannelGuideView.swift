@@ -257,11 +257,9 @@ struct ChannelGuideView: View {
                     }
                 }
             }
-            .onExitCommand {
-                guard let liveID = appState.currentChannel?.id,
-                      focusedChannelID != liveID else { return }
-                focusedChannelID = liveID
-            }
+            // nil when there is nothing to jump to: attaching an inert closure swallows
+            // Menu and traps the viewer in the app. See GuideExitAction.
+            .onExitCommand(perform: exitCommandAction)
 
             // Bundle jump sidebar
             if showBundleSidebar {
@@ -675,6 +673,21 @@ private struct BundleJumpSidebar: View {
 
 
 private extension ChannelGuideView {
+    /// Menu jumps back to the channel that's playing, so a long scroll down the grid
+    /// doesn't mean scrolling all the way back up. Once focus is already there the guide
+    /// declines the press entirely, so tvOS can background the app.
+    var exitCommandAction: (() -> Void)? {
+        switch GuideExitAction.decide(
+            liveChannelID: appState.currentChannel?.id,
+            focusedChannelID: focusedChannelID
+        ) {
+        case .letSystemHandle:
+            return nil
+        case .jumpToLiveChannel(let id):
+            return { focusedChannelID = id }
+        }
+    }
+
     var seasonalDialogTitle: String {
         guard let offer = appState.seasonalBundleOnOffer else { return "" }
         return "Add \(offer.name) to your lineup for the rest of the month?"
