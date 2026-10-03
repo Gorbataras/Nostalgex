@@ -17,7 +17,8 @@
     "preview": "vite preview",
     "snapshot": "node --env-file-if-exists=.env scripts/devtools/build-snapshot.mjs",
     "devtools": "node --env-file-if-exists=.env scripts/devtools/server.mjs",
-    "devtools:full": "npm run snapshot && npm run devtools"
+    "devtools:full": "npm run snapshot && npm run devtools",
+    "changelog:discord": "node scripts/post-changelog-discord.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.0"
