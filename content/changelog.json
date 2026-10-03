@@ -2,13 +2,21 @@
   "entries": [
     {
       "version": "1.0.23",
-      "date": "SEP 2026",
-      "title": "Rewatchables on every server",
+      "date": "OCT 2026",
+      "title": "Halloween, six new channels, and a guide that keeps up",
       "bullets": [
-        "REWATCHABLES MOVIES and REWATCHABLES TV now fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.",
+        "SCREAM arrives for October: FRIGHT NIGHT, SCREAM ADULTS, SCREAM KIDS and a new NOSTALGEX HORROR for 70s, 80s and 90s horror. The guide offers it rather than switching it on, and nothing joins your lineup until you say yes. TIS THE SEASON does the same in December. Say no and it waits until next year.",
+        "Six new channels. HISTORY & BIO picks up the biopics and history films that only ever surfaced as new additions. DVD SHELF, MILLENNIAL COMEDY and MILLENNIAL SITCOMS cover the 2000s, which the retro channels stopped short of. NOSTALGEX HORROR joins SCREAM.",
+        "FRONT LINE is a war channel again. It was matching on words like battle and soldier without checking the genre, so Harry Potter, Pirates of the Caribbean and The Sound of Music were turning up between the war films.",
+        "HIGH ROTATION was asking for music videos from 1980 to 1999, and most libraries date them from whenever the file was made, so it was always empty. It now takes everything, and Y2K and CURRENT SPIN split the rest by era.",
+        "The guide scrolls properly. Every channel's schedule was being rebuilt on the interface thread every thirty seconds, which froze scrolling for a moment each time, worst on Apple TV HD. That work now happens out of the way.",
+        "Jellyfin and Emby servers reached by hostname, VPN or Tailscale now connect over http. Only plain LAN addresses worked before, and everything else failed looking like the server was down.",
+        "Opening the app goes straight to your guide. If you were already signed in, the connect screen no longer appears first, and short waits show the logo instead of a progress bar with nothing to measure.",
+        "Settings now says how much of your library the app actually loaded, in titles, movies, episodes and shows. If that number looks far too small, that is worth telling us about, and it is a different problem from channels looking empty.",
+        "REWATCHABLES MOVIES and REWATCHABLES TV fill from Jellyfin and Emby play counts, the same way they already did for Plex. A title needs 3 or more plays.",
         "Playback reporting works for Jellyfin and Emby too. It is still off until you turn it on in Settings, and a watch here only counts on your own server.",
         "Audio follows the AirPlay speakers you already picked as the Apple TV's output.",
-        "From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel. Settings is one press up in the package list."
+        "From anywhere in the guide, Play goes full screen on what's already on. Menu jumps back to that channel. Settings is one press up in the package list, which is now wider and easier to read."
       ]
     },
     {
