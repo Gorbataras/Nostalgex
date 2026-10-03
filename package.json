@@ -12,13 +12,14 @@
     "test:filter": "node scripts/nostalgex-filter-smoke.mjs",
     "test:schedule": "node scripts/nostalgex-schedule-order-smoke.mjs",
     "test:subscribe": "node scripts/subscribe-smoke.mjs",
-    "test": "npm run test:filter && npm run test:schedule && npm run test:subscribe && npm run channels:doc:check",
+    "test": "npm run test:filter && npm run test:schedule && npm run test:subscribe && npm run channels:doc:check && npm run changelog:check",
     "build": "npm run changelog:render && vite build",
     "preview": "vite preview",
     "snapshot": "node --env-file-if-exists=.env scripts/devtools/build-snapshot.mjs",
     "devtools": "node --env-file-if-exists=.env scripts/devtools/server.mjs",
     "devtools:full": "npm run snapshot && npm run devtools",
-    "changelog:discord": "node scripts/post-changelog-discord.mjs"
+    "changelog:discord": "node scripts/post-changelog-discord.mjs",
+    "changelog:check": "node scripts/changelog-check.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.0"
