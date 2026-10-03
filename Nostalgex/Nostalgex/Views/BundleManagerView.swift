@@ -609,8 +609,11 @@ struct SettingsPageView: View {
                 title: "RESCAN LIBRARY",
                 subtitle: {
                     let updated = appState.libraryLastUpdatedText
+                    // What the app is actually holding, so a support report can say it in
+                    // one screenshot. See LibraryDiagnostics.
+                    let held = LibraryDiagnostics.summary(appState.allItems)
                     let base = "Pull a fresh copy of your \(appState.backendDisplayName) library after adding content"
-                    return "Last updated \(updated). \(base)"
+                    return "\(held)\nLast updated \(updated). \(base)"
                 }(),
                 isOn: true,
                 isFocused: focusedItem == "rescan",
