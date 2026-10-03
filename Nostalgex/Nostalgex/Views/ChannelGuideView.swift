@@ -719,44 +719,45 @@ struct SeasonalInviteRow: View {
         }
     }
 
-    /// Deliberately louder than a channel row: taller, outlined and glowing even when it
-    /// does not have focus. It is asking for something, and it only appears one month a
-    /// year — a 6% white fill made it read as another row and got scrolled straight past.
+    /// Loud enough to notice, not loud enough to shout. It sits at exactly one channel
+    /// row's height so the grid still reads as a grid — the outline, the fill and the pill
+    /// do the separating, not size. The first cut was 35% taller with 30pt type and
+    /// dominated the screen.
     var body: some View {
-        HStack(spacing: 18) {
+        HStack(spacing: 14) {
             Text(headline)
-                .font(.custom("DMMono-Medium", size: 30))
+                .font(.custom("DMMono-Medium", size: 22))
                 .foregroundStyle(isFocused ? .black : accent)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
             Text("ADD THE \(bundle.name) PACKAGE")
-                .font(.custom("DMMono-Regular", size: 20))
+                .font(.custom("DMMono-Regular", size: 16))
                 .foregroundStyle(isFocused ? .black.opacity(0.75) : .white.opacity(0.8))
                 .lineLimit(1)
 
             Spacer(minLength: 12)
 
             Text("PRESS SELECT")
-                .font(.custom("DMMono-Medium", size: 18))
+                .font(.custom("DMMono-Medium", size: 14))
                 .foregroundStyle(isFocused ? .black.opacity(0.65) : .black)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 7)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 5)
                 .background(
                     Capsule().fill(isFocused ? Color.black.opacity(0.18) : accent)
                 )
         }
-        .padding(.horizontal, 26)
-        .frame(maxWidth: .infinity, minHeight: rowHeight * 1.35, alignment: .leading)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity, minHeight: rowHeight, maxHeight: rowHeight, alignment: .leading)
         .background(isFocused ? accent : accent.opacity(0.22))
         .overlay {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .strokeBorder(accent, lineWidth: isFocused ? 4 : 2)
                 .padding(2)
-                .shadow(color: accent.opacity(isFocused ? 0.8 : 0.45), radius: isFocused ? 18 : 10)
+                .shadow(color: accent.opacity(isFocused ? 0.7 : 0.3), radius: isFocused ? 14 : 7)
         }
         .overlay(alignment: .leading) {
-            Rectangle().fill(accent).frame(width: isFocused ? 10 : 6)
+            Rectangle().fill(accent).frame(width: isFocused ? 8 : 4)
         }
         .zIndex(1)
     }
