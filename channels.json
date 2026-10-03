@@ -1,5 +1,5 @@
 {
-  "version": 24,
+  "version": 25,
   "exclusiveRules": [
     {
       "channelID": 130,
@@ -183,6 +183,7 @@
         66,
         200,
         210,
+        224,
         222,
         223
       ]
@@ -2390,20 +2391,50 @@
         "keywords": [
           "world war ii",
           "world war i",
-          "vietnam war",
+          "korean war",
           "civil war",
           "cold war",
-          "military",
-          "battle",
-          "soldier",
+          "prisoner of war",
+          "holocaust",
+          "nazi",
+          "war crimes",
           "siege",
           "combat",
-          "historical",
-          "biopic",
-          "empire",
-          "revolution",
-          "medieval"
+          "soldier",
+          "battle",
+          "military",
+          "resistance",
+          "special forces"
+        ],
+        "keywordsRequireAnyGenre": [
+          "War",
+          "War & Politics",
+          "History",
+          "Biography"
         ]
+      }
+    },
+    {
+      "id": 224,
+      "number": 83,
+      "name": "HISTORY & BIO",
+      "colorHex": "#A0522D",
+      "category": "essentials",
+      "minItems": 5,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "History",
+            "Biography"
+          ],
+          "exclude": [
+            "Documentary",
+            "Docuseries",
+            "Animation",
+            "Animated"
+          ]
+        }
       }
     },
     {

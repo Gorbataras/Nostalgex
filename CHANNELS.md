@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 24 · **121 channels** across **13 bundles** · 37 channels whose `id` differs from their `number`.
+**Config version:** 25 · **122 channels** across **13 bundles** · 38 channels whose `id` differs from their `number`.
 
 ---
 
@@ -54,7 +54,7 @@ only name the channel's own defining genre.
 |---|---|---|---|---|
 | NOSTALGEX | `nostalgex` | 15 | CH 1–15 | The 80s and 90s. All retro, all the time |
 | KIDZ ZONE | `kids` | 16 | CH 20–35 | Disney, Nickelodeon, Pixar, and more |
-| PRIME TIME | `essentials` | 14 | CH 40–84 | Everyday favorites and feel-good viewing |
+| PRIME TIME | `essentials` | 15 | CH 40–84 | Everyday favorites and feel-good viewing |
 | MARQUEE | `premium` | 11 | CH 59–69 | Premium channels |
 | ADVENTURELAND | `adventureland` | 10 | CH 70–79 | Epic quests, disasters, and adrenaline |
 | OVERTIME | `sports` | 3 | CH 80–82 | Movies, shows, and docs |
@@ -66,7 +66,7 @@ only name the channel's own defining genre.
 | ARTHOUSE | `arthouse` | 4 | CH 140–143 | Criterion, foreign films, midnight movies, and cult classics |
 | HIGH ROTATION | `high-rotation` | 15 | CH 150–164 | Music videos by genre |
 
-Bundled channels: 121 of 121.
+Bundled channels: 122 of 122.
 
 ---
 
@@ -152,6 +152,7 @@ _Everyday favorites and feel-good viewing_
 | 50 | **`200`** ⚠︎ | DRAMA TV | `#5A3E8A` | Episodes | 10 | incl Drama, no Animation/Comedy/Documentary/Horror/Reality/Kids/Children/Family, kw +5, kw needs genre Drama |
 | 51 | **`210`** ⚠︎ | RECORD STORE | `#FF6B35` | Movies | 3 | incl Music, kw excl (4) |
 | 53 | **`223`** ⚠︎ | PREMIERES | `#F72585` | Any | 1 | incl Action/Adventure/Animation/Anime/Biography/Cartoon +23 more, added ≤ 14 d ago |
+| 83 | **`224`** ⚠︎ | HISTORY & BIO | `#A0522D` | Movies | 5 | incl History/Biography, no Documentary/Docuseries/Animation/Animated |
 | 84 | **`222`** ⚠︎ | R RATED COMEDY | `#E84393` | Movies | 5 | incl Comedy, no Animation/Family/Children/Kids, title blocklist (6), 1995-2029, rated R |
 
 ### MARQUEE · CH 59–69
@@ -184,7 +185,7 @@ _Epic quests, disasters, and adrenaline_
 | 73 | `73` | SCI-FI | `#16A0C8` | Movies | 5 | incl Science Fiction/Horror, needs ALL Science Fiction, no Animation/Family/Kids, kw +8, kw needs genre Science Fiction |
 | 74 | `74` | FANTASY | `#8E44AD` | Movies | 5 | incl Fantasy/Adventure, no Animation/Horror/Science Fiction, kw +7, kw needs genre Fantasy/Adventure |
 | 75 | `75` | WESTERNS | `#B9770E` | Any | 3 | incl Western, kw +7, kw needs genre Western |
-| 76 | `76` | FRONT LINE | `#5D6D7E` | Any | 3 | incl War/War & Politics, no Documentary/Docuseries/Animation/Animated, kw +15 |
+| 76 | `76` | FRONT LINE | `#5D6D7E` | Any | 3 | incl War/War & Politics, no Documentary/Docuseries/Animation/Animated, kw +16, kw needs genre War/War & Politics/History/Biography |
 | 77 | **`141`** ⚠︎ | FRIGHT NIGHT | `#8B0000` | Any | 5 | incl Horror |
 | 78 | **`65`** ⚠︎ | SUPERHERO MOVIES | `#E74C3C` | Movies | 3 | title allowlist (31), title blocklist (5) |
 | 79 | **`219`** ⚠︎ | SPY GAMES | `#34495E` | Movies | 5 | kw +8, kw needs genre Action/Thriller/Adventure/Comedy |
@@ -304,7 +305,7 @@ _Music videos by genre_
 
 ## `id` ≠ `number`
 
-37 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
+38 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
 
 | `id` | Airs as | Name |
 |---|---|---|
@@ -334,6 +335,7 @@ _Music videos by genre_
 | `141` | CH77 | FRIGHT NIGHT |
 | `65` | CH78 | SUPERHERO MOVIES |
 | `219` | CH79 | SPY GAMES |
+| `224` | CH83 | HISTORY & BIO |
 | `222` | CH84 | R RATED COMEDY |
 | `40` | CH85 | TRUE CRIME |
 | `41` | CH86 | CRIME FLICKS |
@@ -348,4 +350,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v24 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v25 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
