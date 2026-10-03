@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 25 · **122 channels** across **13 bundles** · 38 channels whose `id` differs from their `number`.
+**Config version:** 26 · **126 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
 
 ---
 
@@ -52,7 +52,8 @@ only name the channel's own defining genre.
 
 | Bundle | Bundle ID | Channels | Range | Description |
 |---|---|---|---|---|
-| NOSTALGEX | `nostalgex` | 15 | CH 1–15 | The 80s and 90s. All retro, all the time |
+| NOSTALGEX | `nostalgex` | 18 | CH 1–18 | The 80s and 90s. All retro, all the time |
+| SCREAM | `seasonal` | 4 | CH 19–132 | Horror, all year's worth, front and centre every October |
 | KIDZ ZONE | `kids` | 16 | CH 20–35 | Disney, Nickelodeon, Pixar, and more |
 | PRIME TIME | `essentials` | 15 | CH 40–84 | Everyday favorites and feel-good viewing |
 | MARQUEE | `premium` | 11 | CH 59–69 | Premium channels |
@@ -62,11 +63,11 @@ only name the channel's own defining genre.
 | DECADES | `decades` | 7 | CH 90–96 | Movies and shows sorted by decade |
 | FRANCHISES | `franchises` | 7 | CH 100–106 | Movie franchise marathons |
 | NETWORKS | `streamers` | 11 | CH 119–129 | Channels by streaming service and studio |
-| SEASONAL | `seasonal` | 3 | CH 130–132 | Halloween and holiday channels |
+| TIS THE SEASON | `tis-the-season` | 1 | CH 130 | Christmas and holiday channels |
 | ARTHOUSE | `arthouse` | 4 | CH 140–143 | Criterion, foreign films, midnight movies, and cult classics |
 | HIGH ROTATION | `high-rotation` | 15 | CH 150–164 | Music videos by genre |
 
-Bundled channels: 122 of 122.
+Bundled channels: 127 of 126.
 
 ---
 
@@ -88,7 +89,7 @@ the year.
 
 ## Channels by bundle
 
-### NOSTALGEX · CH 1–15
+### NOSTALGEX · CH 1–18
 
 _The 80s and 90s. All retro, all the time_
 
@@ -109,6 +110,20 @@ _The 80s and 90s. All retro, all the time_
 | 13 | `13` | LAST ACTION HEROES | `#B7410E` | Movies | 5 | incl Action/Thriller, no Family/Kids/Children/Animation/Animated/Fantasy/Comedy, kw +13, kw needs genre Action/Thriller, 1980-2002, ≥ 85 min |
 | 14 | `14` | BUDDIES | `#F39C12` | Movies | 5 | incl Action/Comedy, no Animation/Animated/Horror/Kids/Children/Family/Romance, kw +10, kw needs genre Action/Comedy, 1980-2004 |
 | 15 | **`215`** ⚠︎ | CARTOON NETWORK | `#00BFFF` | Episodes | 5 | networks Cartoon Network, title allowlist (39) |
+| 16 | **`225`** ⚠︎ | DVD SHELF | `#C0392B` | Movies | 5 | 2000-2009 |
+| 17 | **`226`** ⚠︎ | MILLENNIAL COMEDY | `#E67E22` | Movies | 3 | incl Comedy, no Animation/Animated, kw excl (3), 2000-2009 |
+| 18 | **`227`** ⚠︎ | MILLENNIAL SITCOMS | `#F1C40F` | Episodes | 10 | incl Comedy, no Anime/Animation, 2000-2009 |
+
+### SCREAM · CH 19–132
+
+_Horror, all year's worth, front and centre every October_
+
+| CH | `id` | Name | Color | Type | Min items | Rules |
+|---|---|---|---|---|---|---|
+| 19 | **`228`** ⚠︎ | NOSTALGEX HORROR | `#8E44AD` | Movies | 3 | incl Horror, no Family/Children/Kids/Animation/Animated, 1975-1999 |
+| 77 | **`141`** ⚠︎ | FRIGHT NIGHT | `#8B0000` | Any | 5 | incl Horror |
+| 131 | `131` | SCREAM KIDS | `#FF8C00` | Movies | 3 | no Horror, title allowlist (37), editorial always-in (43), rated G/PG/TV-Y/TV-Y7/TV-G/TV-PG |
+| 132 | `132` | SCREAM ADULTS | `#8B0000` | Movies | 3 | incl Horror/Thriller, no Family/Children/Kids/Animation/Animated, title allowlist (53), title blocklist (11), rated R/NC-17/PG-13/TV-MA |
 
 ### KIDZ ZONE · CH 20–35
 
@@ -258,15 +273,13 @@ _Channels by streaming service and studio_
 | 128 | `128` | UNIVERSAL | `#00A651` | Movies | 3 | studios Universal/Universal Pictures/Universal Television +3 more, prodCo Universal Pictures/DreamWorks Pictures/DreamWorks Animation +2 more |
 | 129 | `129` | 20TH CENTURY | `#C8A951` | Movies | 3 | studios 20th Century Fox/20th Century Studios/20th Television +5 more, prodCo 20th Century Fox/20th Century Studios/Searchlight Pictures +2 more |
 
-### SEASONAL · CH 130–132
+### TIS THE SEASON · CH 130
 
-_Halloween and holiday channels_
+_Christmas and holiday channels_
 
 | CH | `id` | Name | Color | Type | Min items | Rules |
 |---|---|---|---|---|---|---|
 | 130 | `130` | HOLIDAZE | `#C41E3A` | Movies | 3 | incl Holiday/Christmas, title allowlist (19), editorial always-in (96), Plex rating ≥ 5 |
-| 131 | `131` | SCREAM KIDS | `#FF8C00` | Movies | 3 | no Horror, title allowlist (37), editorial always-in (43), rated G/PG/TV-Y/TV-Y7/TV-G/TV-PG |
-| 132 | `132` | SCREAM ADULTS | `#8B0000` | Movies | 3 | incl Horror/Thriller, no Family/Children/Kids/Animation/Animated, title allowlist (53), title blocklist (11), rated R/NC-17/PG-13/TV-MA |
 
 ### ARTHOUSE · CH 140–143
 
@@ -305,11 +318,15 @@ _Music videos by genre_
 
 ## `id` ≠ `number`
 
-38 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
+42 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
 
 | `id` | Airs as | Name |
 |---|---|---|
 | `215` | CH15 | CARTOON NETWORK |
+| `225` | CH16 | DVD SHELF |
+| `226` | CH17 | MILLENNIAL COMEDY |
+| `227` | CH18 | MILLENNIAL SITCOMS |
+| `228` | CH19 | NOSTALGEX HORROR |
 | `33` | CH31 | FAMILY TV |
 | `34` | CH32 | NETFLIX KIDS |
 | `216` | CH33 | MILLENNIUM CARTOONS |
@@ -350,4 +367,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v25 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v26 by `scripts/render-channels-doc.mjs`. Do not edit by hand._

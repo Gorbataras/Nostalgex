@@ -1,5 +1,5 @@
 {
-  "version": 25,
+  "version": 26,
   "exclusiveRules": [
     {
       "channelID": 130,
@@ -128,7 +128,10 @@
         12,
         13,
         14,
-        215
+        215,
+        225,
+        226,
+        227
       ]
     },
     {
@@ -292,12 +295,27 @@
     },
     {
       "id": "seasonal",
-      "name": "SEASONAL",
-      "description": "Halloween and holiday channels",
+      "name": "SCREAM",
+      "description": "Horror, all year's worth, front and centre every October",
       "channelIDs": [
-        130,
+        141,
+        132,
         131,
-        132
+        228
+      ],
+      "activeMonths": [
+        10
+      ]
+    },
+    {
+      "id": "tis-the-season",
+      "name": "TIS THE SEASON",
+      "description": "Christmas and holiday channels",
+      "channelIDs": [
+        130
+      ],
+      "activeMonths": [
+        12
       ]
     },
     {
@@ -790,6 +808,74 @@
       }
     },
     {
+      "id": 225,
+      "number": 16,
+      "name": "DVD SHELF",
+      "colorHex": "#C0392B",
+      "category": "nostalgex",
+      "minItems": 5,
+      "rules": {
+        "type": "movie",
+        "yearRange": {
+          "min": 2000,
+          "max": 2009
+        }
+      }
+    },
+    {
+      "id": 226,
+      "number": 17,
+      "name": "MILLENNIAL COMEDY",
+      "colorHex": "#E67E22",
+      "category": "nostalgex",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Comedy"
+          ],
+          "exclude": [
+            "Animation",
+            "Animated"
+          ]
+        },
+        "keywordsExclude": [
+          "dark comedy",
+          "black comedy",
+          "satire"
+        ],
+        "yearRange": {
+          "min": 2000,
+          "max": 2009
+        }
+      }
+    },
+    {
+      "id": 227,
+      "number": 18,
+      "name": "MILLENNIAL SITCOMS",
+      "colorHex": "#F1C40F",
+      "category": "nostalgex",
+      "minItems": 10,
+      "rules": {
+        "type": "episode",
+        "genres": {
+          "include": [
+            "Comedy"
+          ],
+          "exclude": [
+            "Anime",
+            "Animation"
+          ]
+        },
+        "yearRange": {
+          "min": 2000,
+          "max": 2009
+        }
+      }
+    },
+    {
       "id": 215,
       "number": 15,
       "name": "CARTOON NETWORK",
@@ -842,6 +928,33 @@
           "Teen Titans",
           "Total Drama"
         ]
+      }
+    },
+    {
+      "id": 228,
+      "number": 19,
+      "name": "NOSTALGEX HORROR",
+      "colorHex": "#8E44AD",
+      "category": "seasonal",
+      "minItems": 3,
+      "rules": {
+        "type": "movie",
+        "genres": {
+          "include": [
+            "Horror"
+          ],
+          "exclude": [
+            "Family",
+            "Children",
+            "Kids",
+            "Animation",
+            "Animated"
+          ]
+        },
+        "yearRange": {
+          "min": 1975,
+          "max": 1999
+        }
       }
     },
     {
