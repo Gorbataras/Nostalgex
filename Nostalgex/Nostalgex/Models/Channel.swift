@@ -1,6 +1,27 @@
 import Foundation
 import SwiftUI
 
+/// Keeps config-defined channels and runtime-created ones out of each other's way.
+///
+/// They used to share one small range: discovered collections were handed 220, 240 and 300
+/// with fifty slots each, and `materializeCollectionChannels` cleared "everything from 220
+/// up" before rebuilding. Any channel in channels.json at or above 220 was deleted and its
+/// id handed to a Plex collection — HISTORY & BIO at 224 came back as Toy Story. The two
+/// category ranges also overlapped each other at 240-269.
+///
+/// Static ids now stay below `dynamicBase` and runtime ids above it, so the lineup can grow
+/// without ever reaching the collection space. `ChannelIDSpaceTests` fails the build if a
+/// channels.json entry crosses the line.
+enum ChannelIDSpace {
+    /// Everything at or above this is created at runtime, never from channels.json.
+    static let dynamicBase = 1_000_000
+    /// Per-category room. Far more than any library produces, and no longer overlapping.
+    static let categoryStride = 10_000
+
+    static func isDynamic(_ id: Int) -> Bool { id >= dynamicBase }
+    static func isStatic(_ id: Int) -> Bool { !isDynamic(id) }
+}
+
 // MARK: - Collection categories (auto-classified during scan)
 
 enum CollectionCategory: String, CaseIterable {
@@ -24,12 +45,27 @@ enum CollectionCategory: String, CaseIterable {
         }
     }
 
-    /// Channel ID range base (50 slots each). Static franchise presets use 100–106 in channels.json.
+    /// Where this category's runtime channel ids start. Well clear of channels.json and
+    /// of each other — see ChannelIDSpace.
     var idBase: Int {
+        ChannelIDSpace.dynamicBase + (ordinal * ChannelIDSpace.categoryStride)
+    }
+
+    /// What the viewer sees on the row. Ids are large so they can never collide; the
+    /// numbers stay the short ones people recognise.
+    var displayNumberBase: Int {
         switch self {
         case .franchises: return 220
         case .actors:     return 300
-        case .custom:     return 240
+        case .custom:     return 260
+        }
+    }
+
+    private var ordinal: Int {
+        switch self {
+        case .franchises: return 0
+        case .actors:     return 1
+        case .custom:     return 2
         }
     }
 }

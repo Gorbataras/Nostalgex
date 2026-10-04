@@ -444,8 +444,9 @@ extension AppState {
     }
 
     private func materializeCollectionChannels() {
-        // Remove all previous dynamic collection channels (ID >= franchise idBase)
-        allChannels.removeAll { $0.id >= CollectionCategory.franchises.idBase }
+        // Clear runtime-created channels only. This used to be "id >= 220", which also
+        // deleted everything channels.json defined from 220 up — see ChannelIDSpace.
+        allChannels.removeAll { ChannelIDSpace.isDynamic($0.id) }
 
         // Remove old collection bundles (both legacy and per-category)
         bundles.removeAll { $0.id == "collections" || $0.id.hasPrefix("collections-") }
@@ -463,11 +464,12 @@ extension AppState {
 
             for (index, dc) in enabledInCategory.enumerated() {
                 let channelID = category.idBase + index
+                let displayNumber = category.displayNumberBase + index
                 let colorHex = Self.collectionColors[index % Self.collectionColors.count]
 
                 var channel = Channel(
                     id: channelID,
-                    number: channelID,
+                    number: displayNumber,
                     name: dc.title,
                     color: Color(hex: colorHex),
                     category: category.rawValue,
