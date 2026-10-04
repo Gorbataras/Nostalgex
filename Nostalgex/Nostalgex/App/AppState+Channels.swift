@@ -208,9 +208,12 @@ extension AppState {
                 bundle.channelIDs.forEach { result.insert($0) }
             }
 
-        channels = allChannels
-            .filter { enabledChannelIDs.contains($0.id) }
-            .sorted { $0.number < $1.number }
+        // A seasonal package leads the guide while it runs — see GuideChannelOrder.
+        let seasonalLead = GuideChannelOrder.seasonalLeadIDs(
+            bundles: bundles, enabledBundleIDs: enabledBundleIDs, now: Date())
+        channels = GuideChannelOrder.sorted(
+            allChannels.filter { enabledChannelIDs.contains($0.id) },
+            seasonalFirst: seasonalLead)
 
         // Build bundle jump targets (first visible channel per enabled bundle)
         let channelSet = Set(channels.map(\.id))
