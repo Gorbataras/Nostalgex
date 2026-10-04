@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 29 · **125 channels** across **14 bundles** · 42 channels whose `id` differs from their `number`.
+**Config version:** 32 · **128 channels** across **14 bundles** · 45 channels whose `id` differs from their `number`.
 
 ---
 
@@ -63,11 +63,11 @@ only name the channel's own defining genre.
 | DECADES | `decades` | 7 | CH 90–96 | Movies and shows sorted by decade |
 | FRANCHISES | `franchises` | 7 | CH 100–106 | Movie franchise marathons |
 | NETWORKS | `streamers` | 11 | CH 119–129 | Channels by streaming service and studio |
-| TIS THE SEASON | `tis-the-season` | 1 | CH 130 | Christmas and holiday channels |
+| TIS THE SEASON | `tis-the-season` | 4 | CH 130–135 | Christmas and holiday channels |
 | ARTHOUSE | `arthouse` | 4 | CH 140–143 | Criterion, foreign films, midnight movies, and cult classics |
 | HIGH ROTATION | `high-rotation` | 14 | CH 150–164 | Music videos by genre |
 
-Bundled channels: 126 of 125.
+Bundled channels: 129 of 128.
 
 ---
 
@@ -81,7 +81,7 @@ the year.
 
 | Locked to | Matches on | Notes |
 |---|---|---|
-| CH130 HOLIDAZE (id 130) | genres Holiday/Christmas, 19 title keywords, 49 editorial titles | Holiday and Christmas titles belong to HOLIDAZE for the season. Genre match plus a title allowlist plus an editorial allowlist. Die Hard, Die Hard 2 and Lethal Weapon are deliberately NOT on the list — they stay free for year-round action. |
+| CH130 HOLIDAZE (id 130)<br>CH133 SANTA'S LIST (id 229)<br>CH134 NAUGHTY LIST (id 230)<br>CH135 NOSTALGEX CHRISTMAS (id 231) | genres Holiday/Christmas, 19 title keywords, 49 editorial titles |  |
 | id 32 (missing)<br>CH60 ANIME (id 60) | genres Anime, TMDB manifest claim (`manifestExclusive`) | Anime is claimed by genre `Anime` OR by a TMDB-manifest claim (`manifestExclusive`), so manifest-claimed anime is blocked from the other animation channels even when Plex only tags it "Animation". The manifest builder gates these channels with `requireGenres: ["Animation"]` + `requireOriginalLanguage: ["ja"]` + `autoSweepCollections: false` so TMDB similar/collection noise cannot be claimed — that blocks live-action (Spy Kids) AND Western animation (An American Tail, Avatar, Castlevania). Strict Japanese anime only. Re-run the keyword tuner to apply changes. |
 | CH132 SCREAM ADULTS (id 132) | 2 title keywords, 8 editorial titles | Halloween horror is claimed by a title allowlist plus the manifest, so the seasonal channel owns it rather than the year-round horror channels. |
 
@@ -273,13 +273,16 @@ _Channels by streaming service and studio_
 | 128 | `128` | UNIVERSAL | `#00A651` | Movies | 3 | studios Universal/Universal Pictures/Universal Television +3 more, prodCo Universal Pictures/DreamWorks Pictures/DreamWorks Animation +2 more |
 | 129 | `129` | 20TH CENTURY | `#C8A951` | Movies | 3 | studios 20th Century Fox/20th Century Studios/20th Television +5 more, prodCo 20th Century Fox/20th Century Studios/Searchlight Pictures +2 more |
 
-### TIS THE SEASON · CH 130
+### TIS THE SEASON · CH 130–135
 
 _Christmas and holiday channels_
 
 | CH | `id` | Name | Color | Type | Min items | Rules |
 |---|---|---|---|---|---|---|
 | 130 | `130` | HOLIDAZE | `#C41E3A` | Movies | 3 | incl Holiday/Christmas, title allowlist (19), editorial always-in (96), Plex rating ≥ 5 |
+| 133 | **`229`** ⚠︎ | SANTA'S LIST | `#2ECC71` | Movies | 3 | incl Holiday/Christmas, title allowlist (114), title blocklist (6), rated G/PG/TV-Y/TV-Y7/TV-G/TV-PG/unrated |
+| 134 | **`230`** ⚠︎ | NAUGHTY LIST | `#C0392B` | Movies | 3 | incl Holiday/Christmas, title allowlist (114), title blocklist (6), rated PG-13/R/TV-14/TV-MA |
+| 135 | **`231`** ⚠︎ | NOSTALGEX CHRISTMAS | `#E74C3C` | Movies | 3 | incl Holiday/Christmas, title allowlist (114), title blocklist (6), …-1999 |
 
 ### ARTHOUSE · CH 140–143
 
@@ -317,7 +320,7 @@ _Music videos by genre_
 
 ## `id` ≠ `number`
 
-42 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
+45 channels whose manifest/exclusivity key (`id`) is not their on-screen number. Marked ⚠︎ in the tables above.
 
 | `id` | Airs as | Name |
 |---|---|---|
@@ -359,6 +362,9 @@ _Music videos by genre_
 | `43` | CH88 | MYSTERY |
 | `44` | CH89 | CRIME TV |
 | `221` | CH119 | MIRAMAX |
+| `229` | CH133 | SANTA'S LIST |
+| `230` | CH134 | NAUGHTY LIST |
+| `231` | CH135 | NOSTALGEX CHRISTMAS |
 | `211` | CH140 | CRITERION |
 | `212` | CH141 | FOREIGN FILMS |
 | `213` | CH142 | MIDNIGHT |
@@ -366,4 +372,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v29 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v32 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
