@@ -1034,6 +1034,14 @@ extension AppState {
                     if !titleContainsLower.isEmpty && !matchesTitleRule {
                         return nil
                     }
+                    // titleExcludes outranks a manifest claim for the same reason
+                    // genres.exclude does. SCREAM ADULTS lists "Ring" for The Ring, and
+                    // the manifest handed it The Fellowship of the Ring.
+                    // Keep in sync with scripts/nostalgex-channel-filter.cjs.
+                    if !titleExcludesLower.isEmpty,
+                       titleExcludesLower.contains(where: { Self.titleContainsWordLower(titleLower, $0) }) {
+                        return nil
+                    }
                     // genres.exclude still applies. The manifest is built by expanding
                     // TMDB "similar" titles out from a few exemplars, and that drifts:
                     // SCI-FI (excludes Animation/Family/Kids) was being handed Aladdin,

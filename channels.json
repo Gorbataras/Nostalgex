@@ -1,12 +1,12 @@
 {
-  "version": 32,
+  "version": 33,
   "exclusiveRules": [
     {
       "channelIDs": [
         130,
-        229,
-        230,
-        231
+        409,
+        410,
+        411
       ],
       "genres": [
         "Holiday",
@@ -134,9 +134,9 @@
         13,
         14,
         215,
-        225,
-        226,
-        227
+        405,
+        406,
+        407
       ]
     },
     {
@@ -159,7 +159,7 @@
         34,
         216,
         218,
-        220
+        400
       ]
     },
     {
@@ -191,9 +191,9 @@
         66,
         200,
         210,
-        224,
-        222,
-        223
+        404,
+        402,
+        403
       ]
     },
     {
@@ -295,7 +295,7 @@
         127,
         128,
         129,
-        221
+        401
       ]
     },
     {
@@ -303,10 +303,10 @@
       "name": "SCREAM",
       "description": "Horror, all year's worth, front and centre every October",
       "channelIDs": [
+        131,
         141,
         132,
-        131,
-        228
+        408
       ],
       "activeMonths": [
         10
@@ -318,9 +318,9 @@
       "description": "Christmas and holiday channels",
       "channelIDs": [
         130,
-        229,
-        230,
-        231
+        409,
+        410,
+        411
       ],
       "activeMonths": [
         12
@@ -815,7 +815,7 @@
       }
     },
     {
-      "id": 225,
+      "id": 405,
       "number": 16,
       "name": "DVD SHELF",
       "colorHex": "#C0392B",
@@ -830,7 +830,7 @@
       }
     },
     {
-      "id": 226,
+      "id": 406,
       "number": 17,
       "name": "MILLENNIAL COMEDY",
       "colorHex": "#E67E22",
@@ -859,7 +859,7 @@
       }
     },
     {
-      "id": 227,
+      "id": 407,
       "number": 18,
       "name": "MILLENNIAL SITCOMS",
       "colorHex": "#F1C40F",
@@ -938,7 +938,7 @@
       }
     },
     {
-      "id": 228,
+      "id": 408,
       "number": 19,
       "name": "NOSTALGEX HORROR",
       "colorHex": "#8E44AD",
@@ -2535,7 +2535,7 @@
       }
     },
     {
-      "id": 224,
+      "id": 404,
       "number": 83,
       "name": "HISTORY & BIO",
       "colorHex": "#A0522D",
@@ -3699,7 +3699,7 @@
       }
     },
     {
-      "id": 229,
+      "id": 409,
       "number": 133,
       "name": "SANTA'S LIST",
       "colorHex": "#2ECC71",
@@ -3849,7 +3849,7 @@
       }
     },
     {
-      "id": 230,
+      "id": 410,
       "number": 134,
       "name": "NAUGHTY LIST",
       "colorHex": "#C0392B",
@@ -3996,7 +3996,7 @@
       }
     },
     {
-      "id": 231,
+      "id": 411,
       "number": 135,
       "name": "NOSTALGEX CHRISTMAS",
       "colorHex": "#E74C3C",
@@ -4325,17 +4325,19 @@
           "Wolf Creek"
         ],
         "titleExcludes": [
-          "Nightmare Before Christmas",
-          "Hocus Pocus",
-          "Casper",
-          "Monster House",
-          "Coraline",
-          "Hotel Transylvania",
           "Beetlejuice",
-          "Shaun of the Dead",
+          "Casper",
+          "Coraline",
+          "Grudge Match",
+          "Hocus Pocus",
+          "Hotel Transylvania",
+          "Lord of the Rings",
+          "Monster House",
+          "Nightmare Before Christmas",
           "Rocky Horror",
-          "Young Frankenstein",
-          "Scooby"
+          "Scooby",
+          "Shaun of the Dead",
+          "Young Frankenstein"
         ],
         "contentRatings": [
           "R",
@@ -4756,7 +4758,7 @@
       }
     },
     {
-      "id": 220,
+      "id": 400,
       "number": 35,
       "name": "TOON TOWN",
       "colorHex": "#FF9F1C",
@@ -4803,7 +4805,7 @@
       }
     },
     {
-      "id": 221,
+      "id": 401,
       "number": 119,
       "name": "MIRAMAX",
       "colorHex": "#C0392B",
@@ -4823,7 +4825,7 @@
       }
     },
     {
-      "id": 222,
+      "id": 402,
       "number": 84,
       "name": "R RATED COMEDY",
       "colorHex": "#E84393",
@@ -4860,7 +4862,7 @@
       }
     },
     {
-      "id": 223,
+      "id": 403,
       "number": 53,
       "name": "PREMIERES",
       "colorHex": "#F72585",

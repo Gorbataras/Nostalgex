@@ -242,6 +242,14 @@ function itemPasses(item, channel, opts = {}) {
     if (Array.isArray(r.titleContains) && r.titleContains.length && !matchesTitleRule) {
       return false;
     }
+    // titleExcludes outranks a manifest claim for the same reason genres.exclude does:
+    // SCREAM ADULTS lists "Ring" for The Ring, and the manifest handed it The Lord of
+    // the Rings: The Fellowship of the Ring. Keep in sync with AppState+Channels.swift.
+    const manifestTitleExcludes = r.titleExcludes || [];
+    if (manifestTitleExcludes.length &&
+        manifestTitleExcludes.some((t) => titleContainsWord(titleLower, t))) {
+      return false;
+    }
     // genres.exclude still applies to a manifest claim. The manifest is built by
     // expanding TMDB "similar" titles out from a handful of exemplars, which
     // drifts: SCI-FI (excludes Animation/Family/Kids) was being handed Aladdin,
