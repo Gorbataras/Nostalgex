@@ -1,5 +1,5 @@
 {
-  "version": 35,
+  "version": 36,
   "exclusiveRules": [
     {
       "channelIDs": [
@@ -238,7 +238,6 @@
         74,
         75,
         76,
-        141,
         65,
         219
       ]
@@ -943,7 +942,7 @@
     },
     {
       "id": 408,
-      "number": 19,
+      "number": 140,
       "name": "NOSTALGEX HORROR",
       "colorHex": "#8E44AD",
       "category": "seasonal",
@@ -1717,7 +1716,7 @@
     },
     {
       "id": 66,
-      "number": 48,
+      "number": 49,
       "name": "BLOCKBUSTER",
       "colorHex": "#F39C12",
       "category": "essentials",
@@ -1736,7 +1735,7 @@
     },
     {
       "id": 62,
-      "number": 49,
+      "number": 48,
       "name": "FRESH",
       "colorHex": "#00E5FF",
       "category": "essentials",
@@ -1809,7 +1808,7 @@
     },
     {
       "id": 60,
-      "number": 60,
+      "number": 59,
       "name": "ANIME",
       "colorHex": "#FF3D6E",
       "category": "premium",
@@ -1979,7 +1978,7 @@
     },
     {
       "id": 61,
-      "number": 61,
+      "number": 60,
       "name": "MUSICALS",
       "colorHex": "#C2185B",
       "category": "premium",
@@ -2011,7 +2010,7 @@
     },
     {
       "id": 55,
-      "number": 62,
+      "number": 61,
       "name": "GAME SHOWS",
       "colorHex": "#FFB300",
       "category": "premium",
@@ -2061,7 +2060,7 @@
     },
     {
       "id": 63,
-      "number": 63,
+      "number": 62,
       "name": "ADULT CARTOONS",
       "colorHex": "#8E44AD",
       "category": "premium",
@@ -2102,7 +2101,7 @@
     },
     {
       "id": 64,
-      "number": 64,
+      "number": 63,
       "name": "DATE NIGHT",
       "colorHex": "#E74C8B",
       "category": "premium",
@@ -2138,7 +2137,7 @@
     },
     {
       "id": 58,
-      "number": 65,
+      "number": 64,
       "name": "STAND-UP",
       "colorHex": "#F5B041",
       "category": "premium",
@@ -2162,7 +2161,7 @@
     },
     {
       "id": 201,
-      "number": 66,
+      "number": 65,
       "name": "BIOPICS",
       "colorHex": "#C9A84C",
       "category": "premium",
@@ -2181,7 +2180,7 @@
     },
     {
       "id": 67,
-      "number": 67,
+      "number": 66,
       "name": "ALL TIME GREATS",
       "colorHex": "#FFD700",
       "category": "premium",
@@ -2196,7 +2195,7 @@
     },
     {
       "id": 68,
-      "number": 68,
+      "number": 67,
       "name": "CERTIFIED GOLD",
       "colorHex": "#F56040",
       "category": "premium",
@@ -2211,7 +2210,7 @@
     },
     {
       "id": 69,
-      "number": 69,
+      "number": 68,
       "name": "OSCAR WINNERS",
       "colorHex": "#FFD700",
       "category": "premium",
@@ -2540,7 +2539,7 @@
     },
     {
       "id": 404,
-      "number": 83,
+      "number": 52,
       "name": "HISTORY & BIO",
       "colorHex": "#A0522D",
       "category": "essentials",
@@ -2563,7 +2562,7 @@
     },
     {
       "id": 141,
-      "number": 77,
+      "number": 138,
       "name": "FRIGHT NIGHT",
       "colorHex": "#8B0000",
       "category": "adventureland",
@@ -2578,7 +2577,7 @@
     },
     {
       "id": 65,
-      "number": 78,
+      "number": 77,
       "name": "SUPERHERO MOVIES",
       "colorHex": "#E74C3C",
       "category": "adventureland",
@@ -3063,7 +3062,7 @@
     },
     {
       "id": 120,
-      "number": 120,
+      "number": 119,
       "name": "HBO",
       "colorHex": "#8B5CF6",
       "category": "streamers",
@@ -3137,7 +3136,7 @@
     },
     {
       "id": 121,
-      "number": 121,
+      "number": 120,
       "name": "APPLE TV+",
       "colorHex": "#5AC8FA",
       "category": "streamers",
@@ -3237,7 +3236,7 @@
     },
     {
       "id": 122,
-      "number": 122,
+      "number": 121,
       "name": "NETFLIX",
       "colorHex": "#E50914",
       "category": "streamers",
@@ -3305,7 +3304,7 @@
     },
     {
       "id": 123,
-      "number": 123,
+      "number": 122,
       "name": "PARAMOUNT+",
       "colorHex": "#0064FF",
       "category": "streamers",
@@ -3356,7 +3355,7 @@
     },
     {
       "id": 124,
-      "number": 124,
+      "number": 123,
       "name": "AMAZON",
       "colorHex": "#00A8E1",
       "category": "streamers",
@@ -3411,7 +3410,7 @@
     },
     {
       "id": 125,
-      "number": 125,
+      "number": 124,
       "name": "HULU",
       "colorHex": "#1CE783",
       "category": "streamers",
@@ -3461,7 +3460,7 @@
     },
     {
       "id": 126,
-      "number": 126,
+      "number": 125,
       "name": "SONY",
       "colorHex": "#374151",
       "category": "streamers",
@@ -3487,7 +3486,7 @@
     },
     {
       "id": 127,
-      "number": 127,
+      "number": 126,
       "name": "WARNER BROS",
       "colorHex": "#B8860B",
       "category": "streamers",
@@ -3513,7 +3512,7 @@
     },
     {
       "id": 128,
-      "number": 128,
+      "number": 127,
       "name": "UNIVERSAL",
       "colorHex": "#00A651",
       "category": "streamers",
@@ -3539,7 +3538,7 @@
     },
     {
       "id": 129,
-      "number": 129,
+      "number": 128,
       "name": "20TH CENTURY",
       "colorHex": "#C8A951",
       "category": "streamers",
@@ -3704,7 +3703,7 @@
     },
     {
       "id": 409,
-      "number": 133,
+      "number": 131,
       "name": "SANTA'S LIST",
       "colorHex": "#2ECC71",
       "category": "seasonal",
@@ -3854,7 +3853,7 @@
     },
     {
       "id": 410,
-      "number": 134,
+      "number": 132,
       "name": "NAUGHTY LIST",
       "colorHex": "#C0392B",
       "category": "seasonal",
@@ -4001,7 +4000,7 @@
     },
     {
       "id": 411,
-      "number": 135,
+      "number": 133,
       "name": "NOSTALGEX CHRISTMAS",
       "colorHex": "#E74C3C",
       "category": "seasonal",
@@ -4145,7 +4144,7 @@
     },
     {
       "id": 412,
-      "number": 136,
+      "number": 134,
       "name": "HALLMARK",
       "colorHex": "#D98880",
       "category": "seasonal",
@@ -4305,7 +4304,7 @@
     },
     {
       "id": 413,
-      "number": 137,
+      "number": 135,
       "name": "CHRISTMAS SPECIALS",
       "colorHex": "#27AE60",
       "category": "seasonal",
@@ -4343,7 +4342,7 @@
     },
     {
       "id": 414,
-      "number": 138,
+      "number": 136,
       "name": "KIDS CHRISTMAS TV",
       "colorHex": "#58D68D",
       "category": "seasonal",
@@ -4380,7 +4379,7 @@
     },
     {
       "id": 131,
-      "number": 131,
+      "number": 137,
       "name": "SCREAM KIDS",
       "colorHex": "#FF8C00",
       "category": "seasonal",
@@ -4488,7 +4487,7 @@
     },
     {
       "id": 132,
-      "number": 132,
+      "number": 139,
       "name": "SCREAM ADULTS",
       "colorHex": "#8B0000",
       "category": "seasonal",
@@ -4588,7 +4587,7 @@
     },
     {
       "id": 150,
-      "number": 150,
+      "number": 200,
       "name": "HIGH ROTATION",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4599,7 +4598,7 @@
     },
     {
       "id": 151,
-      "number": 151,
+      "number": 201,
       "name": "POP",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4615,7 +4614,7 @@
     },
     {
       "id": 152,
-      "number": 152,
+      "number": 202,
       "name": "ROCK'N",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4633,7 +4632,7 @@
     },
     {
       "id": 153,
-      "number": 153,
+      "number": 203,
       "name": "COUNTRY SWAGGER",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4650,7 +4649,7 @@
     },
     {
       "id": 154,
-      "number": 154,
+      "number": 204,
       "name": "BALLIN",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4667,7 +4666,7 @@
     },
     {
       "id": 155,
-      "number": 155,
+      "number": 205,
       "name": "RAP GODS",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4683,7 +4682,7 @@
     },
     {
       "id": 156,
-      "number": 156,
+      "number": 206,
       "name": "ALT ROCK",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4701,7 +4700,7 @@
     },
     {
       "id": 157,
-      "number": 157,
+      "number": 207,
       "name": "SLOW JAMS",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4719,7 +4718,7 @@
     },
     {
       "id": 159,
-      "number": 159,
+      "number": 208,
       "name": "Y2K",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4734,7 +4733,7 @@
     },
     {
       "id": 160,
-      "number": 160,
+      "number": 209,
       "name": "CURRENT SPIN",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4749,7 +4748,7 @@
     },
     {
       "id": 161,
-      "number": 161,
+      "number": 210,
       "name": "DANCE FLOOR",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4770,7 +4769,7 @@
     },
     {
       "id": 162,
-      "number": 162,
+      "number": 211,
       "name": "CALIENTE",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4787,7 +4786,7 @@
     },
     {
       "id": 163,
-      "number": 163,
+      "number": 212,
       "name": "HEADBANGERS",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4803,7 +4802,7 @@
     },
     {
       "id": 164,
-      "number": 164,
+      "number": 213,
       "name": "GET DOWN",
       "colorHex": "#FF2DB4",
       "category": "high-rotation",
@@ -4820,7 +4819,7 @@
     },
     {
       "id": 211,
-      "number": 140,
+      "number": 107,
       "name": "CRITERION",
       "colorHex": "#F5E6C8",
       "category": "arthouse",
@@ -4832,7 +4831,7 @@
     },
     {
       "id": 212,
-      "number": 141,
+      "number": 108,
       "name": "FOREIGN FILMS",
       "colorHex": "#2C3E50",
       "category": "arthouse",
@@ -4857,7 +4856,7 @@
     },
     {
       "id": 213,
-      "number": 142,
+      "number": 109,
       "name": "MIDNIGHT",
       "colorHex": "#1A0A2E",
       "category": "arthouse",
@@ -4879,7 +4878,7 @@
     },
     {
       "id": 214,
-      "number": 143,
+      "number": 110,
       "name": "CULT CLASSICS",
       "colorHex": "#6C1C8A",
       "category": "arthouse",
@@ -4930,7 +4929,7 @@
     },
     {
       "id": 217,
-      "number": 59,
+      "number": 69,
       "name": "SKETCH COMEDY",
       "colorHex": "#5DADE2",
       "category": "premium",
@@ -5018,7 +5017,7 @@
     },
     {
       "id": 219,
-      "number": 79,
+      "number": 78,
       "name": "SPY GAMES",
       "colorHex": "#34495E",
       "category": "adventureland",
@@ -5045,7 +5044,7 @@
     },
     {
       "id": 401,
-      "number": 119,
+      "number": 129,
       "name": "MIRAMAX",
       "colorHex": "#C0392B",
       "category": "streamers",
@@ -5065,7 +5064,7 @@
     },
     {
       "id": 402,
-      "number": 84,
+      "number": 53,
       "name": "R RATED COMEDY",
       "colorHex": "#E84393",
       "category": "essentials",
@@ -5102,7 +5101,7 @@
     },
     {
       "id": 403,
-      "number": 53,
+      "number": 54,
       "name": "PREMIERES",
       "colorHex": "#F72585",
       "category": "essentials",
