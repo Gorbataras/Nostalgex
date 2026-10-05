@@ -233,6 +233,9 @@ struct SettingsPageView: View {
                             VStack(spacing: 4) {
                                 // Static bundles (non-collection bundles)
                                 ForEach(appState.bundles.filter { !$0.id.hasPrefix("collections-") }) { bundle in
+                                    // A seasonal package can be switched on any time of year.
+                                    // Its months decide when it is offered in the guide and
+                                    // when it leads the lineup, not whether it is available.
                                     let inSeason = bundle.isInSeason
                                     let availability = appState.bundleChannelAvailability(for: bundle)
                                     let availableNames = availability.filter { $0.hasContent }.map(\.name)
@@ -243,31 +246,30 @@ struct SettingsPageView: View {
                                     // Line 1: channels you have. Line 2 (amber): channels that
                                     // can't build yet because there isn't enough content.
                                     let subtitle: String = {
-                                        if !inSeason { return seasonalLabel(for: bundle) }
                                         if available == 0 { return "Not enough content to build this bundle" }
-                                        return availableNames.joined(separator: ", ")
+                                        let names = availableNames.joined(separator: ", ")
+                                        guard bundle.activeMonths != nil, !inSeason else { return names }
+                                        return "\(seasonalLabel(for: bundle)) · \(names)"
                                     }()
                                     let warning: String? = {
-                                        guard inSeason, available > 0, !missingNames.isEmpty else { return nil }
+                                        guard available > 0, !missingNames.isEmpty else { return nil }
                                         return "Needs more content: \(missingNames.joined(separator: ", "))"
                                     }()
-                                    let detail: String? = inSeason ? "\(available)/\(total) CH" : nil
+                                    let detail: String? = "\(available)/\(total) CH"
 
                                     SettingsToggleRow(
                                         title: bundle.name,
                                         subtitle: subtitle,
                                         detail: detail,
                                         warning: warning,
-                                        isOn: inSeason && bundle.enabled,
+                                        isOn: bundle.enabled,
                                         isFocused: focusedItem == "bundle_\(bundle.id)"
                                     ) {
-                                        if inSeason {
-                                            appState.toggleBundle(bundle)
-                                        }
+                                        appState.toggleBundle(bundle)
                                     }
                                     .focused($focusedItem, equals: "bundle_\(bundle.id)")
                                     .id("bundle_\(bundle.id)")
-                                    .opacity(inSeason ? (available == 0 ? 0.5 : 1.0) : 0.4)
+                                    .opacity(available == 0 ? 0.5 : 1.0)
                                 }
                             }
                         }
@@ -544,7 +546,7 @@ struct SettingsPageView: View {
             guard let date = Calendar.current.date(from: comps) else { return nil }
             return formatter.string(from: date).uppercased()
         }
-        return "Available \(names.joined(separator: ", "))"
+        return "Spotlighted \(names.joined(separator: ", "))"
     }
 
     private var scanStatusDetail: String {

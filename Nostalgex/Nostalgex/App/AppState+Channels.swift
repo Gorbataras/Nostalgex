@@ -118,7 +118,7 @@ extension AppState {
         // SeasonalPrompt and switched on only when the viewer says yes. Auto-enabling
         // them would put horror in front of someone every October without asking.
         for bundle in bundles where !bundle.id.hasPrefix("collections-")
-            && bundle.isInSeason && bundle.activeMonths == nil {
+            && bundle.activeMonths == nil {
             guard !enabledBundleIDs.contains(bundle.id) else { continue }
             let hasContent = bundle.channelIDs.contains { availableChannelIDs.contains($0) }
             if hasContent {
@@ -186,7 +186,8 @@ extension AppState {
     }
 
     /// Applies the viewer's answer. "Yes" turns the bundle on for the rest of its season;
-    /// it goes away by itself when the season ends, because `isInSeason` stops matching.
+    /// Turning it on keeps it on: a seasonal package stays in the lineup until the viewer
+    /// removes it. What the season controls is when it is offered and when it leads.
     func answerSeasonalPrompt(_ answer: SeasonalPrompt.Answer, for bundle: ChannelBundle) {
         let turnOn = SeasonalPrompt.record(answer, bundleID: bundle.id, now: Date())
         Analytics.track(.settingChanged(key: "seasonalPrompt:\(bundle.id)", value: "\(answer)"))
@@ -203,7 +204,7 @@ extension AppState {
         }
 
         let enabledChannelIDs: Set<Int> = bundles
-            .filter { enabledBundleIDs.contains($0.id) && $0.isInSeason }
+            .filter { enabledBundleIDs.contains($0.id) }
             .reduce(into: Set<Int>()) { result, bundle in
                 bundle.channelIDs.forEach { result.insert($0) }
             }
@@ -218,7 +219,7 @@ extension AppState {
         // Build bundle jump targets (first visible channel per enabled bundle)
         let channelSet = Set(channels.map(\.id))
         bundleJumpTargets = bundles
-            .filter { enabledBundleIDs.contains($0.id) && $0.isInSeason }
+            .filter { enabledBundleIDs.contains($0.id) }
             .compactMap { bundle in
                 guard let firstID = bundle.channelIDs.first(where: { channelSet.contains($0) }),
                       let channel = channels.first(where: { $0.id == firstID }) else { return nil }
@@ -612,7 +613,7 @@ extension AppState {
             return Set(channelConfigChannels.map(\.id))
         }
         var ids = Set<Int>()
-        for bundle in bundles where enabledBundleIDs.contains(bundle.id) && bundle.isInSeason {
+        for bundle in bundles where enabledBundleIDs.contains(bundle.id) {
             bundle.channelIDs.forEach { ids.insert($0) }
         }
         return ids
