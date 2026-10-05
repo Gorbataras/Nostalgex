@@ -167,6 +167,17 @@ function itemPasses(item, channel, opts = {}) {
   );
   const itemGenres = (item.genres || []).map((g) => String(g).toLowerCase());
 
+  // Matches the EPISODE title rather than the show name — a Christmas special lives in
+  // "The One with the Holiday Armadillo", not in "Friends".
+  // Keep in sync with AppState+Channels.swift.
+  const episodeTitleLower = String(item.episodeTitle || "").toLowerCase();
+  const hasEpisodeTitleRule =
+    Array.isArray(r.episodeTitleContains) && r.episodeTitleContains.length > 0;
+  const matchesEpisodeTitleRule =
+    hasEpisodeTitleRule &&
+    episodeTitleLower.length > 0 &&
+    r.episodeTitleContains.some((t) => titleContainsWord(episodeTitleLower, t));
+
   const matchesTitleRule = (() => {
     if (!Array.isArray(r.titleContains) || !r.titleContains.length) return true;
     return r.titleContains.some((t) => titleContainsWord(titleLower, t));
@@ -319,6 +330,9 @@ function itemPasses(item, channel, opts = {}) {
   if (r.watchedOnly && (item.viewCount || 0) < 1 && !isNewRelease) return false;
   if (r.unwatchedOnly && ((item.viewCount || 0) > 0 || isNewRelease)) return false;
   if (r.rewatched && (item.viewCount || 0) < 3) return false;
+
+  // Episode-title channels are curated: the list is the allowlist, and nothing widens it.
+  if (hasEpisodeTitleRule && !matchesEpisodeTitleRule) return false;
 
   const titleContains = matchesTitleRule;
 

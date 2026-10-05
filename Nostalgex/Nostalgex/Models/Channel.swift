@@ -137,6 +137,10 @@ struct ChannelRules {
     var unwatchedOnly: Bool = false
     var rewatched: Bool = false // viewCount >= 3 (must match scripts/nostalgex-channel-filter.cjs)
     var titleContains: [String]? // matches if title contains any of these (case-insensitive)
+    /// Matches against the EPISODE title rather than the show name. The only way to find a
+    /// Christmas special: the show is "Friends", the festive part is "The One with the
+    /// Holiday Armadillo". `titleContains` sees show names only.
+    var episodeTitleContains: [String]?
     var titleExcludes: [String]? // excludes if title contains any of these (case-insensitive)
     var editorialOverrides: [String]? // exact title matches always included regardless of other rules
     var addedWithinDays: Int? // only items added to library within this many days
@@ -362,6 +366,7 @@ struct ChannelRulesJSON: Codable {
     let unwatchedOnly: Bool?
     let rewatched: Bool?
     let titleContains: [String]?
+    let episodeTitleContains: [String]?
     let titleExcludes: [String]?
     let editorialOverrides: [String]?
     let addedWithinDays: Int?
@@ -401,6 +406,7 @@ struct ChannelRulesJSON: Codable {
             unwatchedOnly: unwatchedOnly ?? false,
             rewatched: rewatched ?? false,
             titleContains: titleContains,
+            episodeTitleContains: episodeTitleContains,
             titleExcludes: titleExcludes,
             editorialOverrides: editorialOverrides,
             addedWithinDays: addedWithinDays,

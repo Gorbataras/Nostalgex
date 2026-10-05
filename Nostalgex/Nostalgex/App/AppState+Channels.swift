@@ -874,6 +874,7 @@ extension AppState {
     struct FilterCache {
         let item: PlexMediaItem
         let titleLower: String          // lowercased + trailing " (YYYY)" stripped, prefixed with artist when present
+        let episodeTitleLower: String   // "" for anything that is not an episode
         let genresLowerSet: Set<String> // effective genres (Plex + music enrichment) lowercased
         let enrichment: MediaEnrichment?
         let itemStudioLower: String     // "" when item has no studio
@@ -890,6 +891,7 @@ extension AppState {
             FilterCache(
                 item: item,
                 titleLower: filterTitleHaystack(item),
+                episodeTitleLower: (item.episodeTitle ?? "").lowercased(),
                 genresLowerSet: Set(effectiveGenres(for: item).map { $0.lowercased() }),
                 enrichment: enrichmentService.enrichment(for: item),
                 itemStudioLower: (item.studio ?? "").lowercased()
@@ -936,6 +938,7 @@ extension AppState {
 
         // Lowercase rule arrays once per channel instead of per item (5000× savings)
         let titleContainsLower = rules.titleContains?.map { $0.lowercased() } ?? []
+        let episodeTitleContainsLower = rules.episodeTitleContains?.map { $0.lowercased() } ?? []
         let titleExcludesLower = rules.titleExcludes?.map { $0.lowercased() } ?? []
         let studiosLower = rules.studios?.map { $0.lowercased() } ?? []
         let keywordsLower = rules.keywords?.map { $0.lowercased() } ?? []
@@ -959,6 +962,13 @@ extension AppState {
             let itemGenresLowerSet = cache.genresLowerSet
             let enrichment = cache.enrichment
             let itemStudioLower = cache.itemStudioLower
+
+            let matchesEpisodeTitleRule: Bool = {
+                guard !episodeTitleContainsLower.isEmpty, !cache.episodeTitleLower.isEmpty else { return false }
+                return episodeTitleContainsLower.contains(where: {
+                    Self.titleContainsWordLower(cache.episodeTitleLower, $0)
+                })
+            }()
 
             let matchesTitleRule: Bool = {
                 guard !titleContainsLower.isEmpty else { return true }
@@ -1101,6 +1111,7 @@ extension AppState {
             // - When both studios AND genre include exist, require BOTH (AND)
             //   e.g. Disney Animation = Disney studio AND Animation/Family genre
             // - When only one of studios/genre include exists, it works alone
+            let hasEpisodeTitleRule = !episodeTitleContainsLower.isEmpty
             let hasTitleRule = !titleContainsLower.isEmpty
             let hasGenreInclude = !genresIncludeLower.isEmpty
             let hasStudioRule = !studiosLower.isEmpty
@@ -1111,10 +1122,15 @@ extension AppState {
             // Title-curated channels (e.g. ADULT CARTOONS): title list is the allowlist.
             // genres.include still sets allowsAnimation for genre-lock; Plex tags are
             // not required on every episode (Simpsons is often Comedy-only in Plex).
+            // Episode-title channels are curated the same way a title list is: the list is
+            // the allowlist, and nothing else may widen it.
+            if hasEpisodeTitleRule {
+                if !matchesEpisodeTitleRule { return nil }
+            }
             let isTitleCuratedChannel = hasTitleRule && !hasKeywordRule && !hasNetworkRule && !hasProdCoRule && !hasStudioRule
             if isTitleCuratedChannel {
                 if !matchesTitleRule { return nil }
-            } else if hasTitleRule || hasGenreInclude || hasStudioRule || hasKeywordRule || hasNetworkRule || hasProdCoRule {
+            } else if !hasEpisodeTitleRule && (hasTitleRule || hasGenreInclude || hasStudioRule || hasKeywordRule || hasNetworkRule || hasProdCoRule) {
                 // Word-boundary match: a rule of "See" matches a title that
                 // CONTAINS the word "See" but not "Stickbird" or "Stylesheet".
                 // Prevents short dictionary-word rule entries from pulling in
