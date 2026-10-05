@@ -425,8 +425,8 @@ struct JellyfinAPIService: MediaBackend, WatchActivityReporting {
         }
         // HEVC in MP4 renders only when tagged hvc1, and most encodes are hev1 (ffmpeg's
         // default): sound over a black picture. The library listing does not carry the tag,
-        // so let PlaybackInfo decide. Its profile requires hvc1, so the server direct-plays
-        // hvc1 files and remuxes hev1 ones into HLS tagged hvc1.
+        // so let PlaybackInfo decide. Its profile requires hvc1: the server direct-plays what
+        // it knows is hvc1 and remuxes the rest (video copied) into HLS tagged hvc1.
         if PlexAPIService.needsServerRemux(container: item.container, videoCodec: item.videoCodec) {
             return nil
         }

@@ -136,7 +136,9 @@ enum JellyfinPlaybackResolver {
     ///   • HEVC renders only when tagged hvc1 or dvh1 (jellyfin-web asks Safari for the same).
     ///     Jellyfin counts a tag mismatch as a reason to remux, not re-encode, and its HLS
     ///     muxer writes hvc1, so an hev1 file costs a remux. Required, so an unknown tag
-    ///     remuxes rather than risk the black picture.
+    ///     remuxes rather than risk the black picture. That case is common: Jellyfin 12.1
+    ///     records no codec tags at all (its probe reads `codec_tag_string?`), so on 12.1
+    ///     every HEVC MP4 remuxes, hvc1 included. Measured against a 12.1 server.
     private static func codecProfiles(supportsHEVC: Bool) -> [JellyfinDeviceProfile.CodecProfile] {
         var profiles: [JellyfinDeviceProfile.CodecProfile] = [
             .init(mediaType: "Video", Codec: "h264", Conditions: [
