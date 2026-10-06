@@ -1297,6 +1297,34 @@
   .grid-row--promo[data-promo="email"] .grid-promo-dot { background: #00C4FF; box-shadow: 0 0 6px #00C4FF; }
   .grid-row--promo[data-promo="coffee"] .grid-promo-content { color: rgba(255,230,0,0.9); }
   .grid-row--promo[data-promo="coffee"] .grid-promo-dot { background: #FFE500; box-shadow: 0 0 6px #FFE500; }
+  /* Seasonal invitation: one channel row tall, outlined, nothing else in the grid changes */
+  .grid-row--seasonal {
+    height: 64px;
+    border: 2px solid rgba(255,120,0,0.7) !important;
+    background: rgba(255,120,0,0.08);
+    cursor: pointer;
+  }
+  .grid-row--seasonal .grid-promo-content { justify-content: flex-start; gap: 18px; color: #fff; }
+  .grid-seasonal-headline {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: #FF7800;
+    white-space: nowrap;
+  }
+  .grid-seasonal-pill, .grid-seasonal-quiet {
+    font-family: 'VT323', monospace;
+    font-size: 19px;
+    letter-spacing: 1px;
+    border-radius: 999px;
+    padding: 4px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .grid-seasonal-pill { background: #FF7800; color: #000; border: 0; }
+  .grid-seasonal-pill:hover { background: #ff9a3c; }
+  .grid-seasonal-quiet { background: transparent; color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.2); }
+  .grid-seasonal-quiet:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
 
   /* Promo modal */
   .promo-modal {
@@ -2444,6 +2472,62 @@
     return bundle.activeMonths.includes(currentMonth);
   }
 
+  // What the guide prints. `id` is the stable key (collections live at 1,000,000+,
+  // seasonal channels at 404+); `number` is the dial position inside its bundle.
+  function chNum(ch) { return ch.number || ch.id; }
+
+  // Mirrors GuideChannelOrder.swift: a seasonal package can be switched on any month,
+  // and for the month it runs it leads the guide as a block, in its bundle's order,
+  // above channel one. Numbers are untouched.
+  function seasonalLeadIDs() {
+    const now = new Date();
+    return bundles
+      .filter(b => b.activeMonths && enabledBundleIDs.has(b.id) && isBundleInSeason(b))
+      .flatMap(b => b.channelIDs || []);
+  }
+
+  function sortChannelsForGuide(list) {
+    const lead = seasonalLeadIDs();
+    const rank = new Map();
+    lead.forEach((id, i) => { if (!rank.has(id)) rank.set(id, i); });
+    const leading = list.filter(ch => rank.has(ch.id)).sort((a, b) => rank.get(a.id) - rank.get(b.id));
+    const rest = list.filter(ch => !rank.has(ch.id)).sort((a, b) => chNum(a) - chNum(b));
+    return leading.concat(rest);
+  }
+
+  // Mirrors SeasonalPrompt.swift: offer the first seasonal package that is in season,
+  // not on, and not silenced (NOT THIS YEAR silences until the year turns; DON'T ASK
+  // AGAIN silences for good).
+  function seasonalPromptKey(bundleId) { return `nostalgex_seasonal_prompt_${bundleId}`; }
+  function isSeasonalPromptSilenced(bundleId) {
+    try {
+      const v = JSON.parse(localStorage.getItem(seasonalPromptKey(bundleId)) || 'null');
+      if (!v) return false;
+      if (v.never) return true;
+      return v.notNowYear === new Date().getFullYear();
+    } catch (e) { return false; }
+  }
+  function answerSeasonalPrompt(bundleId, answer) {
+    if (answer === 'yes') {
+      localStorage.removeItem(seasonalPromptKey(bundleId));
+      if (!enabledBundleIDs.has(bundleId)) toggleBundle(bundleId);
+      return;
+    }
+    const v = answer === 'never' ? { never: true } : { notNowYear: new Date().getFullYear() };
+    localStorage.setItem(seasonalPromptKey(bundleId), JSON.stringify(v));
+    renderActiveGuide();
+  }
+  function seasonalBundleOnOffer() {
+    return bundles.find(b => b.activeMonths && isBundleInSeason(b)
+      && !enabledBundleIDs.has(b.id) && !isSeasonalPromptSilenced(b.id)) || null;
+  }
+  function seasonalHeadline(bundle) {
+    if (bundle.id === 'seasonal') return "IT'S OCTOBER. ARE YOU READY TO SCREAM?";
+    if (bundle.id === 'tis-the-season') return "IT'S DECEMBER. DECK THE CHANNELS.";
+    const month = new Date().toLocaleString('en-US', { month: 'long' }).toUpperCase();
+    return `IT'S ${month}. ${bundle.name} IS ON.`;
+  }
+
   function applyBundleFilter() {
     if (bundles.length === 0) {
       // No bundles defined: show all channels (backward compat)
@@ -2451,7 +2535,7 @@
     }
     const enabledChannelIDs = new Set();
     bundles.forEach(b => {
-      if (enabledBundleIDs.has(b.id) && isBundleInSeason(b)) {
+      if (enabledBundleIDs.has(b.id)) {
         b.channelIDs.forEach(id => enabledChannelIDs.add(id));
       }
     });
@@ -2463,7 +2547,9 @@
         CHANNELS.push(ch);
       }
     });
-    CHANNELS.sort((a, b) => (a.number || a.id) - (b.number || b.id));
+    const ordered = sortChannelsForGuide(CHANNELS);
+    CHANNELS.length = 0;
+    ordered.forEach(ch => CHANNELS.push(ch));
   }
 
   // Exclusive rule matching: returns the owning channelID if item is exclusive, else null
@@ -2947,6 +3033,41 @@
     const enabledChannels = CHANNELS.filter(ch => ch.enabled);
     const fragment = document.createDocumentFragment();
 
+    // Seasonal invitation above channel one (mirrors SeasonalInviteRow on tvOS).
+    const offer = seasonalBundleOnOffer();
+    if (offer) {
+      const row = document.createElement('div');
+      row.className = 'grid-row grid-row--promo grid-row--seasonal';
+      row.dataset.promo = 'seasonal';
+      const content = document.createElement('div');
+      content.className = 'grid-promo-content';
+      const headline = document.createElement('span');
+      headline.className = 'grid-seasonal-headline';
+      headline.textContent = seasonalHeadline(offer);
+      const pill = document.createElement('button');
+      pill.className = 'grid-seasonal-pill';
+      pill.type = 'button';
+      pill.textContent = `PRESS TO ADD THE ${offer.name} PACKAGE`;
+      pill.addEventListener('click', (e) => { e.stopPropagation(); answerSeasonalPrompt(offer.id, 'yes'); });
+      const notNow = document.createElement('button');
+      notNow.className = 'grid-seasonal-quiet';
+      notNow.type = 'button';
+      notNow.textContent = 'NOT THIS YEAR';
+      notNow.addEventListener('click', (e) => { e.stopPropagation(); answerSeasonalPrompt(offer.id, 'notNow'); });
+      const never = document.createElement('button');
+      never.className = 'grid-seasonal-quiet';
+      never.type = 'button';
+      never.textContent = "DON'T ASK AGAIN";
+      never.addEventListener('click', (e) => { e.stopPropagation(); answerSeasonalPrompt(offer.id, 'never'); });
+      content.appendChild(headline);
+      content.appendChild(pill);
+      content.appendChild(notNow);
+      content.appendChild(never);
+      row.appendChild(content);
+      row.addEventListener('click', () => answerSeasonalPrompt(offer.id, 'yes'));
+      fragment.appendChild(row);
+    }
+
     const total = enabledChannels.length;
     // Coffee at ~2/3; email at ~85% with enough separation (20+ channels only)
     const promoCoffeeAt = total > 3 ? Math.floor(total * 2 / 3) - 1 : -1;
@@ -2996,7 +3117,7 @@
       const chCol = document.createElement('div');
       chCol.className = 'grid-row-channel';
       chCol.innerHTML = `
-        <div class="grid-ch-num">${ch.id}</div>
+        <div class="grid-ch-num">${chNum(ch)}</div>
         <div class="grid-ch-name" style="color: ${escapeHtml(ch.colorHex)}">${escapeHtml(ch.name)}</div>
       `;
 
@@ -3216,7 +3337,7 @@
     document.getElementById('player-screen').classList.remove('building');
 
     // Update now playing overlay
-    document.getElementById('np-channel-tag').textContent = `\u25CF CH ${String(ch.id).padStart(2, '0')} \u2014 ${ch.name}`;
+    document.getElementById('np-channel-tag').textContent = `\u25CF CH ${String(chNum(ch)).padStart(2, '0')} \u2014 ${ch.name}`;
     document.getElementById('np-channel-tag').style.color = ch.color;
     document.getElementById('np-title').textContent = now.title.toUpperCase();
     document.getElementById('np-meta').textContent = now.meta || '';
@@ -3693,7 +3814,7 @@
     const now = ch.schedule[0];
     const next = ch.schedule[1];
 
-    document.getElementById('info-channel-tag').textContent = `CH ${String(ch.id).padStart(2, '0')} \u2014 ${ch.name}`;
+    document.getElementById('info-channel-tag').textContent = `CH ${String(chNum(ch)).padStart(2, '0')} \u2014 ${ch.name}`;
     document.getElementById('info-channel-tag').style.color = ch.color;
     const MB = globalThis.NostalgexMusicBrainz;
     const isMusic = MB && MB.isMusicVideoItem(now);
@@ -3935,7 +4056,7 @@
         }
       });
     }
-    CHANNELS.sort((a, b) => a.id - b.id);
+    CHANNELS.sort((a, b) => chNum(a) - chNum(b));
     saveChannelConfig();
     renderConfig();
     renderActiveGuide();
@@ -4556,7 +4677,7 @@
     const ch = CHANNELS.find(c => c.id === currentChannel);
     if (!ch || !ch.schedule || !ch.schedule[0]) return;
     const now = ch.schedule[0];
-    document.getElementById('fs-overlay-channel').textContent = `CH ${String(ch.id).padStart(2,'0')} · ${ch.name}`;
+    document.getElementById('fs-overlay-channel').textContent = `CH ${String(chNum(ch)).padStart(2,'0')} · ${ch.name}`;
     document.getElementById('fs-overlay-channel').style.color = ch.color || 'var(--cyan)';
     const MB = globalThis.NostalgexMusicBrainz;
     const fsTitle = MB && MB.isMusicVideoItem(now)
@@ -4619,7 +4740,7 @@
 
     row.innerHTML = `
       <div class="config-ch-swatch" style="background: ${escapeHtml(ch.colorHex)}"></div>
-      <div class="config-ch-number" style="color: ${escapeHtml(ch.colorHex)}">${String(ch.id).padStart(2, '0')}</div>
+      <div class="config-ch-number" style="color: ${escapeHtml(ch.colorHex)}">${String(chNum(ch)).padStart(2, '0')}</div>
       <div class="config-ch-name">${escapeHtml(ch.name)}${ch.stock ? ' <span class="stock-badge">STOCK</span>' : ''}</div>
       <div class="config-ch-badges">${badgeHtml}</div>
       <div class="config-ch-count">${escapeHtml(countDisplay)}</div>
