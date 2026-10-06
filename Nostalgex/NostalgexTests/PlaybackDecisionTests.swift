@@ -73,6 +73,7 @@ final class PlaybackDecisionTests: XCTestCase {
         XCTAssertEqual(value("X-Plex-Session-Identifier"), "abc")
         XCTAssertEqual(value("location"), "lan")
         XCTAssertEqual(value("hasMDE"), "1")
+        XCTAssertEqual(value("autoAdjustQuality"), "0", "Plex's adaptive mode throttles to one 3s segment per 6s after the eighth; tvOS 26 dies at 24s")
         XCTAssertNotNil(value("X-Plex-Client-Profile-Extra"))
     }
 
