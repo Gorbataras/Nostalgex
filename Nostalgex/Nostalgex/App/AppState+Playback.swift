@@ -799,6 +799,7 @@ extension AppState {
                 // cannot render: an HEVC MP4 tagged hev1, an exotic profile, a broken index.
                 // The server stream is the answer, and it gets its own capped retry after.
                 print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, direct play gave no picture (\(detail)) — switching to the server stream")
+                PlaybackDiagnostics.record(outcome: "direct play → server stream after \(deadline)s", title: item.title, detail: detail)
                 if let channel = self.currentChannel {
                     Analytics.track(.playbackTranscodeFallback(channelNumber: channel.number, backend: self.analyticsBackend))
                 }
@@ -825,6 +826,7 @@ extension AppState {
                let backend = Optional(self.api(for: item.serverID)),
                let capped = backend.cappedTranscodeURL(for: item, offsetSeconds: self.seekOffset, sessionID: UUID().uuidString) {
                 print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, no picture (\(detail)) — retrying once with video capped at 1080p")
+                PlaybackDiagnostics.record(outcome: "retry capped at 1080p after \(deadline)s", title: item.title, detail: detail)
                 self.stopActiveTranscodeIfNeeded()
                 let session = URLComponents(url: capped, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "session" }?.value
                 self.activeTranscode = (item.serverID, session)
@@ -833,6 +835,7 @@ extension AppState {
                 return
             }
             print("[Plex90] gen=\(generation) | WATCHDOG: \(deadline)s deadline, no picture (\(detail)) — advancing to next item")
+            PlaybackDiagnostics.record(outcome: "skipped to next after \(deadline)s", title: item?.title ?? "?", detail: detail)
             self.emitPlaybackError(.watchdogSkip)
             self.advanceToNextItem()
         }
@@ -863,6 +866,7 @@ extension AppState {
         guard loadGeneration == generation else { return }
         let title = currentItem?.title ?? "Unknown"
         print("[Plex90] gen=\(generation) | AUTO-SKIP: \"\(title)\" failed, skipping to next")
+        PlaybackDiagnostics.record(outcome: "player error, skipped", title: title, detail: "AVPlayer reported a failure before any watchdog deadline")
         advanceToNextItem()
     }
 
@@ -895,6 +899,7 @@ extension AppState {
                 // the rate, hence the requirement that we are already at the end.
                 guard remaining <= 2.0, player.rate == 0 else { return }
                 print("[Plex90] gen=\(generation) | END FALLBACK: \"\(title)\" parked \(String(format: "%.1f", remaining))s from end, no end-of-item notification — advancing")
+                PlaybackDiagnostics.record(outcome: "end-of-item fallback", title: title, detail: String(format: "parked %.1fs from end, rate 0, duration %.0fs, offset base %.0fs", remaining, total, self.hlsBaseOffset))
                 self.handlePartEnded()
             }
             .store(in: &self.cancellables)

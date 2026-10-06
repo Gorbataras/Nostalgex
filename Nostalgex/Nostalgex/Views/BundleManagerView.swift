@@ -615,7 +615,10 @@ struct SettingsPageView: View {
                     // one screenshot. See LibraryDiagnostics.
                     let held = LibraryDiagnostics.summary(appState.allItems)
                     let base = "Pull a fresh copy of your \(appState.backendDisplayName) library after adding content"
-                    return "\(held)\nLast updated \(updated). \(base)"
+                    // The last time the app gave up on a stream, and exactly why. Reads
+                    // "device" or "server" without a debugger. See PlaybackDiagnostics.
+                    let verdict = PlaybackDiagnostics.latestForSettings().map { "\nLast playback failure: \($0)" } ?? ""
+                    return "\(held)\nLast updated \(updated). \(base)\(verdict)"
                 }(),
                 isOn: true,
                 isFocused: focusedItem == "rescan",
