@@ -127,8 +127,10 @@ final class PlaybackDecisionTests: XCTestCase {
         XCTAssertEqual(v("session"), "s2")
     }
 
-    func testJellyfinAndEmbyGetAStartTimeInsteadOfAClientSeek() {
-        let base = URL(string: "https://jf.local/Videos/1/master.m3u8?MediaSourceId=1&api_key=k")!
+    /// Emby only. Jellyfin rejects StartTimeTicks on HLS segment requests and seeks
+    /// client-side instead; see JellyfinPlaybackInfoTests.testOffsetTuneLeavesTranscodingUrlVerbatimAndSeeksClientSide.
+    func testEmbyGetsAStartTimeInsteadOfAClientSeek() {
+        let base = URL(string: "https://emby.local/Videos/1/master.m3u8?MediaSourceId=1&api_key=k")!
         let url = JellyfinPlaybackResolver.addingStartTime(to: base, offsetSeconds: 1234)
         let q = URLComponents(url: url, resolvingAgainstBaseURL: false)!.queryItems!
         XCTAssertEqual(q.first { $0.name == "StartTimeTicks" }?.value, "12340000000")
