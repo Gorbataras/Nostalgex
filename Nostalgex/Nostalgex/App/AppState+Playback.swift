@@ -601,6 +601,7 @@ extension AppState {
                 // reproduced this: full-screen black past the deadline with no recovery, because
                 // the watchdog only ever asked about rate.
                 self.installWatchdog(for: playerItem, item: item, isDirectPlay: isDirectPlay, generation: generation, allowCappedRetry: true)
+                self.installStarvationMonitor(for: playerItem, item: item, isDirectPlay: isDirectPlay, generation: generation, allowCappedRetry: true)
             }
         }
     }
@@ -677,6 +678,7 @@ extension AppState {
 
                 self.installEndOfItemFallback(for: playerItem, generation: generation, title: title)
                 self.installWatchdog(for: playerItem, item: self.currentItem, isDirectPlay: isDirectPlay, generation: generation, allowCappedRetry: !isDirectPlay)
+                self.installStarvationMonitor(for: playerItem, item: self.currentItem, isDirectPlay: isDirectPlay, generation: generation, allowCappedRetry: !isDirectPlay)
             }
         }
     }
@@ -757,6 +759,7 @@ extension AppState {
 
                 self.installEndOfItemFallback(for: playerItem, generation: generation, title: title)
                 self.installWatchdog(for: playerItem, item: self.currentItem, isDirectPlay: false, generation: generation, allowCappedRetry: allowCappedRetry)
+                self.installStarvationMonitor(for: playerItem, item: self.currentItem, isDirectPlay: false, generation: generation, allowCappedRetry: allowCappedRetry)
             }
         }
     }
@@ -841,6 +844,83 @@ extension AppState {
         }
     }
 
+    /// Watches a stream that reached picture for a source that cannot keep up: the playhead
+    /// stops while the player is not paused. The startup watchdog cannot see this (it
+    /// judges once, at the deadline) and the end-of-item fallback only acts in the tail.
+    /// Policy in `PlaybackStarvation`. Measured 2026-10-06: a 4K 60fps HEVC file transcoded
+    /// at 0.72x real time and froze for good; capped to 1080p the same file ran at 1.8x.
+    /// So the ladder resumes the *same* item from the current position one rung down,
+    /// and only skips when the capped stream starves too.
+    private func installStarvationMonitor(for playerItem: AVPlayerItem, item: PlexMediaItem?, isDirectPlay: Bool, generation: Int, allowCappedRetry: Bool) {
+        var monitor = PlaybackStarvation()
+        let title = item?.title ?? currentItem?.title ?? "Unknown"
+        Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, self.loadGeneration == generation, let player = self.player,
+                      player.currentItem === playerItem else { return }
+                guard case .playing = self.playbackState else { return }
+                let paused = player.timeControlStatus == .paused
+                let duration = playerItem.duration
+                // Same clock on both sides, so it holds whether the server rebased the HLS
+                // timeline to zero or kept source timestamps.
+                let remaining: Double? = duration.isNumeric ? duration.seconds - playerItem.currentTime().seconds : nil
+                guard let verdict = monitor.observe(playhead: playerItem.currentTime().seconds, wall: Date().timeIntervalSinceReferenceDate,
+                                                    paused: paused, remaining: remaining) else { return }
+                guard case .starving(let stalls, let longest) = verdict else { return }
+                let position = max(0, Int(player.currentTime().seconds + self.hlsBaseOffset))
+                let access = playerItem.accessLog()?.events.last.map {
+                    "segments=\($0.numberOfMediaRequests) stalls=\($0.numberOfStalls) observedKbps=\(Int($0.observedBitrate / 1000)) indicatedKbps=\(Int($0.indicatedBitrate / 1000)) watched=\(String(format: "%.0f", $0.durationWatched))s"
+                } ?? "no access log"
+                let detail = "stalls=\(stalls) longest=\(String(format: "%.0f", longest))s at \(position)s, timeControl=\(player.timeControlStatus.rawValue), \(access)"
+                self.handleStarvation(item: item, isDirectPlay: isDirectPlay, generation: generation,
+                                      allowCappedRetry: allowCappedRetry, position: position, title: title, detail: detail)
+            }
+            .store(in: &cancellables)
+    }
+
+    private func handleStarvation(item: PlexMediaItem?, isDirectPlay: Bool, generation: Int, allowCappedRetry: Bool,
+                                  position: Int, title: String, detail: String) {
+        guard loadGeneration == generation else { return }
+        if isDirectPlay, let item {
+            // The file itself cannot reach the device fast enough (remote server, weak wifi).
+            // The server stream adapts; resume it where we are.
+            print("[Plex90] gen=\(generation) | STARVED: \"\(title)\" on direct play (\(detail)) — switching to the server stream at \(position)s")
+            PlaybackDiagnostics.record(outcome: "starved on direct play → server stream from \(position)s", title: title, detail: detail)
+            let backend = api(for: item.serverID)
+            Task { @MainActor [weak self] in
+                guard let self, self.loadGeneration == generation else { return }
+                guard let resolved = await backend.resolveTranscodePlayback(for: item, offsetSeconds: position),
+                      self.loadGeneration == generation else {
+                    if self.loadGeneration == generation { self.advanceToNextItem() }
+                    return
+                }
+                self.seekOffset = position
+                self.activeTranscode = (item.serverID, resolved.resolution.playSessionId)
+                self.hlsRequestedOffset = resolved.startsAtOffset ? position : 0
+                self.fallbackToTranscode(url: resolved.resolution.url, seekTo: resolved.startsAtOffset ? nil : position,
+                                         generation: generation, allowCappedRetry: true, prepared: true)
+            }
+            return
+        }
+        if allowCappedRetry, let item,
+           let capped = api(for: item.serverID).cappedTranscodeURL(for: item, offsetSeconds: position, sessionID: UUID().uuidString) {
+            print("[Plex90] gen=\(generation) | STARVED: \"\(title)\" (\(detail)) — resuming at \(position)s with video capped at 1080p")
+            PlaybackDiagnostics.record(outcome: "starved → capped 1080p from \(position)s", title: title, detail: detail)
+            stopActiveTranscodeIfNeeded()
+            let session = URLComponents(url: capped, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "session" }?.value
+            activeTranscode = (item.serverID, session)
+            seekOffset = position
+            hlsRequestedOffset = position
+            fallbackToTranscode(url: capped, seekTo: nil, generation: generation, allowCappedRetry: false)
+            return
+        }
+        print("[Plex90] gen=\(generation) | STARVED: \"\(title)\" (\(detail)) — nothing smaller to ask for, advancing to next item")
+        PlaybackDiagnostics.record(outcome: "starved on the capped stream, skipped", title: title, detail: detail)
+        emitPlaybackError(.watchdogSkip)
+        advanceToNextItem()
+    }
+
     /// One AVPlayer per load. Reusing a single player across dozens of item swaps, mixing
     /// HLS and raw files, degraded on a real Apple TV: after about forty channel changes,
     /// files that had played fine minutes earlier stopped reaching ready. The video layer
@@ -859,7 +939,8 @@ extension AppState {
         guard hlsRequestedOffset > 0 else { hlsBaseOffset = 0; return }
         let t = playerItem.currentTime().seconds
         hlsBaseOffset = PlaybackWatchdog.hlsBaseOffset(requested: hlsRequestedOffset, observedStart: t)
-        print("[Plex90] gen=\(generation) | HLS timeline starts at \(String(format: "%.1f", t))s for a \(hlsRequestedOffset)s offset, base \(Int(hlsBaseOffset))s")
+        let d = playerItem.duration
+        print("[Plex90] gen=\(generation) | HLS timeline starts at \(String(format: "%.1f", t))s for a \(hlsRequestedOffset)s offset, base \(Int(hlsBaseOffset))s, item duration \(d.isNumeric ? String(format: "%.0f", d.seconds) : "indefinite")s")
     }
 
     private func autoSkipOnError(generation: Int) {
@@ -891,15 +972,20 @@ extension AppState {
                 guard case .playing = self.playbackState, let player = self.player else { return }
                 let duration = playerItem.duration
                 guard duration.isNumeric else { return }
+                // Both on the item's own clock. A transcode started at an offset reports
+                // the *remainder* as its duration (measured 2026-10-06: 2806s for a 3908s
+                // offset on a 111-minute film), so adding the offset back here drove
+                // `remaining` negative on every tuned-in transcode and turned the first
+                // rate-0 moment into a skip to the next film.
                 let total = duration.seconds
-                let current = player.currentTime().seconds + self.hlsBaseOffset
+                let current = playerItem.currentTime().seconds
                 guard total.isFinite, total > 0, current.isFinite else { return }
                 let remaining = total - current
                 // Parked at the tail with no forward motion. Mid-item buffering also stops
                 // the rate, hence the requirement that we are already at the end.
                 guard remaining <= 2.0, player.rate == 0 else { return }
                 print("[Plex90] gen=\(generation) | END FALLBACK: \"\(title)\" parked \(String(format: "%.1f", remaining))s from end, no end-of-item notification — advancing")
-                PlaybackDiagnostics.record(outcome: "end-of-item fallback", title: title, detail: String(format: "parked %.1fs from end, rate 0, duration %.0fs, offset base %.0fs", remaining, total, self.hlsBaseOffset))
+                PlaybackDiagnostics.record(outcome: "end-of-item fallback", title: title, detail: String(format: "parked %.1fs from end, rate 0, item duration %.0fs, playhead %.0fs, offset base %.0fs", remaining, total, current, self.hlsBaseOffset))
                 self.handlePartEnded()
             }
             .store(in: &self.cancellables)
