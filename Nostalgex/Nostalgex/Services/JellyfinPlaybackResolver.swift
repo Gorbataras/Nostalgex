@@ -10,8 +10,30 @@ struct PlaybackResolution: Sendable {
 }
 
 extension JellyfinPlaybackResolver {
-    /// Jellyfin and Emby start an HLS transcode at StartTimeTicks (100ns units). Seeking the
-    /// client into a transcode that began at zero never completes, so the offset goes here.
+    /// How a Jellyfin HLS stream reaches a schedule offset: the client seeks, the URL is
+    /// left exactly as PlaybackInfo handed it over.
+    ///
+    /// Jellyfin keeps the file's own timeline. `main.m3u8` lists the whole runtime from
+    /// zero whatever the request says, and every segment URL repeats the playlist's query
+    /// string, so a `StartTimeTicks` added to the master URL reaches the segment handler,
+    /// which refuses it: HTTP 400, server log "StartTimeTicks is not allowed." (measured
+    /// against Jellyfin 12.2.0 on 2026-10-06; the same check is in the 10.10.7 and 10.11.0
+    /// sources). AVPlayer then failed, the one retry failed the same way, and the auto-skip
+    /// played the next scheduled title from its first frame on every tuned-in channel whose
+    /// file was not directly playable, which is what DarkGhost101 saw on builds 41 and 42.
+    /// A cold request for segment N starts the transcode at N (measured: segment 11 came
+    /// back in 9 ms with its first PTS at 114.58 s), so a client-side seek on the full
+    /// playlist is the designed path, and the one Jellyfin's own web player takes.
+    static func offsetPlayback(
+        _ resolution: PlaybackResolution,
+        offsetSeconds: Int
+    ) -> (resolution: PlaybackResolution, startsAtOffset: Bool) {
+        (resolution, false)
+    }
+
+    /// Emby starts an HLS transcode at StartTimeTicks (100ns units); seeking the client
+    /// into a transcode that began at zero never completes, so the offset goes here.
+    /// Not used for Jellyfin, see `offsetPlayback`.
     static func addingStartTime(to url: URL, offsetSeconds: Int) -> URL {
         guard offsetSeconds > 0, var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         var items = (c.queryItems ?? []).filter { $0.name != "StartTimeTicks" }
