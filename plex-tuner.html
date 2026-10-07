@@ -2761,6 +2761,25 @@
   let isDemoMode = false;
   let videoMuted = true;
   let hlsInstance = null;
+  // Consecutive items that failed to play on the current channel. Reset by any frame of
+  // real playback. Stops a dead server from skipping through a whole channel at speed.
+  let consecutivePlaybackFailures = 0;
+  // The Plex transcode session this page started, so it can be stopped on the way out.
+  // Without a `session` of our own, Plex keys the transcode off the client id alone, so
+  // every channel change quietly repurposed the previous one and the old loader's segment
+  // requests started 404ing. Measured 2026-10-07: one abandoned session produced 2,239
+  // requests for a single dead segment while an unrelated channel played.
+  let activeTranscodeSession = null;
+
+  function stopActiveTranscode() {
+    const session = activeTranscodeSession;
+    activeTranscodeSession = null;
+    if (!session || mediaBackend === 'jellyfin') return;
+    const url = `${session.serverUrl}/video/:/transcode/universal/stop`
+      + `?session=${encodeURIComponent(session.id)}&X-Plex-Token=${encodeURIComponent(session.token)}`;
+    // Best effort: the channel has already moved on either way.
+    fetch(url, { keepalive: true }).catch(() => {});
+  }
   let appState = 'connect'; // 'connect' | 'player' | 'guide' | 'config'
   let discoveredGenres = {}; // { genreName: itemCount }
   let allItemsCache = []; // cached items for populating new channels
@@ -3608,6 +3627,10 @@
     // container does NOT reveal the codec (an mp4 can hold HEVC). So decide by the actual
     // video/audio codec when we have it; the video.onerror handler falls back to transcode
     // if we still guess wrong. canDirectPlay is function-scoped so onerror can read it.
+    // Release the outgoing transcode before a new session id is minted below, or we would
+    // be stopping the id we are about to start (and never releasing the old one).
+    stopActiveTranscode();
+
     let streamUrl;
     let canDirectPlay = false;
     if (mediaBackend === 'jellyfin') {
@@ -3642,11 +3665,16 @@
 
       } else {
         // HLS transcode - works for all formats
+        const transcodeSessionId = (crypto.randomUUID && crypto.randomUUID())
+          || `web-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        activeTranscodeSession = { id: transcodeSessionId, serverUrl: itemServerUrl, token: itemServerToken };
         streamUrl = `${itemServerUrl}/video/:/transcode/universal/start.m3u8`
           + `?path=${encodeURIComponent('/library/metadata/' + item.ratingKey)}`
           + `&mediaIndex=0&partIndex=0&protocol=hls`
           + `&offset=${Math.floor(item.offsetSeconds || 0)}`
           + `&copyts=1&X-Plex-Token=${itemServerToken}`
+          + `&session=${transcodeSessionId}`
+          + `&X-Plex-Session-Identifier=${transcodeSessionId}`
           + `&X-Plex-Client-Identifier=${getClientId()}`
           + `&X-Plex-Product=Plex%2090`
           + `&X-Plex-Platform=Web&X-Plex-Platform-Version=1.0`
@@ -3655,7 +3683,8 @@
       }
     }
 
-    // Destroy previous HLS instance
+    // Destroy the previous loader so it cannot sit there requesting segments of a session
+    // that has already been released above.
     if (hlsInstance) {
       hlsInstance.destroy();
       hlsInstance = null;
@@ -3683,22 +3712,55 @@
       hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch(e => console.warn('Autoplay blocked:', e));
       });
+      // One recovery attempt per kind, per program. The flags live out here on purpose:
+      // hls.js builds a fresh payload object for every error event, so a flag written onto
+      // `data` is always unset on the next one. Measured 2026-10-07 in Chrome against a
+      // playlist of 404s: the old `data._retried` guard made 14,612 requests in 8 seconds
+      // (~1,800/s at the user's server); the same handler with the flag out here made 14.
+      let networkRetried = false;
+      let mediaRecovered = false;
+      const thisInstance = hlsInstance;
+      // A manifest that will not load has nothing to re-load: startLoad() is silent and the
+      // channel sits on a black screen forever. Measured against a file Plex refuses to
+      // transcode (Dolby Vision profile 5): exactly one fatal `manifestLoadError` with
+      // HTTP 400, and no further events. Those go straight to the skip.
+      const DEAD_STREAM_DETAILS = new Set([
+        (Hls.ErrorDetails && Hls.ErrorDetails.MANIFEST_LOAD_ERROR) || 'manifestLoadError',
+        (Hls.ErrorDetails && Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) || 'manifestLoadTimeOut',
+        (Hls.ErrorDetails && Hls.ErrorDetails.MANIFEST_PARSING_ERROR) || 'manifestParsingError',
+        (Hls.ErrorDetails && Hls.ErrorDetails.LEVEL_EMPTY_ERROR) || 'levelEmptyError',
+      ]);
       hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            // Attempt one recovery before giving up
-            if (!data._retried) {
-              data._retried = true;
-              hlsInstance.startLoad();
-            } else {
-              showVideoError('NETWORK ERROR. CANNOT REACH YOUR SERVER');
-            }
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-            showVideoError('CODEC NOT SUPPORTED. TRY A DIFFERENT BROWSER');
-          } else {
-            showVideoError(`STREAM FAILED (${data.details || 'UNKNOWN'}). CHECK YOUR SERVER`);
-          }
+        if (!data.fatal) return;
+        if (DEAD_STREAM_DETAILS.has(data.details)) {
+          try { thisInstance.destroy(); } catch (e) {}
+          if (hlsInstance === thisInstance) hlsInstance = null;
+          const code = data.response && data.response.code;
+          failCurrentItem(channel, item, code === 400
+            ? 'YOUR SERVER CANNOT PLAY THIS FILE'
+            : 'STREAM UNAVAILABLE');
+          return;
         }
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && !networkRetried) {
+          networkRetried = true;
+          thisInstance.startLoad();
+          return;
+        }
+        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && !mediaRecovered) {
+          mediaRecovered = true;
+          thisInstance.recoverMediaError();
+          return;
+        }
+        // Out of recoveries: stop this loader dead, then move the channel on rather than
+        // parking on an error card the way a broken file used to.
+        try { thisInstance.destroy(); } catch (e) {}
+        if (hlsInstance === thisInstance) hlsInstance = null;
+        const why = data.type === Hls.ErrorTypes.NETWORK_ERROR
+          ? 'NETWORK ERROR. CANNOT REACH YOUR SERVER'
+          : (data.type === Hls.ErrorTypes.MEDIA_ERROR
+            ? 'CODEC NOT SUPPORTED. TRY A DIFFERENT BROWSER'
+            : `STREAM FAILED (${data.details || 'UNKNOWN'})`);
+        failCurrentItem(channel, item, why);
       });
     } else if (isHLS && video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS
@@ -3743,6 +3805,7 @@
     // Drive the playback tracker off real player events. Using on* assignment (not
     // addEventListener) so each new program replaces the handler instead of leaking one.
     video.onplaying = () => {
+      consecutivePlaybackFailures = 0;   // something actually played; the run is broken
       armStall();
       if (playbackTracker) {
         playbackTracker.onReady();   // idempotent: starts the session once
@@ -3765,6 +3828,26 @@
       }
       showVideoError(VIDEO_ERRORS[code] || `PLAYBACK FAILED (ERROR ${code ?? '?'})`);
     };
+  }
+
+  // A program that cannot play should not hold the channel. Show why for a moment, then
+  // move on, the way the Apple TV app does. After three in a row the channel stops instead
+  // of racing through the schedule, because that means the server, not the file.
+  const MAX_CONSECUTIVE_FAILURES = 3;
+  function failCurrentItem(channel, item, message) {
+    consecutivePlaybackFailures += 1;
+    console.warn('[PLEX 90] Playback failed', item && item.title, message,
+      `(${consecutivePlaybackFailures}/${MAX_CONSECUTIVE_FAILURES})`);
+    if (consecutivePlaybackFailures >= MAX_CONSECUTIVE_FAILURES) {
+      showVideoError(message);
+      return;
+    }
+    showVideoError(`${message} — SKIPPING`);
+    setTimeout(() => {
+      if (currentChannel !== (channel && channel.id)) return;  // user already tuned away
+      clearVideoError();
+      onItemEnded(channel);
+    }, 2500);
   }
 
   function onItemEnded(channel) {
@@ -3792,6 +3875,7 @@
       hlsInstance.destroy();
       hlsInstance = null;
     }
+    stopActiveTranscode();
     document.getElementById('unmute-btn').style.display = 'none';
   }
 
