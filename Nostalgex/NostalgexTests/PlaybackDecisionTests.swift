@@ -224,3 +224,30 @@ final class TranscodeTimestampTests: XCTestCase {
         XCTAssertEqual(q.first { $0.name == "offset" }?.value, "100", "the server still starts at the offset")
     }
 }
+
+/// Dolby Vision profile 5 over Plex, measured 2026-10-07 (CH 48 FRESH on the living room):
+/// the everyday request is refused with 2003 and the app auto-skipped to the next film
+/// from 0:00; the Plex app got a remux because it resolves to the Generic profile.
+final class DolbyVisionRemuxTests: XCTestCase {
+    func testOnlyADoViRefusalTriggersTheRetry() {
+        XCTAssertTrue(PlexAPIService.isDolbyVisionRefusal(.init(code: "2003", text: "File is unplayable. DoVi (Profile 5) color space is not supported.")))
+        XCTAssertFalse(PlexAPIService.isDolbyVisionRefusal(.init(code: "2003", text: "File is unplayable. Something else.")))
+        XCTAssertFalse(PlexAPIService.isDolbyVisionRefusal(.init(code: "1001", text: "Direct play not available; Conversion OK.")))
+        XCTAssertFalse(PlexAPIService.isDolbyVisionRefusal(.unknown))
+    }
+
+    func testRemuxRequestKeepsTheSessionAndOffsetAndSwapsOnlyTheProfile() throws {
+        let url = try XCTUnwrap(URL(string: "http://192.168.4.79:32400/video/:/transcode/universal/start.m3u8?path=/library/metadata/55615&session=S1&offset=5449&copyts=0&X-Plex-Platform=tvOS&X-Plex-Client-Profile-Extra=old&X-Plex-Token=t"))
+        let remux = try XCTUnwrap(PlexAPIService.dolbyVisionRemuxURL(from: url))
+        let q = Dictionary(uniqueKeysWithValues: URLComponents(url: remux, resolvingAgainstBaseURL: false)!.queryItems!.map { ($0.name, $0.value ?? "") })
+        XCTAssertEqual(q["session"], "S1")
+        XCTAssertEqual(q["offset"], "5449")
+        XCTAssertEqual(q["copyts"], "0")
+        XCTAssertEqual(q["X-Plex-Platform"], "Generic", "the built-in tvOS profile forces mpegts, which cannot carry HEVC")
+        let profile = try XCTUnwrap(q["X-Plex-Client-Profile-Extra"])
+        XCTAssertTrue(profile.contains("container=mp4"), profile)
+        XCTAssertTrue(profile.contains("videoCodec=h264,hevc"), profile)
+        XCTAssertFalse(profile.contains("mpegts"), "one target only, so the server cannot pick mpegts again")
+        XCTAssertTrue(remux.path.hasSuffix("/start.m3u8"))
+    }
+}

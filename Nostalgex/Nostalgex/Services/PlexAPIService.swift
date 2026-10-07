@@ -767,8 +767,56 @@ struct PlexAPIService: MediaBackend {
     func resolveTranscodePlayback(for item: PlexMediaItem, offsetSeconds: Int) async -> (resolution: PlaybackResolution, startsAtOffset: Bool)? {
         let sessionID = UUID().uuidString
         guard let url = transcodeURL(for: item, sessionID: sessionID, offsetSeconds: max(0, offsetSeconds)) else { return nil }
-        await prepareTranscodeSession(startURL: url)
+        let decision = await prepareTranscodeSession(startURL: url)
+        if Self.isDolbyVisionRefusal(decision),
+           let remux = Self.dolbyVisionRemuxURL(from: url) {
+            // The server will not re-encode this file but will copy it into fMP4 for a
+            // client it treats as Generic; see dolbyVisionRemuxURL. Ask once that way.
+            let second = await prepareTranscodeSession(startURL: remux)
+            if second.code.hasPrefix("1") {
+                print("[Plex90] DECISION: Dolby Vision remux accepted for \"\(item.title)\"")
+                return (PlaybackResolution(url: remux, playSessionId: sessionID, isDirectPlay: false), offsetSeconds > 0)
+            }
+            PlaybackDiagnostics.record(outcome: "server refused", title: item.title, detail: "decision \(decision.code): \(decision.text); remux retry \(second.code): \(second.text)")
+        } else if decision.code.hasPrefix("2") {
+            PlaybackDiagnostics.record(outcome: "server refused", title: item.title, detail: "decision \(decision.code): \(decision.text)")
+        }
         return (PlaybackResolution(url: url, playSessionId: sessionID, isDirectPlay: false), offsetSeconds > 0)
+    }
+
+    struct TranscodeDecision: Sendable, Equatable {
+        let code: String
+        let text: String
+        static let unknown = TranscodeDecision(code: "?", text: "")
+    }
+
+    /// Plex's transcoder cannot tone-map Dolby Vision profile 5 (no HDR10 base layer),
+    /// so a decision 2003 naming DoVi means every re-encode request will be refused.
+    static func isDolbyVisionRefusal(_ d: TranscodeDecision) -> Bool {
+        d.code == "2003" && d.text.localizedCaseInsensitiveContains("dovi")
+    }
+
+    /// The same request, resolved against the server's Generic profile with one hls/mp4
+    /// target that admits HEVC.
+    ///
+    /// Measured 2026-10-07 against Chad's server with a 4K DV profile 5 MKV: with
+    /// `X-Plex-Platform=tvOS` the server applies its built-in tvOS profile, picks mpegts
+    /// for HLS, finds "no remuxable profile" for HEVC there and tries to transcode, which
+    /// DV5 cannot survive (2003). Plex's own Apple TV app resolves to the Generic profile
+    /// and gets `container=mp4, video=copy hevc DOVI 5, audio=copy eac3`: an fMP4 HLS
+    /// remux carrying the dvh1 Dolby Vision record and VIDEO-RANGE=PQ, which Apple TV 4K
+    /// decodes natively. Sending Platform=Generic with an hls/mp4 target gets us the same.
+    /// Only used after a DoVi refusal; the everyday request is unchanged.
+    static func dolbyVisionRemuxURL(from startURL: URL) -> URL? {
+        guard var components = URLComponents(url: startURL, resolvingAgainstBaseURL: false) else { return nil }
+        var items = (components.queryItems ?? []).filter { $0.name != "X-Plex-Platform" && $0.name != "X-Plex-Client-Profile-Extra" }
+        let audio = CodecSupport.transcodeAudioCodecs.sorted().joined(separator: ",")
+        let profile = "add-transcode-target(type=videoProfile&context=streaming&protocol=hls&container=mp4&videoCodec=h264,hevc&audioCodec=\(audio))"
+            + "+add-limitation(scope=videoTranscodeTarget&scopeName=hevc&scopeType=videoCodec&context=all&protocol=hls&type=upperBound&name=video.bitDepth&value=10)"
+        items.append(.init(name: "X-Plex-Platform", value: "Generic"))
+        items.append(.init(name: "X-Plex-Client-Profile-Extra", value: profile))
+        components.queryItems = items
+        return components.url
     }
 
     /// The `decision` call Plex's own players make before `start.m3u8`, with the same
@@ -777,8 +825,9 @@ struct PlexAPIService: MediaBackend {
     /// nearly always. Measured against a real server: plain start 400 on three fresh
     /// clients in a row, decision-then-start 200 every time, including right after a stop.
     /// Never throws: a failed decision still falls through to start.m3u8.
-    func prepareTranscodeSession(startURL: URL) async {
-        guard let decisionURL = Self.decisionURL(from: startURL) else { return }
+    @discardableResult
+    func prepareTranscodeSession(startURL: URL) async -> TranscodeDecision {
+        guard let decisionURL = Self.decisionURL(from: startURL) else { return .unknown }
         var request = URLRequest(url: decisionURL)
         request.timeoutInterval = 15
         do {
@@ -788,8 +837,10 @@ struct PlexAPIService: MediaBackend {
             let code = Self.attribute("transcodeDecisionCode", in: body) ?? Self.attribute("generalDecisionCode", in: body) ?? "?"
             let text = Self.attribute("transcodeDecisionText", in: body) ?? Self.attribute("generalDecisionText", in: body) ?? ""
             print("[Plex90] DECISION: HTTP \(status) code=\(code) \(text)")
+            return TranscodeDecision(code: code, text: text)
         } catch {
             print("[Plex90] DECISION: failed (\(error.localizedDescription)), starting anyway")
+            return .unknown
         }
     }
 
