@@ -37,6 +37,15 @@ enum MusicTitleParser {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// The `(1988)` a ripped filename carries. Measured 2026-10-07: the Plex year on
+    /// Chad's music videos was 1970 (epoch) or the date added for most rows, and
+    /// Deezer's year is the album's (remasters, compilations), so this suffix and the
+    /// MusicBrainz first-release date are the only years the decade channels can trust.
+    static func yearInTitle(_ raw: String) -> Int? {
+        guard let m = raw.range(of: #"\(((?:19|20)\d\d)\)"#, options: .regularExpression) else { return nil }
+        return Int(raw[m].dropFirst().dropLast())
+    }
+
     /// Takes a ripped filename down to something a music service can search for.
     /// Measured on Chad's library 2026-10-07: underscores for spaces, `[MMV]` / `{smg}`
     /// tags, `(Shindig 1964)` notes, scene suffixes (`-vgb-prv`, `XviD`), and a stray
@@ -85,5 +94,18 @@ enum MusicTitleParser {
             if artist.count >= 2, song.count >= 2, !artist.contains(" - ") { return (artist, song) }
         }
         return (nil, stripFeaturing(cleaned, artistSide: false))
+    }
+}
+
+/// Which year a music video gets, in trust order: the year in its own filename, the
+/// MusicBrainz first release, then Plex only when it is plausible. 1970 is Plex's
+/// "unknown", and anything at or past the current year is the date it was added.
+enum MusicYear {
+    static func resolve(titleYear: Int?, musicBrainzYear: Int?, plexYear: Int?, now: Date = Date()) -> Int? {
+        if let titleYear { return titleYear }
+        if let musicBrainzYear { return musicBrainzYear }
+        guard let plexYear else { return nil }
+        let thisYear = Calendar.current.component(.year, from: now)
+        return (plexYear > 1970 && plexYear < thisYear) ? plexYear : nil
     }
 }

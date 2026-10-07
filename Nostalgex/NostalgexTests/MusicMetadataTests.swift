@@ -173,3 +173,43 @@ struct DeezerEnrichmentTests {
         #expect(decoded.artist == "Madonna")
     }
 }
+
+/// Year trust order, measured 2026-10-07: Plex gave 1970 or the date added for most of
+/// Chad's music videos, Deezer gives the album/remaster year, so Y2K and CURRENT SPIN
+/// were sorting Smooth Criminal (1970) and Waves (2026) into the wrong decades.
+struct MusicYearTests {
+    @Test func yearInTheFilenameWinsOverEverything() {
+        #expect(MusicTitleParser.yearInTitle("Michael Jackson - Smooth Criminal (1988)") == 1988)
+        #expect(MusicTitleParser.yearInTitle("Beatles - From Me To You(11-4-1963 Royal Variety)") == nil, "a date inside a note is not a (YYYY) suffix")
+        #expect(MusicTitleParser.yearInTitle("Anaconda") == nil)
+        #expect(MusicYear.resolve(titleYear: 1988, musicBrainzYear: 2009, plexYear: 1970) == 1988)
+    }
+
+    @Test func musicBrainzBeatsPlexAndPlexOnlyCountsWhenPlausible() {
+        let now = Date()
+        let thisYear = Calendar.current.component(.year, from: now)
+        #expect(MusicYear.resolve(titleYear: nil, musicBrainzYear: 1977, plexYear: 2026, now: now) == 1977)
+        #expect(MusicYear.resolve(titleYear: nil, musicBrainzYear: nil, plexYear: 1970, now: now) == nil, "1970 is Plex's unknown")
+        #expect(MusicYear.resolve(titleYear: nil, musicBrainzYear: nil, plexYear: thisYear, now: now) == nil, "this year is the date added")
+        #expect(MusicYear.resolve(titleYear: nil, musicBrainzYear: nil, plexYear: 2014, now: now) == 2014)
+    }
+
+    @Test func plexItemWithoutARowStillGetsTheTrustedYear() {
+        let item = PlexMediaItem.musicVideoFixture(title: "Bee Gees - Night Fever (1977)", year: 1970)
+        #expect(item.applyingTrustedMusicYear().year == 1977)
+        let movie = PlexMediaItem.musicVideoFixture(title: "Night Fever (1977)", year: 1970, source: .movie)
+        #expect(movie.applyingTrustedMusicYear().year == 1970, "only music videos get this treatment")
+    }
+}
+
+extension PlexMediaItem {
+    static func musicVideoFixture(title: String, year: Int?, source: LibrarySource = .musicVideo) -> PlexMediaItem {
+        PlexMediaItem(
+            id: "f", title: title, artist: nil, episodeTitle: nil, seTag: nil, summary: "", year: year,
+            originallyAvailableAt: nil, contentRating: nil, duration: 4, ratingKey: "f", partKey: nil,
+            container: "mp4", videoCodec: nil, audioCodec: nil, videoProfile: nil, bitrate: nil,
+            genres: ["Music Video"], rating: 0, userRating: 0, type: .movie, thumb: nil, art: nil,
+            viewCount: 0, addedAt: 0, studio: nil, tmdbID: nil, imdbID: nil, librarySource: source
+        )
+    }
+}

@@ -182,13 +182,14 @@ final class MusicEnrichmentService {
         var genres = row.genres
         var deezerID: Int? = row.deezerID
         var resolvedArtist = row.artist
-        var year = row.releaseYear
+        // Deezer's year is the album's (remasters, compilations): measured wrong by
+        // years on 15 of 15. It never becomes releaseYear; MusicYear decides.
+        let year = row.releaseYear
         do {
             if let match = try await deezer.resolve(song: song, artist: artist) {
                 genres = mergeGenres(plex: genres, resolved: match.genres)
                 deezerID = match.trackID
                 if resolvedArtist == nil { resolvedArtist = match.artist }
-                if year == nil { year = match.releaseYear }
             }
         } catch {
             print("[MusicEnrichment] Deezer failed \(item.title): \(error)")
@@ -210,7 +211,7 @@ final class MusicEnrichmentService {
     /// Apply cached MusicBrainz rows onto Plex items for UI and schedules.
     func itemsWithDisplayMetadata(_ items: [PlexMediaItem]) -> [PlexMediaItem] {
         items.map { item in
-            guard let music = cache[item.ratingKey] else { return item }
+            guard let music = cache[item.ratingKey] else { return item.applyingTrustedMusicYear() }
             return item.applyingMusicEnrichment(music)
         }
     }

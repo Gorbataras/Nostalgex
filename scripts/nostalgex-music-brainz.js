@@ -29,6 +29,22 @@
     return t.replace(/^[\s\-!.]+|[\s\-!.]+$/g, '');
   }
 
+  // The "(1988)" a filename carries: the one year source besides MusicBrainz that the
+  // decade channels can trust (Plex: 1970 or date added; Deezer: album/remaster year).
+  function yearInTitle(raw) {
+    const m = String(raw || '').match(/\(((?:19|20)\d\d)\)/);
+    return m ? parseInt(m[1], 10) : null;
+  }
+
+  function resolveMusicYear(titleYear, musicBrainzYear, plexYear) {
+    if (titleYear) return titleYear;
+    if (musicBrainzYear) return musicBrainzYear;
+    const y = parseInt(String(plexYear || ''), 10);
+    if (!y) return null;
+    const thisYear = new Date().getFullYear();
+    return y > 1970 && y < thisYear ? y : null;
+  }
+
   function stripFeaturing(s, artistSide) {
     const re = artistSide
       ? /\s+(?:ft\.?|feat\.?|featuring|with|and the)\s+.*$/i
@@ -170,7 +186,6 @@
         out.genres = mergeGenres(enr.genres, match.genres);
         out.deezerID = match.trackID;
         if (!out.artist) out.artist = match.artist;
-        if (!out.releaseYear) out.releaseYear = match.releaseYear;
       }
     } catch (e) {
       console.warn('[Deezer] resolve failed', item.title, e);
@@ -441,7 +456,7 @@
     const title = (enr.recordingTitle || item.title || '').trim() || item.title;
     const artist = enr.artist || item.artist || null;
     const genres = mergeGenres(item.genres, enr.genres);
-    const year = item.year || enr.releaseYear || '';
+    const year = resolveMusicYear(yearInTitle(item.title), enr.releaseYear, item.year) || '';
     const updated = {
       ...item,
       title,
@@ -456,7 +471,10 @@
   function itemsWithDisplayMetadata(items) {
     return items.map((item) => {
       const enr = cache[item.ratingKey];
-      return enr ? applyEnrichmentToItem(item, enr) : item;
+      if (enr) return applyEnrichmentToItem(item, enr);
+      if (!isMusicVideoItem(item)) return item;
+      const year = resolveMusicYear(yearInTitle(item.title), null, item.year) || '';
+      return year === (item.year || '') ? item : { ...item, year };
     });
   }
 
@@ -543,6 +561,8 @@
   global.NostalgexMusicBrainz = {
     parseTitle,
     cleanTitle,
+    yearInTitle,
+    resolveMusicYear,
     stripYearSuffix,
     deezerResolve,
     mapDeezerGenres,
