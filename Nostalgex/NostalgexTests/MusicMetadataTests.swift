@@ -77,3 +77,99 @@ struct MusicMetadataTests {
         #expect(merged.musicGenreDisplay?.contains("Pop") == true)
     }
 }
+
+/// Deezer genre pass, added 2026-10-07. Titles are real rows from Chad's library that
+/// MusicBrainz left without a genre; the expectations are what the measured run found.
+struct DeezerEnrichmentTests {
+
+    @Test func cleanerTakesRippedFilenamesDownToSearchableText() {
+        #expect(MusicTitleParser.clean("Ruff_Ryders_-_Get_Wild_[MMV]") == "Ruff Ryders - Get Wild")
+        #expect(MusicTitleParser.clean("Avril Lavigne - Don't Tell Me video!") == "Avril Lavigne - Don't Tell Me")
+        #expect(MusicTitleParser.clean("Beatles - From Me To You(11-4-1963 Royal Variety)") == "Beatles - From Me To You")
+        #expect(MusicTitleParser.clean("the_used-take_it_away-vgb-prv") == "the used-take it away")
+        #expect(MusicTitleParser.clean("Michael Jackson - Smooth Criminal (1988)") == "Michael Jackson - Smooth Criminal")
+    }
+
+    @Test func parserSplitsTheShapesTheLibraryActuallyHas() {
+        let a = MusicTitleParser.parse("Ruff_Ryders_-_Get_Wild_[MMV]")
+        #expect(a.artist == "Ruff Ryders" && a.song == "Get Wild")
+        let b = MusicTitleParser.parse("B.o.B - Airplanes ft. Hayley Williams of Paramore")
+        #expect(b.artist == "B.o.B" && b.song == "Airplanes")
+        let c = MusicTitleParser.parse("Nelly ft. Akon ft. Ashanti - Body On Me")
+        #expect(c.artist == "Nelly" && c.song == "Body On Me")
+        let d = MusicTitleParser.parse("Beatles - I'm A Loser - Boys(Shindig 1964)")
+        #expect(d.artist == "Beatles" && d.song == "I'm A Loser")
+        let e = MusicTitleParser.parse("the_used-take_it_away-vgb-prv")
+        #expect(e.artist == "the used" && e.song == "take it away")
+        let f = MusicTitleParser.parse("Anaconda")
+        #expect(f.artist == nil && f.song == "Anaconda")
+    }
+
+    @Test func existingShapesStillParse() {
+        let a = MusicTitleParser.parse("Michael Jackson - Billie Jean (1983)")
+        #expect(a.artist == "Michael Jackson" && a.song == "Billie Jean")
+        let b = MusicTitleParser.parse("Billie Jean by Michael Jackson")
+        #expect(b.artist == "Michael Jackson" && b.song == "Billie Jean")
+        // A hyphenated title with no artist must not be split into nonsense.
+        let c = MusicTitleParser.parse("Twenty-One")
+        #expect(c.artist == nil || c.song.count >= 2)
+    }
+
+    @Test func deezerGenresMapOntoChannelVocabulary() {
+        #expect(DeezerService.mapGenres(["Rap/Hip Hop"]) == ["Hip-Hop", "Hip Hop", "Rap"])
+        #expect(DeezerService.mapGenres(["Soul & Funk"]) == ["Soul", "Funk"])
+        #expect(DeezerService.mapGenres(["Latin Music"]) == ["Latin"])
+        #expect(DeezerService.mapGenres(["Metal"]).contains("Metal"))
+        #expect(DeezerService.mapGenres(["Dance"]).contains("Electronic"))
+        #expect(DeezerService.mapGenres(["Films/Games", "Film Scores", "Kids"]).isEmpty)
+        #expect(DeezerService.mapGenres(["Pop", "International Pop", "Rock"]) == ["Pop", "Rock"])
+    }
+
+    @Test func bestHitPrefersTheArtistWeAskedFor() {
+        let hits = [
+            DeezerService.SearchHit(trackID: 1, albumID: 1, title: "Afternoon Delight", artist: "Starland Vocal Band"),
+            DeezerService.SearchHit(trackID: 2, albumID: 2, title: "Afternoon Delight", artist: "Will Ferrell"),
+        ]
+        #expect(DeezerService.bestHit(hits, artistHint: "Will Ferrell")?.trackID == 2)
+        #expect(DeezerService.bestHit(hits, artistHint: nil)?.trackID == 1)
+        #expect(DeezerService.bestHit(hits, artistHint: "Nobody Here")?.trackID == 1)
+        #expect(DeezerService.bestHit([], artistHint: "x") == nil)
+    }
+
+    private func row(genres: [String], artist: String?, mbid: String?, checked: Date?, fetched: Date = Date()) -> MusicVideoEnrichment {
+        var r = MusicVideoEnrichment(ratingKey: "1", recordingTitle: "Song", artist: artist, musicBrainzID: mbid,
+                                     genres: genres, releaseYear: nil, fetchedAt: fetched)
+        r.deezerCheckedAt = checked
+        return r
+    }
+
+    @Test @MainActor func cachedRowsWithANameButNoGenreGetTheDeezerPass() {
+        // The 87%: MusicBrainz named them, tags were empty, and the old rule called them done.
+        let named = row(genres: ["Music Video"], artist: "Incubus", mbid: "mb-1", checked: nil)
+        #expect(!MusicEnrichmentService.isSettled(named))
+        #expect(MusicEnrichmentService.needsOnlyGenres(named))
+
+        let done = row(genres: ["Alternative"], artist: "Incubus", mbid: "mb-1", checked: nil)
+        #expect(MusicEnrichmentService.isSettled(done))
+
+        let askedAlready = row(genres: ["Music Video"], artist: "Incubus", mbid: "mb-1", checked: Date())
+        #expect(MusicEnrichmentService.isSettled(askedAlready))
+        #expect(!MusicEnrichmentService.needsOnlyGenres(askedAlready))
+
+        let nameless = row(genres: [], artist: nil, mbid: nil, checked: nil)
+        #expect(!MusicEnrichmentService.needsOnlyGenres(nameless), "nothing to search with; full resolve, not a genre pass")
+
+        let stale = row(genres: ["Alternative"], artist: "Incubus", mbid: "mb-1", checked: Date(), fetched: Date(timeIntervalSinceNow: -100 * 86_400))
+        #expect(!MusicEnrichmentService.isSettled(stale))
+    }
+
+    @Test func rowsCachedBeforeDeezerStillDecode() throws {
+        let legacy = """
+        {"ratingKey":"7","recordingTitle":"Vogue","artist":"Madonna","musicBrainzID":null,"genres":["Music Video"],"releaseYear":1990,"fetchedAt":780000000}
+        """
+        let decoded = try JSONDecoder().decode(MusicVideoEnrichment.self, from: Data(legacy.utf8))
+        #expect(decoded.deezerID == nil)
+        #expect(decoded.deezerCheckedAt == nil)
+        #expect(decoded.artist == "Madonna")
+    }
+}
