@@ -44,7 +44,7 @@ only name the channel's own defining genre.
 
 **`rewatched` means `viewCount >= 3`** in both implementations.
 
-**Config version:** 36 · **131 channels** across **14 bundles** · 81 channels whose `id` differs from their `number`.
+**Config version:** 37 · **131 channels** across **14 bundles** · 81 channels whose `id` differs from their `number`.
 
 ---
 
@@ -52,8 +52,8 @@ only name the channel's own defining genre.
 
 | Bundle | Bundle ID | Channels | Range | Description |
 |---|---|---|---|---|
-| NOSTALGEX | `nostalgex` | 18 | CH 1–18 | The 80s and 90s. All retro, all the time |
-| KIDZ ZONE | `kids` | 16 | CH 20–35 | Disney, Nickelodeon, Pixar, and more |
+| NOSTALGEX | `nostalgex` | 19 | CH 1–19 | The 80s and 90s. All retro, all the time |
+| KIDZ ZONE | `kids` | 15 | CH 20–34 | Disney, Nickelodeon, Pixar, and more |
 | PRIME TIME | `essentials` | 15 | CH 40–54 | Everyday favorites and feel-good viewing |
 | MARQUEE | `premium` | 11 | CH 59–69 | Premium channels |
 | ADVENTURELAND | `adventureland` | 9 | CH 70–78 | Epic quests, disasters, and adrenaline |
@@ -89,7 +89,7 @@ the year.
 
 ## Channels by bundle
 
-### NOSTALGEX · CH 1–18
+### NOSTALGEX · CH 1–19
 
 _The 80s and 90s. All retro, all the time_
 
@@ -111,10 +111,11 @@ _The 80s and 90s. All retro, all the time_
 | 14 | `14` | BUDDIES | `#F39C12` | Movies | 5 | incl Action/Comedy, no Animation/Animated/Horror/Kids/Children/Family/Romance, kw +10, kw needs genre Action/Comedy, 1980-2004 |
 | 15 | **`215`** ⚠︎ | CARTOON NETWORK | `#00BFFF` | Episodes | 5 | networks Cartoon Network, title allowlist (39) |
 | 16 | **`405`** ⚠︎ | DVD SHELF | `#C0392B` | Movies | 5 | 2000-2009 |
-| 17 | **`406`** ⚠︎ | MILLENNIAL COMEDY | `#E67E22` | Movies | 3 | incl Comedy, no Animation/Animated, kw excl (3), 2000-2009 |
-| 18 | **`407`** ⚠︎ | MILLENNIAL SITCOMS | `#F1C40F` | Episodes | 10 | incl Comedy, no Anime/Animation, 2000-2009 |
+| 17 | **`406`** ⚠︎ | Y2K COMEDY | `#E67E22` | Movies | 3 | incl Comedy, no Animation/Animated, kw excl (3), 2000-2009 |
+| 18 | **`407`** ⚠︎ | Y2K SITCOMS | `#F1C40F` | Episodes | 10 | incl Comedy, no Anime/Animation, 2000-2009 |
+| 19 | **`216`** ⚠︎ | Y2K TOONS | `#1ABC9C` | Episodes | 5 | incl Animation/Kids/Children/Cartoon/Animated, 2000-2009, rated TV-Y/TV-Y7/TV-G/G/TV-PG/unrated |
 
-### KIDZ ZONE · CH 20–35
+### KIDZ ZONE · CH 20–34
 
 _Disney, Nickelodeon, Pixar, and more_
 
@@ -133,9 +134,8 @@ _Disney, Nickelodeon, Pixar, and more_
 | 30 | `30` | TEEN DRAMA | `#E74C8B` | Episodes | 5 | incl Drama/Romance/Comedy, no Animation/Anime, kw +7, kw excl (8), 2000-…, rated TV-14/TV-PG |
 | 31 | **`33`** ⚠︎ | FAMILY TV | `#FF7043` | Episodes | 10 | incl Family/Comedy/Drama, no Kids/Children/Cartoon, 2000-…, rated TV-G/TV-PG/TV-14/unrated |
 | 32 | **`34`** ⚠︎ | NETFLIX KIDS | `#E50914` | Any | 3 | incl Family/Kids/Children/Comedy/Adventure, no Horror/Thriller, studios Netflix/Netflix Animation/Netflix Family, title allowlist (28), rated TV-Y/TV-Y7/TV-G/G/PG/TV-PG/unrated |
-| 33 | **`216`** ⚠︎ | MILLENNIUM CARTOONS | `#1ABC9C` | Episodes | 5 | incl Animation/Kids/Children/Cartoon/Animated, 2000-2029, rated TV-Y/TV-Y7/TV-G/G/TV-PG/unrated |
-| 34 | **`218`** ⚠︎ | DREAMWORKS | `#2ECC71` | Any | 5 | studios DreamWorks Animation/Pacific Data Images, rated G/PG/PG-13/TV-Y/TV-Y7/TV-G/TV-PG/unrated |
-| 35 | **`400`** ⚠︎ | TOON TOWN | `#FF9F1C` | Movies | 5 | kw +1, rated G/PG/PG-13/unrated |
+| 33 | **`218`** ⚠︎ | DREAMWORKS | `#2ECC71` | Any | 5 | studios DreamWorks Animation/Pacific Data Images, rated G/PG/PG-13/TV-Y/TV-Y7/TV-G/TV-PG/unrated |
+| 34 | **`400`** ⚠︎ | TOON TOWN | `#FF9F1C` | Movies | 5 | kw +1, rated G/PG/PG-13/unrated |
 
 ### PRIME TIME · CH 40–54
 
@@ -328,13 +328,13 @@ _Music videos by genre_
 |---|---|---|
 | `215` | CH15 | CARTOON NETWORK |
 | `405` | CH16 | DVD SHELF |
-| `406` | CH17 | MILLENNIAL COMEDY |
-| `407` | CH18 | MILLENNIAL SITCOMS |
+| `406` | CH17 | Y2K COMEDY |
+| `407` | CH18 | Y2K SITCOMS |
+| `216` | CH19 | Y2K TOONS |
 | `33` | CH31 | FAMILY TV |
 | `34` | CH32 | NETFLIX KIDS |
-| `216` | CH33 | MILLENNIUM CARTOONS |
-| `218` | CH34 | DREAMWORKS |
-| `400` | CH35 | TOON TOWN |
+| `218` | CH33 | DREAMWORKS |
+| `400` | CH34 | TOON TOWN |
 | `50` | CH40 | SITCOMS |
 | `51` | CH41 | FLICKS |
 | `52` | CH42 | ROM COMS |
@@ -410,4 +410,4 @@ _Music videos by genre_
 
 ---
 
-_Generated from `channels.json` v36 by `scripts/render-channels-doc.mjs`. Do not edit by hand._
+_Generated from `channels.json` v37 by `scripts/render-channels-doc.mjs`. Do not edit by hand._

@@ -1,5 +1,5 @@
 {
-  "version": 36,
+  "version": 37,
   "exclusiveRules": [
     {
       "channelIDs": [
@@ -137,7 +137,8 @@
         215,
         405,
         406,
-        407
+        407,
+        216
       ]
     },
     {
@@ -158,7 +159,6 @@
         30,
         33,
         34,
-        216,
         218,
         400
       ]
@@ -835,7 +835,7 @@
     {
       "id": 406,
       "number": 17,
-      "name": "MILLENNIAL COMEDY",
+      "name": "Y2K COMEDY",
       "colorHex": "#E67E22",
       "category": "nostalgex",
       "minItems": 3,
@@ -864,7 +864,7 @@
     {
       "id": 407,
       "number": 18,
-      "name": "MILLENNIAL SITCOMS",
+      "name": "Y2K SITCOMS",
       "colorHex": "#F1C40F",
       "category": "nostalgex",
       "minItems": 10,
@@ -4897,10 +4897,10 @@
     },
     {
       "id": 216,
-      "number": 33,
-      "name": "MILLENNIUM CARTOONS",
+      "number": 19,
+      "name": "Y2K TOONS",
       "colorHex": "#1ABC9C",
-      "category": "kids",
+      "category": "nostalgex",
       "minItems": 5,
       "rules": {
         "type": "episode",
@@ -4915,7 +4915,7 @@
         },
         "yearRange": {
           "min": 2000,
-          "max": 2029
+          "max": 2009
         },
         "contentRatings": [
           "TV-Y",
@@ -4973,7 +4973,7 @@
     },
     {
       "id": 218,
-      "number": 34,
+      "number": 33,
       "name": "DREAMWORKS",
       "colorHex": "#2ECC71",
       "category": "kids",
@@ -4997,7 +4997,7 @@
     },
     {
       "id": 400,
-      "number": 35,
+      "number": 34,
       "name": "TOON TOWN",
       "colorHex": "#FF9F1C",
       "category": "kids",
