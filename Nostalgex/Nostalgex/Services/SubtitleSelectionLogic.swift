@@ -23,16 +23,31 @@ enum SubtitleSelectionLogic {
     }
 
     /// Builds a comparable language tag from AVFoundation option metadata (matches previous AppState behavior).
+    /// Three-letter tags are folded to their two-letter form: Jellyfin and Emby label HLS
+    /// renditions with the ISO 639-2 code from the file ("eng"), while the settings store "en".
     static func languageTagForComparison(extendedLanguageTag: String?, localeIdentifier: String?) -> String? {
         if let ext = extendedLanguageTag, !ext.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return ext.lowercased()
+            return twoLetterPrimary(ext.lowercased())
         }
         guard let lid = localeIdentifier else { return nil }
         let raw = lid.replacingOccurrences(of: "_", with: "-").lowercased()
         if let idx = raw.firstIndex(of: "-") {
-            return String(raw[..<idx])
+            return twoLetterPrimary(String(raw[..<idx]))
         }
-        return raw.isEmpty ? nil : raw
+        return raw.isEmpty ? nil : twoLetterPrimary(raw)
+    }
+
+    /// ISO 639-2 (both the /T and /B spellings) → 639-1, for the languages the pickers offer.
+    private static let iso639_2to1: [String: String] = [
+        "eng": "en", "spa": "es", "fra": "fr", "fre": "fr", "deu": "de", "ger": "de",
+        "ita": "it", "por": "pt", "jpn": "ja", "kor": "ko", "zho": "zh", "chi": "zh",
+        "rus": "ru", "ara": "ar", "nld": "nl", "dut": "nl", "pol": "pl", "swe": "sv",
+    ]
+
+    private static func twoLetterPrimary(_ tag: String) -> String {
+        let parts = tag.split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false)
+        guard let primary = parts.first, let mapped = iso639_2to1[String(primary)] else { return tag }
+        return parts.count > 1 ? mapped + "-" + parts[1] : mapped
     }
 
     /// True when foreign-audio auto-subtitles should kick in: every audio track's language is

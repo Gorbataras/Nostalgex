@@ -27,11 +27,20 @@ extension JellyfinPlaybackResolver {
 ///   • HEVC is only an acceptable codec when the device can hardware-decode it.
 ///   • Transcoding always targets fMP4 HLS (`Container: "mp4"`), never MPEG-TS — AVPlayer
 ///     cannot render HEVC from a TS segment (the original black-screen bug).
+/// Subtitles: with no SubtitleProfiles the server's only option is to burn the user's
+/// default subtitle into the picture, where our CC toggle can't reach it. Offering WebVTT
+/// over HLS makes text subtitles arrive as legible renditions AVPlayer can switch.
 struct JellyfinDeviceProfile: Encodable, Sendable {
     let MaxStreamingBitrate: Int
     let MaxStaticBitrate: Int
     let DirectPlayProfiles: [DirectPlayProfile]
     let TranscodingProfiles: [TranscodingProfile]
+    let SubtitleProfiles: [SubtitleProfile]
+
+    struct SubtitleProfile: Encodable, Sendable {
+        let Format: String
+        let Method: String
+    }
 
     struct DirectPlayProfile: Encodable, Sendable {
         let Container: String
@@ -81,6 +90,9 @@ enum JellyfinPlaybackResolver {
                 // fMP4 HLS, h264 (+hevc when capable), audio forced into AVPlayer-friendly codecs.
                 .init(Container: "mp4", mediaType: "Video", VideoCodec: videoCodecs, AudioCodec: audioCodecs,
                       Context: "Streaming", MaxAudioChannels: "6", protocolName: "hls"),
+            ],
+            SubtitleProfiles: [
+                .init(Format: "vtt", Method: "Hls"),
             ]
         )
     }
@@ -96,7 +108,53 @@ enum JellyfinPlaybackResolver {
             let SupportsDirectStream: Bool?
             let SupportsTranscoding: Bool?
             let TranscodingUrl: String?
+            let DefaultSubtitleStreamIndex: Int?
+            let MediaStreams: [MediaStream]?
         }
+
+        struct MediaStream: Decodable, Sendable {
+            let Index: Int?
+            let streamType: String?
+            let IsTextSubtitleStream: Bool?
+
+            enum CodingKeys: String, CodingKey {
+                case Index, IsTextSubtitleStream
+                case streamType = "Type"
+            }
+        }
+    }
+
+    /// Jellyfin only lists subtitle renditions in the HLS master playlist when the URL names
+    /// a subtitle stream with `SubtitleMethod=Hls`, and then it lists every text subtitle the
+    /// source has. So whenever the source has any, point the URL at one: the server's own
+    /// pick if it is text, else the first text stream. That also replaces a burn-in of an
+    /// image subtitle (`SubtitleMethod=Encode`), which our CC toggle could never turn off.
+    /// Sources with only image subtitles (PGS, VobSub) are left as the server chose — burning
+    /// in is the only way AVPlayer can show those at all.
+    static func addingHlsSubtitles(to url: URL, source: PlaybackInfoResponse.PlaybackMediaSource) -> URL {
+        let textIndexes = (source.MediaStreams ?? [])
+            .filter { $0.streamType == "Subtitle" && $0.IsTextSubtitleStream == true }
+            .compactMap(\.Index)
+        guard !textIndexes.isEmpty, var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        var items = c.queryItems ?? []
+        func value(_ name: String) -> String? {
+            items.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }?.value
+        }
+        let current = value("SubtitleStreamIndex").flatMap(Int.init)
+        if let current, textIndexes.contains(current), value("SubtitleMethod")?.lowercased() == "hls" {
+            return url
+        }
+        let pick = [current, source.DefaultSubtitleStreamIndex]
+            .compactMap { $0 }
+            .first { textIndexes.contains($0) } ?? textIndexes[0]
+        items.removeAll {
+            $0.name.caseInsensitiveCompare("SubtitleStreamIndex") == .orderedSame
+                || $0.name.caseInsensitiveCompare("SubtitleMethod") == .orderedSame
+        }
+        items.append(.init(name: "SubtitleStreamIndex", value: String(pick)))
+        items.append(.init(name: "SubtitleMethod", value: "Hls"))
+        c.queryItems = items
+        return c.url ?? url
     }
 
     /// Pure selection of the playback URL from a decoded PlaybackInfo. No networking — unit
@@ -116,7 +174,8 @@ enum JellyfinPlaybackResolver {
         //    session + params). Only ensure api_key is present for the segment requests.
         if let relative = source?.TranscodingUrl, !relative.isEmpty {
             if let url = makeURL(serverURL: serverURL, relativeOrAbsolute: relative, apiKey: apiKey) {
-                return PlaybackResolution(url: url, playSessionId: info.PlaySessionId, isDirectPlay: false)
+                let withSubs = source.map { addingHlsSubtitles(to: url, source: $0) } ?? url
+                return PlaybackResolution(url: withSubs, playSessionId: info.PlaySessionId, isDirectPlay: false)
             }
         }
 
