@@ -52,6 +52,30 @@ final class SubtitleSelectionLogicTests: XCTestCase {
         )
     }
 
+    func testLanguageTag_foldsThreeLetterCodes() {
+        XCTAssertEqual(
+            SubtitleSelectionLogic.languageTagForComparison(extendedLanguageTag: "eng", localeIdentifier: nil),
+            "en"
+        )
+        XCTAssertEqual(
+            SubtitleSelectionLogic.languageTagForComparison(extendedLanguageTag: "GER", localeIdentifier: nil),
+            "de"
+        )
+        XCTAssertEqual(
+            SubtitleSelectionLogic.languageTagForComparison(extendedLanguageTag: "por-BR", localeIdentifier: nil),
+            "pt-br"
+        )
+        XCTAssertEqual(
+            SubtitleSelectionLogic.languageTagForComparison(extendedLanguageTag: nil, localeIdentifier: "spa"),
+            "es"
+        )
+        XCTAssertEqual(
+            SubtitleSelectionLogic.languageTagForComparison(extendedLanguageTag: "und", localeIdentifier: nil),
+            "und",
+            "unknown stays unknown so auto-subtitles keep refusing to guess"
+        )
+    }
+
     // MARK: - preferredTrackIndex
 
     func testPreferredTrackIndex_exactPrimaryMatch() {

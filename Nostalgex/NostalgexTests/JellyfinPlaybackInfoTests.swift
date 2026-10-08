@@ -108,4 +108,74 @@ final class JellyfinPlaybackInfoTests: XCTestCase {
             info, serverURL: "http://jelly.local:8096", apiKey: "TKN", itemId: "m1", mediaSourceId: "src1"))
         XCTAssertTrue(res.url.absoluteString.contains("MediaSourceId=src1"))
     }
+
+    // MARK: - Subtitles
+
+    func testDeviceProfileOffersHlsWebVTTSubtitles() throws {
+        let json = try profileJSON(supportsHEVC: true)
+        XCTAssertTrue(json.contains("\"SubtitleProfiles\":[{\"Format\":\"vtt\",\"Method\":\"Hls\"}]"),
+                      "without a subtitle profile Jellyfin can only burn subtitles into the picture")
+    }
+
+    private func query(_ url: URL) -> [String: String] {
+        let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        return Dictionary(items.map { ($0.name, $0.value ?? "") }, uniquingKeysWith: { a, _ in a })
+    }
+
+    private func resolveURL(_ json: String) throws -> URL {
+        try XCTUnwrap(JellyfinPlaybackResolver.resolve(
+            try decodeInfo(json), serverURL: "http://jelly.local:8096", apiKey: "TKN", itemId: "m1", mediaSourceId: "src1")).url
+    }
+
+    func testTextSubtitlesAreRequestedAsHlsRenditionsWhenServerPickedNone() throws {
+        let url = try resolveURL("""
+        { "MediaSources": [ { "Id": "src1", "TranscodingUrl": "/Videos/m1/master.m3u8?MediaSourceId=src1&api_key=TKN",
+            "MediaStreams": [ { "Index": 0, "Type": "Video" }, { "Index": 1, "Type": "Audio" },
+                              { "Index": 2, "Type": "Subtitle", "IsTextSubtitleStream": true, "Language": "eng" } ] } ] }
+        """)
+        XCTAssertEqual(query(url)["SubtitleStreamIndex"], "2")
+        XCTAssertEqual(query(url)["SubtitleMethod"], "Hls")
+    }
+
+    func testImageBurnInIsReplacedByATextRendition() throws {
+        let url = try resolveURL("""
+        { "MediaSources": [ { "Id": "src1", "DefaultSubtitleStreamIndex": 2,
+            "TranscodingUrl": "/Videos/m1/master.m3u8?SubtitleStreamIndex=2&SubtitleMethod=Encode&api_key=TKN",
+            "MediaStreams": [ { "Index": 2, "Type": "Subtitle", "IsTextSubtitleStream": false },
+                              { "Index": 3, "Type": "Subtitle", "IsTextSubtitleStream": true } ] } ] }
+        """)
+        XCTAssertEqual(query(url)["SubtitleStreamIndex"], "3")
+        XCTAssertEqual(query(url)["SubtitleMethod"], "Hls")
+        XCTAssertEqual(url.absoluteString.components(separatedBy: "SubtitleMethod=").count - 1, 1)
+    }
+
+    func testServersOwnTextPickIsKept() throws {
+        let url = try resolveURL("""
+        { "MediaSources": [ { "Id": "src1", "DefaultSubtitleStreamIndex": 4,
+            "TranscodingUrl": "/Videos/m1/master.m3u8?SubtitleStreamIndex=4&SubtitleMethod=Encode&api_key=TKN",
+            "MediaStreams": [ { "Index": 3, "Type": "Subtitle", "IsTextSubtitleStream": true },
+                              { "Index": 4, "Type": "Subtitle", "IsTextSubtitleStream": true } ] } ] }
+        """)
+        XCTAssertEqual(query(url)["SubtitleStreamIndex"], "4")
+        XCTAssertEqual(query(url)["SubtitleMethod"], "Hls")
+    }
+
+    func testImageOnlySubtitlesAreLeftAsTheServerChose() throws {
+        let url = try resolveURL("""
+        { "MediaSources": [ { "Id": "src1",
+            "TranscodingUrl": "/Videos/m1/master.m3u8?SubtitleStreamIndex=2&SubtitleMethod=Encode&api_key=TKN",
+            "MediaStreams": [ { "Index": 2, "Type": "Subtitle", "IsTextSubtitleStream": false } ] } ] }
+        """)
+        XCTAssertEqual(query(url)["SubtitleStreamIndex"], "2")
+        XCTAssertEqual(query(url)["SubtitleMethod"], "Encode")
+    }
+
+    func testNoSubtitleStreamsLeavesTheUrlAlone() throws {
+        let url = try resolveURL("""
+        { "MediaSources": [ { "Id": "src1", "TranscodingUrl": "/Videos/m1/master.m3u8?MediaSourceId=src1&api_key=TKN",
+            "MediaStreams": [ { "Index": 0, "Type": "Video" } ] } ] }
+        """)
+        XCTAssertNil(query(url)["SubtitleStreamIndex"])
+        XCTAssertNil(query(url)["SubtitleMethod"])
+    }
 }
