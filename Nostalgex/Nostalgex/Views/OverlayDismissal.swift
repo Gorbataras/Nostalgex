@@ -51,18 +51,3 @@ struct FocusExitEdge: View {
             .accessibilityHidden(true)
     }
 }
-
-/// The small caption telling a viewer how to get out of an overlay.
-struct OverlayCloseHint: View {
-    /// The swipe that closes the overlay, alongside Back.
-    let swipe: String
-
-    var body: some View {
-        Text("PRESS BACK OR SWIPE \(swipe) TO CLOSE")
-            .font(.custom("DMMono-Regular", size: 16))
-            .foregroundStyle(.white.opacity(0.5))
-            .tracking(1)
-            .lineLimit(1)
-            .accessibilityHidden(true)
-    }
-}

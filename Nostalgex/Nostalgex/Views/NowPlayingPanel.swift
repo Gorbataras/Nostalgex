@@ -212,9 +212,6 @@ struct NowPlayingPanel: View {
                     .lineLimit(1)
                     .padding(.top, 4)
             }
-
-            OverlayCloseHint(swipe: "UP")
-                .padding(.top, 12)
             }
             .frame(maxWidth: 640, alignment: .leading)
         }

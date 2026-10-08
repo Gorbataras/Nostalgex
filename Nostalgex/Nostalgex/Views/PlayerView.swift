@@ -293,10 +293,6 @@ private struct MiniChannelStrip: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            OverlayCloseHint(swipe: "DOWN")
-                .padding(.leading, 40)
-                .padding(.top, 20)
-
             ScrollViewReader { proxy in
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {

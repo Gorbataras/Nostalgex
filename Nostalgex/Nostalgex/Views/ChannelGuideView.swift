@@ -555,16 +555,12 @@ private struct BundleJumpSidebar: View {
     var body: some View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("PACKAGES")
-                        .font(.custom("DMMono-Medium", size: 22))
-                        .foregroundStyle(.white.opacity(0.6))
-                    OverlayCloseHint(swipe: "RIGHT")
-                        .minimumScaleFactor(0.7)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 18)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("PACKAGES")
+                    .font(.custom("DMMono-Medium", size: 22))
+                    .foregroundStyle(.white.opacity(0.6))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 18)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: false) {
