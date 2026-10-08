@@ -292,40 +292,48 @@ private struct MiniChannelStrip: View {
     @FocusState private var focusedID: Int?
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(channels) { channel in
-                        let isCurrent = channel.id == currentChannelID
-                        let isFocused = focusedID == channel.id
+        VStack(alignment: .leading, spacing: 0) {
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(channels) { channel in
+                            let isCurrent = channel.id == currentChannelID
+                            let isFocused = focusedID == channel.id
 
-                        Button {
-                            onSelect(channel)
-                        } label: {
-                            stripCard(channel: channel, isCurrent: isCurrent, isFocused: isFocused)
+                            Button {
+                                onSelect(channel)
+                            } label: {
+                                stripCard(channel: channel, isCurrent: isCurrent, isFocused: isFocused)
+                            }
+                            // Same treatment as tuner nav — tvOS `.plain` still applies a huge glass/zoom ring.
+                            .buttonStyle(NoHighlightButtonStyle())
+                            .focused($focusedID, equals: channel.id)
+                            .accessibilityLabel("Channel \(channel.number), \(channel.name)")
+                            .id(channel.id)
                         }
-                        // Same treatment as tuner nav — tvOS `.plain` still applies a huge glass/zoom ring.
-                        .buttonStyle(NoHighlightButtonStyle())
-                        .focused($focusedID, equals: channel.id)
-                        .accessibilityLabel("Channel \(channel.number), \(channel.name)")
-                        .id(channel.id)
                     }
+                    .padding(.horizontal, 40)
+                    .padding(.vertical, 20)
                 }
-                .padding(.horizontal, 40)
-                .padding(.vertical, 20)
-            }
-            .onAppear {
-                focusedID = currentChannelID
-                if let id = currentChannelID {
-                    proxy.scrollTo(id, anchor: .center)
-                }
-            }
-            .onChange(of: focusedID) { _, newID in
-                if let id = newID {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                .onAppear {
+                    focusedID = currentChannelID
+                    if let id = currentChannelID {
                         proxy.scrollTo(id, anchor: .center)
                     }
                 }
+                .onChange(of: focusedID) { _, newID in
+                    if let id = newID {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo(id, anchor: .center)
+                        }
+                    }
+                }
+            }
+
+            // Down from any card walks onto this and closes the strip, the reverse of the
+            // Up that opened it. Before, Down did nothing and only Back got out.
+            FocusExitEdge {
+                onDismiss?()
             }
         }
         .background(

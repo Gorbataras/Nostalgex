@@ -25,11 +25,12 @@ final class NowPlayingPanelFocusTests: XCTestCase {
         XCTAssertTrue(demo.hasFocus, "could not focus the demo mode button")
         XCUIRemote.shared.press(.select)
 
-        // Play/Pause on the tuner enters fullscreen; UP opens the panel.
+        // Play/Pause on the tuner enters fullscreen; DOWN opens the panel (UP is the
+        // mini guide at the bottom).
         XCTAssertTrue(waitForTuner(app), "demo mode never reached the tuner")
         XCUIRemote.shared.press(.playPause)
         Thread.sleep(forTimeInterval: 5)
-        XCUIRemote.shared.press(.up)
+        XCUIRemote.shared.press(.down)
 
         XCTAssertTrue(
             app.buttons.matching(labelContains("RETRO MODE")).firstMatch.waitForExistence(timeout: 15),
@@ -97,7 +98,10 @@ final class NowPlayingPanelFocusTests: XCTestCase {
         // Cross into the device column and walk it top to bottom.
         XCUIRemote.shared.press(.right)
         XCTAssertNotNil(focusedLabel(app), "focus was lost crossing to the device column")
-        walk(app, .up, steps: 12)
+        // Climb to the top row, but no further: Up from there closes the panel.
+        for _ in 0..<12 where !(focusedLabel(app)?.localizedCaseInsensitiveContains("RETRO MODE") ?? true) {
+            XCUIRemote.shared.press(.up)
+        }
 
         let deviceColumn = walk(app, .down, steps: 12).joined(separator: " | ")
         for expected in ["RETRO MODE", "STREAM QUALITY", "OFF", "15 MIN", "30 MIN", "1 HR"] {
@@ -154,5 +158,21 @@ final class NowPlayingPanelFocusTests: XCTestCase {
             landed.localizedCaseInsensitiveContains("STREAM QUALITY"),
             "focus did not return to the STREAM QUALITY row, landed on: \(landed)"
         )
+    }
+
+    /// Up from the top row is the way out, the reverse of the Down that opened the panel.
+    /// Before, it did nothing, and Back was the only exit nobody could see.
+    func testPanelFocus_upFromTheTopRowClosesThePanel() {
+        let app = launchIntoPanel()
+        XCTAssertEqual(focusedLabel(app)?.contains("CC"), true, "panel did not open focused on CC")
+
+        // The exit edge arms shortly after the panel opens.
+        Thread.sleep(forTimeInterval: 1)
+        XCUIRemote.shared.press(.up)
+
+        let retro = app.buttons.matching(labelContains("RETRO MODE")).firstMatch
+        let closed = NSPredicate(format: "exists == false")
+        expectation(for: closed, evaluatedWith: retro)
+        waitForExpectations(timeout: 10)
     }
 }

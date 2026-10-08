@@ -21,6 +21,9 @@ struct ChannelGuideView: View {
     @State private var lastFocusMoveAt: Date = .distantPast
 
     @State private var showBundleSidebar: Bool = false
+    /// The row that had focus when the package sidebar opened, so backing out of the
+    /// sidebar puts the viewer back where they were.
+    @State private var focusBeforeSidebar: Int?
 
     /// Sentinel focus id for the seasonal invite row. Real channels use their own id, and
     /// none of them is negative.
@@ -123,6 +126,14 @@ struct ChannelGuideView: View {
                         }
                         .onChange(of: focusedChannelID) { _, newID in
                             lastFocusMoveAt = Date()
+                            // Focus walked out of the package sidebar and onto the grid
+                            // (Right from any package row). The sidebar used to stay drawn
+                            // over the grid with focus behind it, and Left could not close
+                            // it again. Focus is already on the row beside the one it
+                            // left, which is a fine place to land, so leave it there.
+                            if showBundleSidebar, newID != nil {
+                                closeBundleSidebar(restoringFocus: false)
+                            }
                             if !suppressFocusScroll, let id = newID {
                                 withAnimation(.easeInOut(duration: 0.2)) {
                                     proxy.scrollTo(id, anchor: .center)
@@ -187,15 +198,14 @@ struct ChannelGuideView: View {
                     if slotOffset > 0 {
                         slotOffset -= 1
                     } else if !showBundleSidebar {
+                        focusBeforeSidebar = focusedChannelID
                         withAnimation(.easeOut(duration: 0.2)) {
                             showBundleSidebar = true
                         }
                     }
                 case .right:
                     if showBundleSidebar {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            showBundleSidebar = false
-                        }
+                        closeBundleSidebar(restoringFocus: false)
                     } else if slotOffset < maxSlotOffset {
                         slotOffset += 1
                     }
@@ -266,21 +276,18 @@ struct ChannelGuideView: View {
                 BundleJumpSidebar(
                     targets: appState.bundleJumpTargets,
                     onSelect: { firstChannelID in
+                        closeBundleSidebar(restoringFocus: false)
                         focusedChannelID = firstChannelID
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            showBundleSidebar = false
-                        }
                     },
                     onOpenSettings: {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            showBundleSidebar = false
-                        }
+                        closeBundleSidebar(restoringFocus: false)
                         onOpenSettings?()
                     },
                     onDismiss: {
-                        withAnimation(.easeIn(duration: 0.15)) {
-                            showBundleSidebar = false
-                        }
+                        closeBundleSidebar(restoringFocus: true)
+                    },
+                    onFocusLeft: {
+                        closeBundleSidebar(restoringFocus: false)
                     }
                 )
                 .transition(.move(edge: .leading))
@@ -535,6 +542,8 @@ private struct BundleJumpSidebar: View {
     let onSelect: (Int) -> Void
     let onOpenSettings: () -> Void
     let onDismiss: () -> Void
+    /// Focus moved out of the sidebar on its own, so it is already somewhere sensible.
+    let onFocusLeft: () -> Void
     /// -1 is the pinned Settings row. Package rows use their list index.
     @FocusState private var focusedIndex: Int?
     private let settingsFocus = -1
@@ -665,6 +674,12 @@ private struct BundleJumpSidebar: View {
         .onAppear {
             focusedIndex = 0
         }
+        // Focus left the sidebar without a pick: Right into the grid, or Up past the
+        // Settings row into the nav bar. Either way the sidebar has nothing left to do,
+        // and leaving it drawn with focus somewhere behind it is what made it feel stuck.
+        .onChange(of: focusedIndex) { old, new in
+            if old != nil, new == nil { onFocusLeft() }
+        }
         .onExitCommand {
             onDismiss()
         }
@@ -673,6 +688,22 @@ private struct BundleJumpSidebar: View {
 
 
 private extension ChannelGuideView {
+    /// Every way out of the package sidebar goes through here. `restoringFocus` puts focus
+    /// back on the row it left, for Back, where focus would otherwise fall wherever the
+    /// engine puts it once the sidebar's rows disappear. Every other exit already has a
+    /// destination for focus.
+    func closeBundleSidebar(restoringFocus: Bool) {
+        let previous = focusBeforeSidebar
+        focusBeforeSidebar = nil
+        guard showBundleSidebar else { return }
+        withAnimation(.easeIn(duration: 0.15)) {
+            showBundleSidebar = false
+        }
+        if restoringFocus, let previous, previous != focusedChannelID {
+            focusedChannelID = previous
+        }
+    }
+
     /// Menu jumps back to the channel that's playing, so a long scroll down the grid
     /// doesn't mean scrolling all the way back up. Once focus is already there the guide
     /// declines the press entirely, so tvOS can background the app.

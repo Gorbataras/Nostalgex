@@ -80,8 +80,8 @@ private enum PanelPicker: Hashable {
     case audioLanguage
 }
 
-/// Top-anchored in-player control panel opened with the Siri Remote UP button — the
-/// counterpart to the bottom mini-guide. Left: now-playing context + Up Next.
+/// Top-anchored in-player control panel opened with Down on the Siri Remote (and closed
+/// with Up or Back) — the counterpart to the bottom mini-guide. Left: now-playing context + Up Next.
 /// Right: two control columns — what this program is doing right now (captions, audio),
 /// and what the device is doing (picture, stream quality, sleep timer).
 struct NowPlayingPanel: View {
@@ -114,14 +114,23 @@ struct NowPlayingPanel: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 40) {
-            infoZone
-            Spacer(minLength: 24)
-            controlsZone
+        VStack(spacing: 0) {
+            // Up from the top row of either column walks onto this and closes the panel,
+            // the reverse of the Down that opened it. Off while a picker is expanded:
+            // there, like Back, the way out goes through the collapsed columns first.
+            FocusExitEdge(isEnabled: expandedPicker == nil) {
+                onDismiss?()
+            }
+
+            HStack(alignment: .top, spacing: 40) {
+                infoZone
+                Spacer(minLength: 24)
+                controlsZone
+            }
+            .padding(.horizontal, 48)
+            .padding(.top, 38)
+            .padding(.bottom, 32)
         }
-        .padding(.horizontal, 48)
-        .padding(.top, 40)
-        .padding(.bottom, 32)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
